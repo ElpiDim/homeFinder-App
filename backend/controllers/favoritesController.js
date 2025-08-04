@@ -1,5 +1,4 @@
 const Favorites = require("../models/favorites");
-const User = require("../models/user");
 const Notification = require("../models/notification");
 const Property = require("../models/property");
 const addFavorite = async (req, res) => {
@@ -23,6 +22,7 @@ const addFavorite = async (req, res) => {
         userId: ownerId,
         type: "interest",
         referenceId: property._id,
+        senderId: userId
       });
     }
 
