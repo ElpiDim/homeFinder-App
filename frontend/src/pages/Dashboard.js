@@ -78,7 +78,7 @@ function Dashboard() {
         const res = await axios.get('/api/favorites', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setFavorites(res.data.map(fav => fav._id));
+        setFavorites(res.data.map(fav => fav.propertyId._id));
       } catch (err) {
         console.error('Error fetching favorites', err);
       }
