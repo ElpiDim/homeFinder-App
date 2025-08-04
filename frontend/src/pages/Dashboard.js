@@ -181,11 +181,12 @@ function Dashboard() {
                   <ul className="list-unstyled mb-0">
                     {notifications.map((note, idx) => (
                       <li key={idx} className="border-bottom py-2">
-                        {note.type === "interest" && "Someone added your property to favorites."}
-                        {note.type === "property_removed" && "A property you have added to your favorites has been removed."}
-                        {note.type === "message" && "You have a new message."}
-                        {note.type === "appointment" && "you have a new appointment."}
-                        {!["interest", "property_removed", "message", "appointment"].includes(note.type) && "Νέα ειδοποίηση."}
+                        {note.message ||
+                          (note.type === "interest" && "Someone added your property to favorites.") ||
+                          (note.type === "property_removed" && "A property you have added to your favorites has been removed.") ||
+                          (note.type === "message" && "You have a new message.") ||
+                          (note.type === "appointment" && "you have a new appointment.") ||
+                          "Νέα ειδοποίηση."}
                       </li>
                     ))}
                   </ul>
