@@ -1,6 +1,8 @@
 const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
+const User = require("../models/user");
+const nodemailer = require("nodemailer");
 
 
 
@@ -176,24 +178,54 @@ exports.deleteProperty = async (req, res) => {
     if (property.ownerId.toString() !== req.user.userId)
       return res.status(403).json({ message: "Unauthorized" });
 
-    // 🔍 Βρες όλους όσους έχουν κάνει favorite αυτό το property
+    // 🔍 Find all favorites for this property
     const favorites = await Favorites.find({ propertyId: property._id });
 
-
-    // 📩 Στείλε ειδοποιήσεις σε αυτούς
-    const notifications = favorites.map(fav => ({
+    // 📩 Create in-app notifications for favoriting users
+    const notifications = favorites.map((fav) => ({
       userId: fav.userId,
-      type: "property_removed", // ή "removed" αν θες νέο type
+      type: "property_removed",
       referenceId: property._id,
     }));
-
-    console.log("📩 Notifications to insert:", notifications);
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications);
     }
 
-    // 🧹 Διέγραψε το property και τα favorites
+    // ✉️ Email tenants about the removal
+    try {
+      const userIds = favorites.map((fav) => fav.userId);
+      const tenants = await User.find({ _id: { $in: userIds } });
+
+      if (tenants.length > 0) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        await Promise.all(
+          tenants.map((tenant) =>
+            transporter.sendMail({
+              from: process.env.SMTP_USER,
+              to: tenant.email,
+              subject: "Property removed",
+              text:
+                'The property "' +
+                property.title +
+                '" has been removed by the owner and is no longer available.',
+            })
+          )
+        );
+      }
+    } catch (mailErr) {
+      console.error("❌ Email send error:", mailErr);
+    }
+
+    // 🧹 Delete property and its favorites
     await property.deleteOne();
     await Favorites.deleteMany({ propertyId: property._id });
 

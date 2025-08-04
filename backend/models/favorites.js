@@ -20,3 +20,4 @@ const favoritesSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("Favorites", favoritesSchema);
+
