@@ -11,6 +11,9 @@ const notificationSchema = new mongoose.Schema({
     enum: ["interest", "message", "appointment"],
     required: true,
   },
+  message: {
+    type: String,
+  },
   referenceId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,

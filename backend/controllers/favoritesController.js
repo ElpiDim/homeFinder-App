@@ -23,6 +23,7 @@ const addFavorite = async (req, res) => {
         userId: ownerId,
         type: "interest",
         referenceId: property._id,
+        message: `Your property "${property.title}" was added to favorites.`,
       });
     }
 
