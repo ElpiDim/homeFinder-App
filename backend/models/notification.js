@@ -15,6 +15,10 @@ const notificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
   read: {
     type: Boolean,
     default: false,

@@ -5,7 +5,9 @@ exports.getNotifications = async (req, res) => {
   const userId = req.user.userId;
 
   try {
-    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ userId })
+      .sort({ createdAt: -1 })
+      .populate('senderId', 'name');
     res.json(notifications);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
