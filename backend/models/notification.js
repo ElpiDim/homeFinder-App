@@ -8,12 +8,19 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ["interest", "message", "appointment","property_removed"],
+    enum: ["interest", "message", "appointment", "property_removed", "favorite"],
     required: true,
   },
   referenceId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
+  },
+  tenantName: {
+    type: String,
+  },
+  favoritedAt: {
+    type: Date,
+    default: Date.now,
   },
   read: {
     type: Boolean,

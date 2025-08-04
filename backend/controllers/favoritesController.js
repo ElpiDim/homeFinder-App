@@ -13,17 +13,25 @@ const addFavorite = async (req, res) => {
     const favorite = new Favorites({ userId, propertyId });
     await favorite.save();
 
-    const property = await Property.findById(propertyId);
+    const property = await Property.findById(propertyId).select('ownerId');
     if (!property) return res.status(404).json({ message: "Property not found" });
 
     const ownerId = property.ownerId;
+    const tenant = await User.findById(userId).select('name');
+    const tenantName = tenant ? tenant.name : undefined;
 
     if (ownerId && ownerId.toString() !== userId) {
-      await Notification.create({
-        userId: ownerId,
-        type: "interest",
-        referenceId: property._id,
-      });
+      try {
+        await Notification.create({
+          userId: ownerId,
+          type: 'favorite',
+          referenceId: propertyId,
+          tenantName,
+          favoritedAt: new Date(),
+        });
+      } catch (notificationError) {
+        console.error('Error creating favorite notification:', notificationError);
+      }
     }
 
     res.status(201).json({ message: "Added to favorites" });
