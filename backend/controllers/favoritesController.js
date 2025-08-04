@@ -21,7 +21,7 @@ const addFavorite = async (req, res) => {
     if (ownerId && ownerId.toString() !== userId) {
       await Notification.create({
         userId: ownerId,
-        type: "interest",
+        type: "favorite",
         referenceId: property._id,
       });
     }
