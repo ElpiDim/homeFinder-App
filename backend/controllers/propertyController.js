@@ -1,4 +1,8 @@
 const Property = require("../models/property");
+const Favorites = require("../models/favorites");
+const Notification = require("../models/notification");
+
+
 
 // CREATE PROPERTY
 exports.createProperty = async (req, res) => {
@@ -166,15 +170,36 @@ exports.updateProperty = async (req, res) => {
 exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
-    if (!property) return res.status(404).json({ message: "Property not found" });
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
 
     if (property.ownerId.toString() !== req.user.userId)
       return res.status(403).json({ message: "Unauthorized" });
 
+    // 🔍 Βρες όλους όσους έχουν κάνει favorite αυτό το property
+    const favorites = await Favorites.find({ propertyId: property._id });
+
+
+    // 📩 Στείλε ειδοποιήσεις σε αυτούς
+    const notifications = favorites.map(fav => ({
+      userId: fav.userId,
+      type: "property_removed", // ή "removed" αν θες νέο type
+      referenceId: property._id,
+    }));
+
+    console.log("📩 Notifications to insert:", notifications);
+
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
+    }
+
+    // 🧹 Διέγραψε το property και τα favorites
     await property.deleteOne();
-    res.json({ message: "Property deleted" });
+    await Favorites.deleteMany({ propertyId: property._id });
+
+    res.json({ message: "Property and related favorites deleted." });
   } catch (err) {
-    console.error("❌ DELETE ERROR:", err);
+    console.error("❌ deleteProperty error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

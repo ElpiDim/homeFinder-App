@@ -22,7 +22,7 @@ function Dashboard() {
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice]= useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -175,9 +175,19 @@ function Dashboard() {
                   <strong>Notifications</strong>
                   <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowNotifications(false)}>×</button>
                 </div>
-                {notifications.length === 0 ? (<p className="text-muted mb-0">No notifications</p>) : (
+                {notifications.length === 0 ? (
+                  <p className="text-muted mb-0">No notifications</p>
+                ) : (
                   <ul className="list-unstyled mb-0">
-                    {notifications.map((note, idx) => (<li key={idx} className="border-bottom py-2">{note.message}</li>))}
+                    {notifications.map((note, idx) => (
+                      <li key={idx} className="border-bottom py-2">
+                        {note.type === "interest" && "Someone added your property to favorites."}
+                        {note.type === "property_removed" && "A property you have added to your favorites has been removed."}
+                        {note.type === "message" && "You have a new message."}
+                        {note.type === "appointment" && "you have a new appointment."}
+                        {!["interest", "property_removed", "message", "appointment"].includes(note.type) && "Νέα ειδοποίηση."}
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>
@@ -205,7 +215,6 @@ function Dashboard() {
                   <p>No properties available.</p>
                 ) : (
                   <div className="property-scroll-area">
-
                     <div className="row mt-4">
                       {properties.map((prop) => (
                         <div key={prop._id} className="col-md-6 mb-4">
@@ -232,9 +241,8 @@ function Dashboard() {
                         </div>
                       ))}
                     </div>
-                    </div>
-                  )}
-                
+                  </div>
+                )}
               </div>
             </div>
 

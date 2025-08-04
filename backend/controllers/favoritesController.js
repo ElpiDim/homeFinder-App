@@ -39,7 +39,9 @@ const getFavorites = async (req, res) => {
   const userId = req.user.userId;
   try {
     const favorites = await Favorites.find({ userId }).populate("propertyId");
-    res.json(favorites);
+    const filtered = favorites.filter(f => f.propertyId !== null); // ✅ remove invalid ones
+    res.json(filtered);
+
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
