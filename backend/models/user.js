@@ -28,6 +28,13 @@ const userSchema =  new mongoose.Schema({
     address: String, 
     occupation: String,
     salary: Number,
+    favorites: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Property'
+    }
+]
+
 }); 
 
 module.exports = mongoose.model("User", userSchema);

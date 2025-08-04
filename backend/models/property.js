@@ -9,7 +9,7 @@ const propertySchema = new mongoose.Schema({
 
     title:{
         type: String,
-        requred: true,
+        required: true,
         trim: true 
     }, 
     price: {
@@ -30,25 +30,68 @@ const propertySchema = new mongoose.Schema({
 
     floor: {
         type: Number 
-
     },
 
     squareMeters:{
         type: Number
-    
-    }, 
+    },
+
+    surface: {
+        type: Number
+    },
+
+    onTopFloor: {
+        type: Boolean,
+        default: false
+    },
+
+    levels: {
+        type: Number,
+        default: 1
+    },
+
+    bedrooms: {
+        type: Number,
+        default: 0
+    },
+
+    bathrooms: {
+        type: Number,
+        default: 0
+    },
+
+    wc: {
+        type: Number,
+        default: 0
+    },
+
+    kitchens: {
+        type: Number,
+        default: 0
+    },
+
+    livingRooms: {
+        type: Number,
+        default: 0
+    },
+
+    features: [{
+        type: String
+    }],
 
     status:{ 
         type : String, 
         enum: ["available","rented", "sold"], 
         default: "available"
     }, 
+    images:[{
+        type: String, 
+        default: null
+    }], 
     createdAt:{ 
         type: Date, 
         default: Date.now
     }
-
-
 });
 
 module.exports = mongoose.model("Property", propertySchema);

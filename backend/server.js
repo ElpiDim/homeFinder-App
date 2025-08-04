@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv").config();
+const path = require("path");
 
 require("dotenv").config();
 
@@ -31,7 +32,7 @@ app.listen(PORT,() =>{
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require("./routes/user");
-const propertyRoutes = require("./routes/Properties");
+const propertyRoutes = require("./routes/properties");
 const favoritesRoutes = require('./routes/favorites');
 const messageRoutes = require("./routes/messages");
 const interestRoutes = require("./routes/interests");
@@ -47,3 +48,4 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/interests", interestRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/uploads", express.static(path.join(__dirname,'uploads'))); // για να σερβίρει τα αρχεία από τον φάκελο uploads 

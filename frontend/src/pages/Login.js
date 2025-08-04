@@ -32,12 +32,14 @@ function Login() {
   };
 
   return (
+    <div className="login-background d-flex flex-column justify-content-center align-items-center vh-100">
     <div className="container mt-5">
+      
       <h2>User Login</h2>
       {message && <div className="alert alert-info">{message}</div>}
 
       <form onSubmit={handleLogin}>
-        <div className="mb-3">
+        <div className="mb-">
           <label>Email</label>
           <input
             type="email"
@@ -48,7 +50,7 @@ function Login() {
           />
         </div>
 
-        <div className="mb-3">
+        <div className="mb-5">
           <label>Password</label>
           <input
             type="password"
@@ -63,6 +65,7 @@ function Login() {
           Login
         </button>
       </form>
+    </div>
     </div>
   );
 }

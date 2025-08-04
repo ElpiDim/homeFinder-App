@@ -10,7 +10,9 @@ import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import EditProfile from './pages/EditProfile';
-
+import AddProperty from './pages/AddProperty';
+import PropertyDetails from './pages/PropertyDetails';
+import EditProperty from './pages/EditProperty';
 //import logo from './logo.svg';
 import './App.css';
 
@@ -69,6 +71,30 @@ function App() {
             </ProtectedRoute>
             
             }/>
+
+          <Route
+            path="/add-property"
+            element={
+              <ProtectedRoute>
+                <AddProperty />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route 
+            path="/property/:propertyId" 
+            element={
+            <ProtectedRoute>
+              <PropertyDetails />
+            </ProtectedRoute>
+            }/>
+
+          <Route
+            path="/edit-property/:propertyId"
+            element={
+            <ProtectedRoute>
+              <EditProperty />
+            </ProtectedRoute>} /> 
       </Routes>
     </Router>
   );

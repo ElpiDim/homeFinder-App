@@ -10,7 +10,7 @@ const favoritesSchema = new mongoose.Schema({
     propertyId:{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Property",
-        rewuired: true,
+        required: true,
     },
 
     createdAt:{

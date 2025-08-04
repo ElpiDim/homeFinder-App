@@ -17,4 +17,7 @@ router.get("/profile", verifyToken, userController.getUserProfile);
 //update profile
 router.put("/profile", verifyToken, userController.updateUserProfile);
 
+//router.post('/favorites/:propertyId', verifyToken, userController.toggleFavorite);
+
+
 module.exports = router;
