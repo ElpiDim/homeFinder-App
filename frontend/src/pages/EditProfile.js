@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from 'react-bootstrap';
-import { setUser } from '../context/AuthContext'; // Assuming you have a setUser function to update user state
 
 
 function EditProfile() {
   const { user,setUser } = useAuth();
   const navigate = useNavigate();
-  
 
-  // forma me stoixeia tou xrhsth 
+
+  // forma me stoixeia tou xrhsth
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -18,6 +17,8 @@ function EditProfile() {
     occupation: '',
     salary: '',
   });
+
+  const [profilePicture, setProfilePicture] = useState(null);
 
   const [message, setMessage] = useState('');
 
@@ -49,13 +50,20 @@ function EditProfile() {
     const token = localStorage.getItem('token');
 
     try {
+      const submissionData = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        submissionData.append(key, value);
+      });
+      if (profilePicture) {
+        submissionData.append('profilePicture', profilePicture);
+      }
+
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: submissionData,
       });
 
       if (response.ok) {
@@ -144,6 +152,16 @@ function EditProfile() {
             className="form-control"
             value={formData.salary}
             onChange={handleChange}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label>Profile Picture</label>
+          <input
+            type="file"
+            className="form-control"
+            accept="image/*"
+            onChange={(e) => setProfilePicture(e.target.files[0])}
           />
         </div>
 

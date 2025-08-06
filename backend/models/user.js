@@ -25,9 +25,10 @@ const userSchema =  new mongoose.Schema({
         enum: ["client", "owner"], 
         default: "client", 
     }, 
-    address: String, 
+    address: String,
     occupation: String,
     salary: Number,
+    profilePicture: String,
     favorites: [
     {
         type: mongoose.Schema.Types.ObjectId,

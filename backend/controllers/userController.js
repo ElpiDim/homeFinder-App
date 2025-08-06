@@ -79,6 +79,10 @@ exports.updateUserProfile = async (req, res) => {
       salary: req.body.salary
     };
 
+    if (req.file) {
+      updates.profilePicture = `/uploads/${req.file.filename}`;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updates },

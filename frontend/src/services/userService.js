@@ -14,7 +14,7 @@ export const getUserProfile = async()=>{
 
 export const updateUserProfile = async(updatedData)=>{
     const token = localStorage.getItem('token');
-    const res = await axios.put(`${API_BASE}/profile`, updatedData,{
+    const res = await axios.put(`${API_BASE}/profile`, updatedData, {
         headers: {
             Authorization: `Bearer ${token}`
         }

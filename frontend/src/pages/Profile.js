@@ -20,6 +20,16 @@ function Profile() {
           <h3>👤 User Profile</h3>
         </Card.Header>
         <Card.Body>
+          {user?.profilePicture && (
+            <div className="text-center mb-3">
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                className="img-fluid rounded-circle"
+                style={{ width: '150px', height: '150px', objectFit: 'cover' }}
+              />
+            </div>
+          )}
           <p><strong>Name:</strong> {user?.name}</p>
           <p><strong>Email:</strong> {user?.email}</p>
           <p><strong>Type:</strong> {user?.role}</p>

@@ -4,6 +4,7 @@ const User = require("../models/user");
 const userController = require("../controllers/userController");
 const verifyToken = require("../middlewares/authMiddleware");
 const {updateUserProfile} = require("../controllers/userController");
+const upload = require("../middlewares/uploadMiddleware");
 
 //register 
 router.post("/register", userController.registerUser);
@@ -15,7 +16,7 @@ router.post("/login", userController.loginUser);
 router.get("/profile", verifyToken, userController.getUserProfile);
 
 //update profile
-router.put("/profile", verifyToken, userController.updateUserProfile);
+router.put("/profile", verifyToken, upload.single("profilePicture"), userController.updateUserProfile);
 
 //router.post('/favorites/:propertyId', verifyToken, userController.toggleFavorite);
 

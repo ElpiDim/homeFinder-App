@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }) => {
             address: data.address,
             occupation: data.occupation,
             salary: data.salary,
+            profilePicture: data.profilePicture,
           });
         } else {
           console.warn(' Unauthorized or failed profile fetch');
