@@ -164,6 +164,7 @@ exports.updateProperty = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+//delete property
 
 exports.deleteProperty = async (req, res) => {
   try {
