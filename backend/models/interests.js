@@ -22,6 +22,9 @@ const interestSchema = new mongoose.Schema({
     submittedAt:{
         type:Date,
         default: Date.now
+    },
+    preferredDate:{ 
+        type: Date
     }
 
 });

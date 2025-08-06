@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-
-// ... imports όπως πριν ...
+import { Modal, Button, Form } from 'react-bootstrap';
 
 function PropertyDetails() {
   const { propertyId } = useParams();
@@ -11,6 +10,12 @@ function PropertyDetails() {
   const { user } = useAuth();
   const [property, setProperty] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+  const [interestMessage, setInterestMessage] = useState('');
+  const [preferredDate, setPreferredDate] = useState('');
+
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -23,13 +28,63 @@ function PropertyDetails() {
       }
     };
 
+    const checkFavorite = async () => {
+      try {
+        const res = await axios.get('/api/favorites', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const fav = res.data.find(f => f.propertyId?._id === propertyId);
+        setIsFavorite(!!fav);
+      } catch (err) {
+        console.error('Error fetching favorites:', err);
+      }
+    };
+
     fetchProperty();
-  }, [propertyId]);
+    if (user) checkFavorite();
+  }, [propertyId, user]);
+
+  const handleFavorite = async () => {
+    try {
+      if (!isFavorite) {
+        await axios.post('/api/favorites', { propertyId }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsFavorite(true);
+      } else {
+        await axios.delete(`/api/favorites/${propertyId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsFavorite(false);
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
+
+const handleInterestSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    await axios.post('http://localhost:5000/api/interest', {
+      propertyId,
+      message: interestMessage,
+      preferredDate
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setShowInterestModal(false);
+    alert('Your interest has been sent to the owner!');
+  }
+  catch (err) {
+  console.error('Error sending interest:', err.response?.data || err.message);
+  alert(err.response?.data?.message || 'Failed to send interest.');
+}
+
+};
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this property?')) return;
-
-    const token = localStorage.getItem("token");
     try {
       await axios.delete(`/api/properties/${propertyId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -40,80 +95,131 @@ function PropertyDetails() {
     }
   };
 
-  if (!property) return <p>Loading...</p>;
+  if (!property) return <p className="text-center mt-5">Loading...</p>;
 
   const isOwner = user?.role === 'owner' && (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
 
   return (
-    <div className="container mt-4">
-      <button className="btn btn-secondary mb-3" onClick={() => navigate("/dashboard")}>Back</button>
+    <div className="container my-5">
+      <Button
+        variant="link"
+        className="text-decoration-none px-0 mb-3"
+        onClick={() => navigate('/dashboard')}
+      >
+        ← Back to search
+      </Button>
 
-      <div className="card">
-        {property.images?.length > 0 ? (
-          <div className="position-relative text-center mb-4">
-            <img
-              src={property.images[currentImageIndex]}
-              alt={`Image ${currentImageIndex + 1}`}
-              className="img-fluid rounded"
-              style={{ maxHeight: '400px', objectFit: 'cover' }}
-            />
-            {property.images.length > 1 && (
-              <>
-                <button
-                  className="btn btn-light position-absolute top-50 start-0 translate-middle-y"
-                  onClick={() =>
-                    setCurrentImageIndex(prev => prev === 0 ? property.images.length - 1 : prev - 1)
-                  }
-                >◀</button>
-                <button
-                  className="btn btn-light position-absolute top-50 end-0 translate-middle-y"
-                  onClick={() =>
-                    setCurrentImageIndex(prev => prev === property.images.length - 1 ? 0 : prev + 1)
-                  }
-                >▶</button>
-              </>
-            )}
-          </div>
-        ) : <p className="text-muted text-center">No images available.</p>}
+      <img
+        src={property.images?.[currentImageIndex]
+          ? `http://localhost:5000${property.images[currentImageIndex]}`
+          : "https://placehold.co/800x400?text=No+Image"}
+        alt={property.title}
+        className="img-fluid rounded mb-4"
+        style={{ maxHeight: '400px', objectFit: 'cover', width: '100%' }}
+      />
 
-        <div className="card-body">
-          <h3>{property.title}</h3>
+
+      {property.images?.length > 1 && (
+        <div className="d-flex justify-content-between mb-4">
+          <Button variant="light" onClick={() =>
+            setCurrentImageIndex((prev) => prev === 0 ? property.images.length - 1 : prev - 1)
+          }>◀</Button>
+          <Button variant="light" onClick={() =>
+            setCurrentImageIndex((prev) => prev === property.images.length - 1 ? 0 : prev + 1)
+          }>▶</Button>
+        </div>
+      )}
+
+      <div className="d-flex justify-content-between flex-wrap">
+        <div>
+          <h3 className="fw-bold">{property.title}</h3>
+          <p className="text-muted">
+            {property.bedrooms} beds · {property.bathrooms} baths · {property.squareMeters || 0} m²
+          </p>
           <p><strong>Location:</strong> {property.location}</p>
-          <p><strong>Price:</strong> €{property.price}</p>
           <p><strong>Type:</strong> {property.type}</p>
-          <p><strong>Status:</strong> {property.status}</p>
-          <hr />
-          <p><strong>Square Meters:</strong> {property.squareMeters} m²</p>
-          <p><strong>Surface:</strong> {property.surface} m²</p>
-          <p><strong>Floor:</strong> {property.floor}</p>
-          <p><strong>On Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}</p>
-          <p><strong>Levels:</strong> {property.levels}</p>
-          <hr />
-          <p><strong>Bedrooms:</strong> {property.bedrooms}</p>
-          <p><strong>Bathrooms:</strong> {property.bathrooms}</p>
-          <p><strong>WC:</strong> {property.wc}</p>
-          <p><strong>Kitchens:</strong> {property.kitchens}</p>
-          <p><strong>Living Rooms:</strong> {property.livingRooms}</p>
-          <hr />
-          {property.features?.length > 0 && (
-            <>
-              <p><strong>Features:</strong></p>
-              <ul className="text-start">
-                {property.features.map((f, i) => (
-                  <li key={i}>{f}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          <p><strong>Price:</strong> €{property.price}</p>
+        </div>
 
-          {isOwner && (
-            <div className="mt-3 d-flex gap-2">
-              <button className="btn btn-primary" onClick={() => navigate(`/edit-property/${propertyId}`)}>Edit</button>
-              <button className="btn btn-danger" onClick={handleDelete}>🗑️</button>
-            </div>
+        <div className="d-flex flex-column gap-2">
+          <Button variant={isFavorite ? "warning" : "outline-warning"} onClick={handleFavorite}>
+            {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
+          </Button>
+          {!isOwner && user?.role === 'client' && (
+            <Button variant="primary" onClick={() => setShowInterestModal(true)}>
+              👋 I'm Interested
+            </Button>
           )}
         </div>
       </div>
+
+      <hr />
+      <h5 className="fw-bold">Facts and features</h5>
+      <div className="row row-cols-2">
+        <div className="col"><strong>Floor:</strong> {property.floor}</div>
+        <div className="col"><strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}</div>
+        <div className="col"><strong>Levels:</strong> {property.levels}</div>
+        <div className="col"><strong>Surface:</strong> {property.surface} m²</div>
+        <div className="col"><strong>WC:</strong> {property.wc}</div>
+        <div className="col"><strong>Kitchens:</strong> {property.kitchens}</div>
+        <div className="col"><strong>Living Rooms:</strong> {property.livingRooms}</div>
+      </div>
+
+      {property.features?.length > 0 && (
+        <>
+          <hr />
+          <h6 className="fw-bold">Features</h6>
+          <ul>
+            {property.features.map((f, i) => (
+              <li key={i}>{f}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {isOwner && (
+        <div className="mt-4 d-flex gap-2">
+          <Button variant="primary" onClick={() => navigate(`/edit-property/${propertyId}`)}>Edit</Button>
+          <Button variant="danger" onClick={handleDelete}>Delete</Button>
+        </div>
+      )}
+
+      {/* Interest Modal */}
+      <Modal show={showInterestModal} onHide={() => setShowInterestModal(false)}>
+        <Form onSubmit={handleInterestSubmit}>
+          <Modal.Header closeButton>
+            <Modal.Title>I'm Interested</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Your message to the owner</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                required
+                value={interestMessage}
+                onChange={(e) => setInterestMessage(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Preferred date/time for viewing</Form.Label>
+              <Form.Control
+                type="datetime-local"
+                value={preferredDate}
+                onChange={(e) => setPreferredDate(e.target.value)}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowInterestModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary">
+              Send Interest
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </div>
   );
 }

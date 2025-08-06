@@ -1,6 +1,8 @@
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const Property = require("../models/property");
+
+// ADD FAVORITE
 const addFavorite = async (req, res) => {
   const userId = req.user.userId;
   const { propertyId } = req.body;
@@ -17,36 +19,37 @@ const addFavorite = async (req, res) => {
 
     const ownerId = property.ownerId;
 
+    // Send notification to the owner if different from current user
     if (ownerId && ownerId.toString() !== userId) {
       await Notification.create({
-        userId: ownerId,
-        type: "interest",
+        userId: ownerId,               // recipient
+        type: "favorite",             // ✅ changed to "favorite"
         referenceId: property._id,
-        senderId: userId
+        senderId: userId,
+         message: `${req.user.name} added your property "${property.title}" to favorites.`
       });
     }
 
     res.status(201).json({ message: "Added to favorites" });
   } catch (err) {
-    console.error("Error in addFavorite:", err);
+    console.error("❌ Error in addFavorite:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-
-
+// GET FAVORITES
 const getFavorites = async (req, res) => {
   const userId = req.user.userId;
   try {
     const favorites = await Favorites.find({ userId }).populate("propertyId");
-    const filtered = favorites.filter(f => f.propertyId !== null); // ✅ remove invalid ones
+    const filtered = favorites.filter(f => f.propertyId !== null); // ✅ filter out deleted properties
     res.json(filtered);
-
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
+// DELETE FAVORITE
 const deleteFavorite = async (req, res) => {
   const userId = req.user.userId;
   const propertyId = req.params.propertyId;
