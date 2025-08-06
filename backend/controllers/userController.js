@@ -68,32 +68,31 @@ exports.getUserProfile = async (req, res) => {
 
 /// update user profile
 exports.updateUserProfile = async (req, res) => {
+  const userId = req.user.userId;
+  const { name, phone, address, occupation, salary } = req.body;
+
+  console.log("BODY:", req.body);
+  console.log("FILE:", req.file);
+  
+  const updateData = {
+    name,
+    phone,
+    address,
+    occupation,
+    salary
+  };
+
+  // Αν ανέβηκε εικόνα, βάλτη στο πεδίο avatar
+  if (req.file) {
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    updateData.avatar = avatarUrl;
+  }
+
   try {
-    const userId = req.user.userId;
-
-    const updates = {
-      name: req.body.name,
-      phone: req.body.phone,
-      address: req.body.address,
-      occupation: req.body.occupation,
-      salary: req.body.salary
-    };
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select("-password");
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json({ message: "Profile updated successfully", user: updatedUser });
-    
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+    res.json({ user: updatedUser });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Update profile error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
-
