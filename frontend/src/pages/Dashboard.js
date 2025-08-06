@@ -116,7 +116,7 @@ function Dashboard() {
 
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
-          <Link to="/profile" className="text-dark text-decoration-none">Edit Profile</Link>
+          <Link to="/profile" className="text-dark text-decoration-none">Profile</Link>
 
           {/* Notifications Dropdown */}
           <div ref={dropdownRef} className="position-relative">
@@ -127,15 +127,17 @@ function Dashboard() {
               Notifications
             </button>
             {showNotifications && (
-              <div
-                className="position-absolute bg-white border shadow p-3 rounded"
-                style={{
-                  top: '100%',
-                  left: 0,
-                  minWidth: '250px',
-                  zIndex: 1000
-                }}
-              >
+            <div
+              className="position-absolute bg-white border shadow p-3 rounded"
+              style={{
+                top: '100%',
+                left: 0,
+                minWidth: '250px',
+                maxHeight: '300px', // περιορίζει το ύψος
+                overflowY: 'auto',  // scroll κάθετα αν χρειαστεί
+                zIndex: 1000
+              }}
+            >
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <strong>Notifications</strong>
                   <button className="btn-close" onClick={() => setShowNotifications(false)}></button>
