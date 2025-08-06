@@ -165,8 +165,8 @@ exports.updateProperty = async (req, res) => {
   }
 };
 
+//delete property
 
-// DELETE PROPERTY
 exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
@@ -176,24 +176,22 @@ exports.deleteProperty = async (req, res) => {
     if (property.ownerId.toString() !== req.user.userId)
       return res.status(403).json({ message: "Unauthorized" });
 
-    // 🔍 Βρες όλους όσους έχουν κάνει favorite αυτό το property
+    // 🔍 Find all favorites (tenants) who liked this property
     const favorites = await Favorites.find({ propertyId: property._id });
 
-
-    // 📩 Στείλε ειδοποιήσεις σε αυτούς
+    // 📩 Create notifications with message
     const notifications = favorites.map(fav => ({
       userId: fav.userId,
-      type: "property_removed", // ή "removed" αν θες νέο type
+      type: "property_removed",
       referenceId: property._id,
+      message: `The property "${property.title}" has been removed.`
     }));
-
-    console.log("📩 Notifications to insert:", notifications);
 
     if (notifications.length > 0) {
       await Notification.insertMany(notifications);
     }
 
-    // 🧹 Διέγραψε το property και τα favorites
+    // 🧹 Clean up
     await property.deleteOne();
     await Favorites.deleteMany({ propertyId: property._id });
 
