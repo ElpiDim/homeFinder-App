@@ -16,6 +16,8 @@ function EditProfile() {
   const [avatar, setAvatar] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('/default-avatar.png');
   const [message, setMessage] = useState('');
+  const [profilePicture, setProfilePicture] = useState('');
+
 
   useEffect(() => {
     if (!user) {
@@ -45,47 +47,54 @@ function EditProfile() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setAvatar(file);
+      setProfilePicture(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
+  e.preventDefault();
+  const token = localStorage.getItem('token');
 
-    const form = new FormData();
-    form.append('name', formData.name);
-    form.append('phone', formData.phone);
-    form.append('address', formData.address);
-    form.append('occupation', formData.occupation);
-    form.append('salary', formData.salary);
-    if (avatar) form.append('avatar', avatar);
+  const formDataToSend = new FormData();
 
-    try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: form
-      });
+  // Πρόσθεσε τα πεδία του χρήστη
+  Object.entries(formData).forEach(([key, value]) => {
+    formDataToSend.append(key, value);
+  });
 
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setMessage('Profile updated successfully!');
-        setUser(updatedUser.user);
-        localStorage.setItem('user', JSON.stringify(updatedUser.user));
-        navigate('/profile');
-      } else {
-        const error = await response.json();
-        setMessage(error.message || 'Update failed');
-      }
-    } catch (err) {
-      console.error('Update error:', err);
-      setMessage('Server error');
+  // Αν υπάρχει εικόνα, βάλε την με το σωστό όνομα
+  if (profilePicture) {
+    formDataToSend.append('profilePicture', profilePicture); // 👈 αυτό περιμένει το backend
+  }
+
+  try {
+    const response = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ⚠️ Μην βάλεις Content-Type! Το browser το προσθέτει μόνος του για FormData
+      },
+      body: formDataToSend,
+    });
+
+    if (response.ok) {
+      const updatedUser = await response.json();
+      setMessage('Profile updated successfully!');
+      setUser(updatedUser.user);
+      localStorage.setItem('user', JSON.stringify(updatedUser.user));
+      navigate('/profile');
+    } else {
+      const error = await response.json();
+      setMessage(error.message || 'Update failed');
     }
-  };
+  } catch (err) {
+    console.error('Update error:', err);
+    setMessage('Server error');
+  }
+};
+
 
   if (!user) return <div className="container mt-5">Loading profile...</div>;
 
@@ -162,6 +171,15 @@ function EditProfile() {
               className="form-control"
               value={formData.salary}
               onChange={handleChange}
+            />
+          </div>
+            <div className="mb-3">
+            <label>Profile Picture</label>
+            <input
+              type="file"
+              className="form-control"
+              accept="image/*"
+              onChange={(e) => setProfilePicture(e.target.files[0])}
             />
           </div>
 

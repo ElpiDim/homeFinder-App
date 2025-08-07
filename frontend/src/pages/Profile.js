@@ -8,18 +8,29 @@ function Profile() {
 
   if (!user) return <div className="container mt-5">Loading profile...</div>;
 
+  // ✅ Αν υπάρχει avatar, δείξτο — αλλιώς placeholder
+  const profilePicture = user.profilePicture || 'https://i.pravatar.cc/100?img=47';
+
   return (
     <div className="container-fluid py-5" style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}>
       <div className="row justify-content-center">
         <div className="col-md-8 col-lg-6">
           <div className="d-flex align-items-center gap-3 mb-4">
             <div
-              className="rounded-circle bg-light bg-cover bg-center"
-              style={{ width: '60px', height: '60px', backgroundImage: 'url(https://i.pravatar.cc/100?img=47)' }}
+              className="rounded-circle bg-light bg-cover bg-center shadow"
+              style={{
+                width: '60px',
+                height: '60px',
+                backgroundImage: `url(${profilePicture})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
             ></div>
             <div>
               <h4 className="fw-bold mb-0">{user.name}</h4>
-              <p className="text-muted mb-0">Joined in 2021</p>
+              <p className="text-muted mb-0">
+                Joined in {new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+              </p>
             </div>
           </div>
 
@@ -50,7 +61,7 @@ function Profile() {
           </div>
 
           <div className="d-flex justify-content-between">
-            <button className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
+            <button className="btn btn-outline-secondary" onClick={() => navigate('/dashboard')}>
               ← Back
             </button>
             <button className="btn btn-primary" onClick={() => navigate('/edit-profile')}>

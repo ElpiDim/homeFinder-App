@@ -16,8 +16,7 @@ router.post("/login", userController.loginUser);
 router.get("/profile", verifyToken, userController.getUserProfile);
 
 //update profile
-router.put("/profile", verifyToken, userController.updateUserProfile);
-
+router.put("/profile", verifyToken, upload.single("profilePicture"), userController.updateUserProfile);
 //router.post('/favorites/:propertyId', verifyToken, userController.toggleFavorite);
 
 

@@ -1,41 +1,48 @@
 const mongoose = require("mongoose");
-const userSchema =  new mongoose.Schema({
+
+const userSchema = new mongoose.Schema(
+  {
     name: {
-        type: String, 
-        required: true,
-    }, 
-
-    email:{
-        type: String, 
-        required: true, 
-        unigue: true //no users with same emails 
-
-    },
-    password:{
-        type: String, 
-        required: true,
+      type: String,
+      required: true,
     },
 
-    phone:{
-        type: String, 
+    email: {
+      type: String,
+      required: true,
+      unique: true, 
     },
 
-    role:{
-        type: String,
-        enum: ["client", "owner"], 
-        default: "client", 
-    }, 
-    address: String, 
+    password: {
+      type: String,
+      required: true,
+    },
+
+    phone: {
+      type: String,
+    },
+
+    role: {
+      type: String,
+      enum: ["client", "owner"],
+      default: "client",
+    },
+
+    address: String,
     occupation: String,
     salary: Number,
-    favorites: [
-    {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property'
-    }
-]
+    profilePicture: String,
 
-}); 
+    favorites: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Property",
+      },
+    ],
+  },
+  {
+    timestamps: true, // 👈 προσθέτει createdAt και updatedAt
+  }
+);
 
 module.exports = mongoose.model("User", userSchema);
-    
