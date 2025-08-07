@@ -211,7 +211,7 @@ function EditProfile() {
           </div>
         </form>
 
-        {/* 🔥 Delete Account */}
+        
         <button
           type="button"
           className="btn btn-outline-danger w-100 mt-4"
