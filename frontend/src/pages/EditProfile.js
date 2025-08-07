@@ -13,11 +13,10 @@ function EditProfile() {
     occupation: '',
     salary: '',
   });
-  const [avatar, setAvatar] = useState(null);
+
   const [previewUrl, setPreviewUrl] = useState('/default-avatar.png');
   const [message, setMessage] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
-
 
   useEffect(() => {
     if (!user) {
@@ -34,8 +33,8 @@ function EditProfile() {
         occupation: user.occupation || '',
         salary: user.salary || '',
       });
-      if (user.avatar) {
-        setPreviewUrl(user.avatar);
+      if (user.profilePicture) {
+        setPreviewUrl(user.profilePicture);
       }
     }
   }, [user, navigate]);
@@ -52,49 +51,73 @@ function EditProfile() {
     }
   };
 
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  const token = localStorage.getItem('token');
+    e.preventDefault();
+    const token = localStorage.getItem('token');
 
-  const formDataToSend = new FormData();
-
-  // Πρόσθεσε τα πεδία του χρήστη
-  Object.entries(formData).forEach(([key, value]) => {
-    formDataToSend.append(key, value);
-  });
-
-  // Αν υπάρχει εικόνα, βάλε την με το σωστό όνομα
-  if (profilePicture) {
-    formDataToSend.append('profilePicture', profilePicture); // 👈 αυτό περιμένει το backend
-  }
-
-  try {
-    const response = await fetch('/api/user/profile', {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // ⚠️ Μην βάλεις Content-Type! Το browser το προσθέτει μόνος του για FormData
-      },
-      body: formDataToSend,
+    const formDataToSend = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      formDataToSend.append(key, value);
     });
-
-    if (response.ok) {
-      const updatedUser = await response.json();
-      setMessage('Profile updated successfully!');
-      setUser(updatedUser.user);
-      localStorage.setItem('user', JSON.stringify(updatedUser.user));
-      navigate('/profile');
-    } else {
-      const error = await response.json();
-      setMessage(error.message || 'Update failed');
+    if (profilePicture) {
+      formDataToSend.append('profilePicture', profilePicture);
     }
-  } catch (err) {
-    console.error('Update error:', err);
-    setMessage('Server error');
-  }
-};
 
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formDataToSend,
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setMessage('Profile updated successfully!');
+        const mergedUser = { ...user, ...updatedUser.user };
+        setUser(mergedUser);
+        localStorage.setItem('user', JSON.stringify(mergedUser));
+        navigate('/profile');
+      } else {
+        const error = await response.json();
+        setMessage(error.message || 'Update failed');
+      }
+    } catch (err) {
+      console.error('Update error:', err);
+      setMessage('Server error');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm('Are you sure you want to delete your account? This cannot be undone.');
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Failed to delete:', result.message);
+        alert(result.message || 'Failed to delete account');
+        return;
+      }
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      navigate('/');
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete account. Please try again.');
+    }
+  };
 
   if (!user) return <div className="container mt-5">Loading profile...</div>;
 
@@ -173,15 +196,6 @@ function EditProfile() {
               onChange={handleChange}
             />
           </div>
-            <div className="mb-3">
-            <label>Profile Picture</label>
-            <input
-              type="file"
-              className="form-control"
-              accept="image/*"
-              onChange={(e) => setProfilePicture(e.target.files[0])}
-            />
-          </div>
 
           <div className="d-flex justify-content-between">
             <button
@@ -196,6 +210,15 @@ function EditProfile() {
             </button>
           </div>
         </form>
+
+        {/* 🔥 Delete Account */}
+        <button
+          type="button"
+          className="btn btn-outline-danger w-100 mt-4"
+          onClick={handleDeleteAccount}
+        >
+          🗑 Delete Account
+        </button>
       </div>
     </div>
   );

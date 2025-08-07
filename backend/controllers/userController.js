@@ -110,3 +110,29 @@ exports.updateUserProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// DELETE /api/user/profile
+exports.deleteUserAccount = async (req, res) => {
+  try {
+    console.log('🔐 Received DELETE request');
+
+    console.log('👉 req.user:', req.user); // Πρέπει να δεις userId
+
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(400).json({ message: "Missing userId in token" });
+    }
+
+    const result = await User.findByIdAndDelete(userId);
+
+    if (!result) {
+      return res.status(404).json({ message: "User not found or already deleted" });
+    }
+
+    console.log('✅ User deleted:', result.email);
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('❌ Delete user error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

@@ -1,71 +1,86 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {useAuth} from '../context/AuthContext';
-import { loginUser }  from '../services/authService';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { loginUser } from '../services/authService';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-
-  const {setUser} = useAuth();
-
-  const navigate = useNavigate(); // <-- αυτό θα κάνεις redirect
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
       const data = await loginUser({ email, password });
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      localStorage.setItem('token', data.token);
       setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
       setMessage(`Welcome, ${data.user.name}`);
-
-      // Κάνε redirect στην properties
       navigate('/dashboard');
-
     } catch (err) {
       setMessage(err.response?.data?.message || 'Login error');
     }
   };
 
   return (
-    <div className="login-background d-flex flex-column justify-content-center align-items-center vh-100">
-    <div className="container mt-5">
-      
-      <h2>User Login</h2>
-      {message && <div className="alert alert-info">{message}</div>}
-
-      <form onSubmit={handleLogin}>
-        <div className="mb-">
-          <label>Email</label>
-          <input
-            type="email"
-            className="form-control"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="bg-light min-vh-100">
+      {/* 🔷 Navbar */}
+      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
+        <div className="d-flex align-items-center gap-2">
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
+            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
+          </svg>
+          <h5 className="mb-0 fw-bold">Home Finder</h5>
         </div>
-
-        <div className="mb-5">
-          <label>Password</label>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+        <div className="ms-auto d-flex align-items-center gap-3">
+          <Link to="/" className="btn btn-outline-primary">Back to Home</Link>
         </div>
+      </nav>
 
-        <button type="submit" className="btn btn-primary">
-          Login
-        </button>
-      </form>
-    </div>
+      {/* 🔷 Login Card */}
+      <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+        <div className="card shadow p-4" style={{ maxWidth: '500px', width: '100%' }}>
+          <h4 className="fw-bold mb-3">Sign in to your account</h4>
+          {message && <div className="alert alert-info">{message}</div>}
+
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label className="form-label">Email address</label>
+              <input
+                type="email"
+                className="form-control"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
+            <div className="d-grid">
+              <button type="submit" className="btn btn-primary">Login</button>
+            </div>
+          </form>
+
+          <div className="mt-3 text-center">
+            <span className="text-muted">Don’t have an account? </span>
+            <Link to="/register">Register</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

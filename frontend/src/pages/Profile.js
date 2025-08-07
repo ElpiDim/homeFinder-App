@@ -10,6 +10,14 @@ function Profile() {
 
   // ✅ Αν υπάρχει avatar, δείξτο — αλλιώς placeholder
   const profilePicture = user.profilePicture || 'https://i.pravatar.cc/100?img=47';
+  const joinedDate = user.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+      })
+    : 'Unknown';
+
+
 
   return (
     <div className="container-fluid py-5" style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}>
@@ -28,9 +36,7 @@ function Profile() {
             ></div>
             <div>
               <h4 className="fw-bold mb-0">{user.name}</h4>
-              <p className="text-muted mb-0">
-                Joined in {new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-              </p>
+              <p className="text-muted mb-0">Joined in {joinedDate}</p>
             </div>
           </div>
 
