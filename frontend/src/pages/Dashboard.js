@@ -5,7 +5,7 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import filterIcon from '../assets/filters.jpg';
-import interestsModal from '../components/interestsModal';
+import InterestsModal from '../components/InterestsModal';
 
 function Dashboard() {
   const { user, setUser } = useAuth();
@@ -152,23 +152,33 @@ function Dashboard() {
                   <ul className="list-unstyled mb-0">
                     {notifications.map((note, i) => (
                       <li key={i} className="border-bottom py-2 small">
-                        {note.referenceId ? (
-                        <Link
-                          to={`/property/${note.referenceId}`}
-                          className="text-decoration-none text-dark"
-                          onClick={() => setShowNotifications(false)}
-                        >
-                          {note.type === "interest" && `${note.senderId?.name || 'Someone'} sent an interest.`}
-                          {note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`}
-                          {note.type === "property_removed" && note.message}
-                          {note.type === "message" && `New message received.`}
-                          {note.type === "appointment" && `New appointment scheduled.`}
-                        </Link>
-                      ) : (
-                        <span className="text-muted">
-                          {note.message || "Notification"}
-                        </span>
-                      )}
+                        {note.type === "interest" ? (
+                          <button
+                            type="button"
+                            className="btn btn-link text-decoration-none text-dark p-0"
+                            onClick={() => {
+                              setSelectedInterestId(note.referenceId);
+                              setShowNotifications(false);
+                            }}
+                          >
+                            {`${note.senderId?.name || 'Someone'} sent an interest.`}
+                          </button>
+                        ) : note.referenceId ? (
+                          <Link
+                            to={`/property/${note.referenceId}`}
+                            className="text-decoration-none text-dark"
+                            onClick={() => setShowNotifications(false)}
+                          >
+                            {note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`}
+                            {note.type === "property_removed" && note.message}
+                            {note.type === "message" && `New message received.`}
+                            {note.type === "appointment" && `New appointment scheduled.`}
+                          </Link>
+                        ) : (
+                          <span className="text-muted">
+                            {note.message || "Notification"}
+                          </span>
+                        )}
 
                       </li>
                     ))}
@@ -285,6 +295,12 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      {selectedInterestId && (
+        <InterestsModal
+          interestId={selectedInterestId}
+          onClose={() => setSelectedInterestId(null)}
+        />
+      )}
     </div>
   );
 }

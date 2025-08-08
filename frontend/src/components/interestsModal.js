@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-function interestsModal({ interestId, onClose }) {
+function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
   const [status, setStatus] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
@@ -18,7 +18,11 @@ function interestsModal({ interestId, onClose }) {
         });
         setInterest(res.data);
         setStatus(res.data.status);
-        setPreferredDate(res.data.preferredDate?.split('T')[0] || '');
+        setPreferredDate(
+          res.data.preferredDate
+            ? new Date(res.data.preferredDate).toISOString().slice(0, 16)
+            : ''
+        );
       } catch (err) {
         console.error('Error fetching interest:', err);
       }
@@ -29,13 +33,16 @@ function interestsModal({ interestId, onClose }) {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`/api/interests/${interestId}`, {
-        status,
-        preferredDate: preferredDate || null,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+       await axios.put(
+        `/api/interests/${interestId}`,
+        {
+          status,
+          preferredDate: preferredDate ? new Date(preferredDate).toISOString() : null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
         }
       });
 
@@ -70,9 +77,9 @@ function interestsModal({ interestId, onClose }) {
             <p>{interest.message || '-'}</p>
 
             <div className="mb-3">
-              <label className="form-label">Appointment Date</label>
+              <label className="form-label">Appointment Date & Time</label>
               <input
-                type="date"
+                type="datetime-local"
                 className="form-control"
                 value={preferredDate}
                 onChange={(e) => setPreferredDate(e.target.value)}
@@ -102,4 +109,4 @@ function interestsModal({ interestId, onClose }) {
   );
 }
 
-export default interestsModal;
+export default InterestsModal;

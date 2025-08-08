@@ -13,7 +13,7 @@ function PropertyDetails() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showInterestModal, setShowInterestModal] = useState(false);
   const [interestMessage, setInterestMessage] = useState('');
-  const [preferredDate, setPreferredDate] = useState('');
+  
 
   const token = localStorage.getItem('token');
 
@@ -68,7 +68,7 @@ const handleInterestSubmit = async (e) => {
     await axios.post('http://localhost:5000/api/interest', {
       propertyId,
       message: interestMessage,
-      preferredDate
+      
     }, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -201,14 +201,7 @@ const handleInterestSubmit = async (e) => {
                 onChange={(e) => setInterestMessage(e.target.value)}
               />
             </Form.Group>
-            <Form.Group>
-              <Form.Label>Preferred date/time for viewing</Form.Label>
-              <Form.Control
-                type="datetime-local"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-              />
-            </Form.Group>
+            
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowInterestModal(false)}>
