@@ -14,7 +14,7 @@ function EditProfile() {
     salary: '',
   });
 
-  const [previewUrl, setPreviewUrl] = useState('/default-avatar.png');
+  const [previewUrl, setPreviewUrl] = useState('/default-avatar.jpg');
   const [message, setMessage] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
 
@@ -75,7 +75,13 @@ function EditProfile() {
       if (response.ok) {
         const updatedUser = await response.json();
         setMessage('Profile updated successfully!');
+
         const mergedUser = { ...user, ...updatedUser.user };
+
+        if (mergedUser.profilePicture && !mergedUser.profilePicture.startsWith('http')) {
+          mergedUser.profilePicture = `http://localhost:5000${mergedUser.profilePicture}`;
+        }
+
         setUser(mergedUser);
         localStorage.setItem('user', JSON.stringify(mergedUser));
         navigate('/profile');
@@ -212,7 +218,6 @@ function EditProfile() {
           </div>
         </form>
 
-        
         <button
           type="button"
           className="btn btn-outline-danger w-100 mt-4"

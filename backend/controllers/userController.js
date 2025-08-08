@@ -46,6 +46,12 @@ exports.loginUser = async (req, res) => {
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 
+    // ✅ Δημιουργούμε πλήρες URL για το avatar
+    const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+    const fullProfilePicture = user.profilePicture
+      ? `${baseUrl}${user.profilePicture}`
+      : null;
+
     // 🔁 Επιστρέφουμε όλα τα χρήσιμα στοιχεία χρήστη
     res.json({
       token,
@@ -58,7 +64,7 @@ exports.loginUser = async (req, res) => {
         address: user.address,
         occupation: user.occupation,
         salary: user.salary,
-        profilePicture: user.profilePicture,
+        profilePicture: fullProfilePicture,
         createdAt: user.createdAt,
       },
     });
@@ -115,8 +121,7 @@ exports.updateUserProfile = async (req, res) => {
 exports.deleteUserAccount = async (req, res) => {
   try {
     console.log('🔐 Received DELETE request');
-
-    console.log('👉 req.user:', req.user); // Πρέπει να δεις userId
+    console.log('👉 req.user:', req.user);
 
     const userId = req.user.userId;
     if (!userId) {
@@ -124,7 +129,6 @@ exports.deleteUserAccount = async (req, res) => {
     }
 
     const result = await User.findByIdAndDelete(userId);
-
     if (!result) {
       return res.status(404).json({ message: "User not found or already deleted" });
     }

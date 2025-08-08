@@ -9,7 +9,8 @@ function Profile() {
   if (!user) return <div className="container mt-5">Loading profile...</div>;
 
   // ✅ Αν υπάρχει avatar, δείξτο — αλλιώς placeholder
-  const profilePicture = user.profilePicture || 'https://i.pravatar.cc/100?img=47';
+  const profilePicture = user.profilePicture || '/default-avatar.jpg';
+
   const joinedDate = user.createdAt
     ? new Date(user.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
