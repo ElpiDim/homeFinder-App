@@ -34,7 +34,7 @@ function Register() {
 
   return (
     <div className="bg-light min-vh-100">
-      {/* 🔷 Navbar */}
+      {/*  Navbar */}
       <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
         <div className="d-flex align-items-center gap-2">
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
@@ -47,7 +47,7 @@ function Register() {
         </div>
       </nav>
 
-      {/* 🔷 Register Card */}
+      {/*  Register Card */}
       <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
         <div className="card shadow p-4" style={{ maxWidth: '600px', width: '100%' }}>
           <h4 className="fw-bold mb-3">Create a new account</h4>

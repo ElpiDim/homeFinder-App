@@ -3,8 +3,16 @@ const router = express.Router();
 const interestController = require("../controllers/interestController");
 const verifyToken = require("../middlewares/authMiddleware");
 
+//  Tenant submits new interest
 router.post("/", verifyToken, interestController.submitInterest);
-router.get("/tenant/:tenantId", verifyToken, interestController.getInterests);
-router.patch("/:interestId", interestController.updateInterestStatus);
+
+// Tenant: Get all their interests
+router.get("/", verifyToken, interestController.getInterests);
+
+//  Owner: Get single interest by ID (για modal)
+router.get("/:id", verifyToken, interestController.getInterestById);
+
+//  Owner: Update status + preferredDate
+router.put("/:interestId", verifyToken, interestController.updateInterestStatus);
 
 module.exports = router;

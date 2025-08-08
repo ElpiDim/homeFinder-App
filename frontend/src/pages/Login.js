@@ -26,20 +26,20 @@ function Login() {
 
   return (
     <div className="bg-light min-vh-100">
-      {/* 🔷 Navbar */}
+      {/*  Navbar */}
       <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
         <div className="d-flex align-items-center gap-2">
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Home Finder</h5>
+          <h5 className="mb-0 fw-bold">insert app name here</h5>
         </div>
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link to="/" className="btn btn-outline-primary">Back to Home</Link>
         </div>
       </nav>
 
-      {/* 🔷 Login Card */}
+      {/*  Login Card */}
       <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
         <div className="card shadow p-4" style={{ maxWidth: '500px', width: '100%' }}>
           <h4 className="fw-bold mb-3">Sign in to your account</h4>

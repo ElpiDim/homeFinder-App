@@ -5,6 +5,7 @@ import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import filterIcon from '../assets/filters.jpg';
+import interestsModal from '../components/interestsModal';
 
 function Dashboard() {
   const { user, setUser } = useAuth();
@@ -18,11 +19,14 @@ function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
   const filterRef = useRef(null);
+  const [selectedInterestId, setSelectedInterestId] = useState(null);
+
 
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -111,7 +115,7 @@ function Dashboard() {
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Home Finder</h5>
+          <h5 className="mb-0 fw-bold">insert app name here</h5>
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">

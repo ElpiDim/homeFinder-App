@@ -27,7 +27,7 @@ function Home() {
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Home Finder</h5>
+          <h5 className="mb-0 fw-bold">insert app name here</h5>
         </div>
 
         {/* Right side: Login/Register */}
@@ -41,8 +41,8 @@ function Home() {
       <section className="text-center py-5 bg-light d-flex flex-column justify-content-center align-items-center">
         <div className="container">
           <h1>
-            <span className="text-black">Home Fi</span>
-            <span className="text-primary">nder 🏠</span>
+            <span className="text-black">insert app </span>
+            <span className="text-primary">name here 🏠</span>
           </h1>
           <p className="lead">Find a house, make it your home in a click.</p>
         </div>
