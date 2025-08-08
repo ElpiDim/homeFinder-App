@@ -3,8 +3,19 @@ const router = express.Router();
 const appointmentController = require("../controllers/appointmentController");
 const verifyToken = require("../middlewares/authMiddleware");
 
-router.post("/", verifyToken, appointmentController.requestAppointment);
-router.get("/tenant/:tenantId", verifyToken, appointmentController.getAppointmentsByTenant);
-router.patch("/:appointmentId", appointmentController.updateAppointmentStatus);
+// OWNER proposes slots (creates appointment)
+router.post("/propose", verifyToken, appointmentController.proposeAppointmentSlots);
+
+// TENANT confirms a selected slot
+router.put("/confirm/:appointmentId", verifyToken, appointmentController.confirmAppointmentSlot);
+
+// OWNER views their appointments
+router.get("/owner", verifyToken, appointmentController.getAppointmentsByOwner);
+
+// TENANT views their appointments
+router.get("/tenant", verifyToken, appointmentController.getAppointmentsByTenant);
+
+// Update appointment status (cancel/reject)
+router.patch("/:appointmentId", verifyToken, appointmentController.updateAppointmentStatus);
 
 module.exports = router;

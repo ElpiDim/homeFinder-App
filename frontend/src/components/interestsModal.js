@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import ProposeAppointmentModal from './ProposeAppointmentModal';
 
 function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
   const [status, setStatus] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
   const token = localStorage.getItem('token');
 
@@ -98,6 +100,17 @@ function InterestsModal({ interestId, onClose }) {
                 <option value="declined">Decline</option>
               </select>
             </div>
+
+            {status === 'accepted' && (
+              <div className="mb-3">
+                <button
+                  className="btn btn-outline-primary"
+                  onClick={() => setShowAppointmentModal(true)}
+                >
+                  📅 Propose Appointment
+                </button>
+              </div>
+            )}
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>Close</button>
@@ -105,6 +118,15 @@ function InterestsModal({ interestId, onClose }) {
           </div>
         </div>
       </div>
+
+      {showAppointmentModal && (
+        <ProposeAppointmentModal
+          show={showAppointmentModal}
+          onClose={() => setShowAppointmentModal(false)}
+          tenantId={interest.tenantId?._id}
+          propertyId={interest.propertyId?._id}
+        />
+      )}
     </div>
   );
 }

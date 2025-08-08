@@ -86,6 +86,11 @@ router.post("/login", async (req, res) => {
       expiresIn: "1h"
     });
 
+    const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+    const profilePicture = user.profilePicture
+      ? `${baseUrl}${user.profilePicture}`
+      : null;
+
     res.json({
       token,
       user: {
@@ -96,7 +101,8 @@ router.post("/login", async (req, res) => {
         phone: user.phone,
         address: user.address,
         occupation: user.occupation,
-        salary: user.salary
+        salary: user.salary,
+        profilePicture,
       }
     });
 

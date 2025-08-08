@@ -81,7 +81,13 @@ exports.getUserProfile = async (req, res) => {
     const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json(user);
+    const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+    const userObj = user.toObject();
+    if (userObj.profilePicture) {
+      userObj.profilePicture = `${baseUrl}${userObj.profilePicture}`;
+    }
+
+    res.json(userObj);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
