@@ -1,5 +1,5 @@
 const Appointment = require("../models/appointments");
-const Notification = require("../models/notifications");
+const Notification = require("../models/notification");
 
 // OWNER proposes slots
 exports.proposeAppointmentSlots = async (req, res) => {
@@ -89,6 +89,24 @@ exports.getAppointmentsByOwner = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+exports.getAppointmentById = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.appointmentId)
+      .populate("propertyId")
+      .populate("ownerId", "name")
+      .populate("tenantId", "name");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.json(appointment);
+  } catch (err) {
+    console.error("Error fetching appointment by ID:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 // Update appointment status (e.g. cancel, reject)
 exports.updateAppointmentStatus = async (req, res) => {

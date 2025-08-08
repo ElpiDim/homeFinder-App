@@ -6,6 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
+import AppointmentModal from '../components/AppointmentModal';
 
 function Dashboard() {
   const { user, setUser } = useAuth();
@@ -20,6 +21,7 @@ function Dashboard() {
   const dropdownRef = useRef(null);
   const filterRef = useRef(null);
   const [selectedInterestId, setSelectedInterestId] = useState(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
 
   const [locationFilter, setLocationFilter] = useState('');
@@ -151,42 +153,48 @@ function Dashboard() {
                 ) : (
                   <ul className="list-unstyled mb-0">
                     {notifications.map((note, i) => (
-                      <li key={i} className="border-bottom py-2 small">
-                        {note.type === "interest" ? (
-                          <button
-                            type="button"
-                            className="btn btn-link text-decoration-none text-dark p-0"
-                            onClick={() => {
-                              setSelectedInterestId(note.referenceId);
-                              setShowNotifications(false);
-                            }}
-                          >
-                            {`${note.senderId?.name || 'Someone'} sent an interest.`}
-                          </button>
-                        ) : note.referenceId ? (
-                          <Link
-                            to={`/property/${note.referenceId}`}
-                            className="text-decoration-none text-dark"
-                            onClick={() => setShowNotifications(false)}
-                          >
-                            {note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`}
-                            {note.type === "property_removed" && note.message}
-                            {note.type === "message" && `New message received.`}
-                            {note.type === "appointment" && `New appointment scheduled.`}
-                          </Link>
-                        ) : (
-                          <span className="text-muted">
-                            {note.message || "Notification"}
-                          </span>
-                        )}
-
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
+                    <li key={i} className="border-bottom py-2 small">
+                       {note.type === "interest" ? (
+                        <button
+                          type="button"
+                          className="btn btn-link text-decoration-none text-dark p-0"
+                          onClick={() => {
+                            setSelectedInterestId(note.referenceId);
+                            setShowNotifications(false);
+                          }}
+                        >
+                          {note.message || `${note.senderId?.name || 'Someone'} sent an interest.`}
+                        </button>
+                      ) : note.type === "appointment" ? (
+                        <button
+                          type="button"
+                          className="btn btn-link text-decoration-none text-dark p-0"
+                          onClick={() => {
+                            setSelectedAppointmentId(note.referenceId);
+                            setShowNotifications(false);
+                          }}
+                        >
+                          {note.message || "New appointment scheduled."}
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/property/${note.referenceId}`}
+                          className="text-decoration-none text-dark"
+                          onClick={() => setShowNotifications(false)}
+                       >
+                          {note.message ||
+                            (note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
+                            (note.type === "property_removed" && "A property you interacted with was removed.") ||
+                            (note.type === "message" && "New message received.")}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
 
           <input
             type="text"
@@ -301,6 +309,13 @@ function Dashboard() {
           onClose={() => setSelectedInterestId(null)}
         />
       )}
+
+      {selectedAppointmentId && (
+        <AppointmentModal
+          appointmentId={selectedAppointmentId}
+          onClose={() => setSelectedAppointmentId(null)}
+        />
+    )}
     </div>
   );
 }

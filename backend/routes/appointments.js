@@ -18,4 +18,7 @@ router.get("/tenant", verifyToken, appointmentController.getAppointmentsByTenant
 // Update appointment status (cancel/reject)
 router.patch("/:appointmentId", verifyToken, appointmentController.updateAppointmentStatus);
 
+// Fetch single appointment by ID (for modal)
+router.get("/:appointmentId", verifyToken, appointmentController.getAppointmentById);
+
 module.exports = router;
