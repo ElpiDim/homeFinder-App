@@ -70,8 +70,8 @@ function InterestsModal({ interestId, onClose }) {
             <p><strong>Email:</strong> {interest.tenantId?.email}</p>
             <p><strong>Phone:</strong> {interest.tenantId?.phone}</p>
 
-            <h6>Property</h6>
-            <p><strong>Title:</strong> {interest.propertyId?.title}</p>
+            <h6>Property Title: </h6>
+            <p>{interest.propertyId?.title}</p>
 
             <h6>Message</h6>
             <p>{interest.message || '-'}</p>

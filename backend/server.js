@@ -45,7 +45,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/interest", interestRoutes);
+app.use("/api/interests", interestRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/uploads", express.static(path.join(__dirname,'uploads'))); // για να σερβίρει τα αρχεία από τον φάκελο uploads 

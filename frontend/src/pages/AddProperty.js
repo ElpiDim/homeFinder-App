@@ -9,20 +9,9 @@ function AddProperty() {
   const [images, setImages] = useState([]);
 
   const [formData, setFormData] = useState({
-    title: '',
-    location: '',
-    price: '',
-    type: '',
-    floor: '',
-    squareMeters: '',
-    surface: '',
-    onTopFloor: false,
-    levels: 1,
-    bedrooms: 0,
-    bathrooms: 0,
-    wc: 0,
-    kitchens: 0,
-    livingRooms: 0,
+    title: '', location: '', price: '', type: '', floor: '',
+    squareMeters: '', surface: '', onTopFloor: false, levels: 1,
+    bedrooms: 0, bathrooms: 0, wc: 0, kitchens: 0, livingRooms: 0,
     features: []
   });
 
@@ -82,83 +71,86 @@ function AddProperty() {
   ];
 
   return (
-    <div className="container mt-5">
-      <h2>Add Property</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <input name="title" placeholder="Title" className="form-control" onChange={handleChange} required />
-        </div>
-        <div className="mb-3">
-          <input name="location" placeholder="Location" className="form-control" onChange={handleChange} required />
-        </div>
-        <div className="mb-3">
-          <input name="price" type="number" placeholder="Price (€)" className="form-control" onChange={handleChange} required />
-        </div>
-        <div className="mb-3">
-          <select name="type" className="form-control" onChange={handleChange} required>
-            <option value="">Select Type</option>
-            <option value="sale">For Sale</option>
-            <option value="rent">For Rent</option>
-          </select>
-        </div>
-        <div className="mb-3">
-          <input name="floor" type="number" placeholder="Floor" className="form-control" onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <input name="squareMeters" type="number" placeholder="Square Meters" className="form-control" onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <input name="surface" type="number" placeholder="Property Surface (m²)" className="form-control" onChange={handleChange} />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Is on Top Floor?</label>
-          <div>
-            <input type="radio" name="onTopFloor" value="yes" onChange={handleChange} /> Yes
-            <input type="radio" name="onTopFloor" value="no" onChange={handleChange} className="ms-3" /> No
+    <div className="bg-light min-vh-100 py-5">
+      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '700px' }}>
+        <h4 className="fw-bold mb-4">Add Property</h4>
+
+        <form onSubmit={handleSubmit}>
+          {[
+            ['Title', 'title'], ['Location', 'location'], ['Price (€)', 'price'], ['Floor', 'floor'],
+            ['Square Meters', 'squareMeters'], ['Property Surface (m²)', 'surface'], ['Levels', 'levels']
+          ].map(([label, name]) => (
+            <div className="mb-3" key={name}>
+              <label className="form-label">{label}</label>
+              <input name={name} type="text" className="form-control" onChange={handleChange} required={name === 'title' || name === 'location' || name === 'price'} />
+            </div>
+          ))}
+
+          <div className="mb-3">
+            <label className="form-label">Type</label>
+            <select name="type" className="form-control" onChange={handleChange} required>
+              <option value="">Select Type</option>
+              <option value="sale">For Sale</option>
+              <option value="rent">For Rent</option>
+            </select>
           </div>
-        </div>
-        <div className="mb-3">
-          <input name="levels" type="number" placeholder="Levels" className="form-control" onChange={handleChange} />
-        </div>
-        <h5>Rooms</h5>
-        {roomControls.map((room) => (
-          <div key={room} className="mb-2">
-            <label>{room.charAt(0).toUpperCase() + room.slice(1)}:</label>
+
+          <div className="mb-3">
+            <label className="form-label">Is on Top Floor?</label>
+            <div>
+              <input type="radio" name="onTopFloor" value="yes" onChange={handleChange} /> Yes
+              <input type="radio" name="onTopFloor" value="no" onChange={handleChange} className="ms-3" /> No
+            </div>
+          </div>
+
+          <h5 className="mt-4">Rooms</h5>
+          {roomControls.map((room) => (
+            <div key={room} className="mb-2">
+              <label className="form-label">{room.charAt(0).toUpperCase() + room.slice(1)}</label>
+              <input
+                name={room}
+                type="number"
+                className="form-control"
+                onChange={handleChange}
+              />
+            </div>
+          ))}
+
+          <h5 className="mt-4">Features</h5>
+          <div className="d-flex flex-wrap gap-3">
+            {featureOptions.map((feature) => (
+              <div key={feature} className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="features"
+                  value={feature}
+                  onChange={handleChange}
+                  id={feature}
+                />
+                <label className="form-check-label" htmlFor={feature}>{feature}</label>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-4 mt-4">
+            <label className="form-label">Upload Images</label>
             <input
-              name={room}
-              type="number"
+              type="file"
+              name="images"
+              multiple
+              accept="image/*"
+              onChange={(e) => setImages([...e.target.files])}
               className="form-control"
-              onChange={handleChange}
             />
           </div>
-        ))}
-        <h5>Features</h5>
-        {featureOptions.map((feature) => (
-          <div key={feature} className="form-check">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              name="features"
-              value={feature}
-              onChange={handleChange}
-              id={feature}
-            />
-            <label className="form-check-label" htmlFor={feature}>
-              {feature}
-            </label>
+
+          <div className="d-flex justify-content-between">
+            <button type="button" className="btn btn-outline-secondary" onClick={() => navigate(-1)}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Submit</button>
           </div>
-        ))}
-        <div className="mb-3 mt-4">
-          <input
-            type="file"
-            name="images"
-            multiple
-            accept="image/*"
-            onChange={(e) => setImages([...e.target.files])}
-          />
-        </div>
-        <button type="submit" className="btn btn-primary">Submit</button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

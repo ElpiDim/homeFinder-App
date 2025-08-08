@@ -77,7 +77,7 @@ exports.submitInterest = async(req,res) => {
       userId: property.ownerId,     // recipient (owner)
       senderId: tenantId,           // who triggered the action
       type: "interest",             // custom type
-      referenceId: propertyId       // for future linking if needed
+      referenceId: interest._id       // for future linking if needed
     });
 
     await notification.save();
