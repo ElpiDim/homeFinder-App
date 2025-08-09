@@ -6,7 +6,7 @@ const userController = require("../controllers/userController");
 
 // Middlewares
 const verifyToken = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/uploadMiddleware");
+const { uploadProfilePicture } = require("../middlewares/uploadMiddleware");
 
 // Register
 router.post("/register", userController.registerUser);
@@ -21,7 +21,7 @@ router.get("/profile", verifyToken, userController.getUserProfile);
 router.put(
   "/profile",
   verifyToken,
-  upload.single("profilePicture"),
+  uploadProfilePicture,
   userController.updateUserProfile
 );
 

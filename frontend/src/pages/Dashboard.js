@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import GoogleMapView from '../components/GoogleMapView';
 import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
@@ -72,7 +71,7 @@ function Dashboard() {
     }
   }, [user]);
 
-  // Polling κάθε 30s
+  // Polling κάθε 30s για notifications
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
@@ -340,28 +339,18 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Map View */}
+        {/* Map View (Google Maps) */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
-          <div className="card shadow-sm" style={{ height: '500px' }}>
-            <MapContainer center={[37.9838, 23.7275]} zoom={11} style={{ height: '100%', width: '100%' }}>
-              <TileLayer
-                attribution='&copy; OpenStreetMap contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {properties.map((prop, idx) =>
-                prop.latitude && prop.longitude ? (
-                  <Marker key={idx} position={[prop.latitude, prop.longitude]}>
-                    <Popup>
-                      <strong>{prop.title}</strong><br />{prop.location}
-                    </Popup>
-                  </Marker>
-                ) : null
-              )}
-            </MapContainer>
-          </div>
+          <GoogleMapView
+            properties={properties}
+            height="500px"
+            useClustering={true}
+            // mapId="YOUR_STYLED_MAP_ID" // optional
+          />
         </div>
       </div>
+
       {selectedInterestId && (
         <InterestsModal
           interestId={selectedInterestId}

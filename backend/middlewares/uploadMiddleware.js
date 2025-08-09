@@ -29,4 +29,8 @@ const upload = multer({
   }
 });
 
-module.exports = upload;
+// Separate middlewares for different field names
+const uploadImages = upload.array('images', 5);
+const uploadProfilePicture = upload.single('profilePicture');
+
+module.exports = { uploadImages, uploadProfilePicture };
