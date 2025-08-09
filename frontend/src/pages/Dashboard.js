@@ -22,18 +22,32 @@ function Dashboard() {
   const filterRef = useRef(null);
   const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
-
+  const [hasAppointments, setHasAppointments] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
+  const token = localStorage.getItem('token');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
     navigate('/');
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get('/api/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(res.data);
+      setUnreadCount(res.data.filter(n => !n.read).length);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
   };
 
   useEffect(() => {
@@ -43,16 +57,26 @@ function Dashboard() {
         setOriginalProperties(res.data);
       });
       axios.get('/api/favorites', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       }).then((res) => {
         setFavorites(res.data.map((fav) => fav._id));
       });
-      axios.get('/api/notifications', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      }).then((res) => {
-        setNotifications(res.data);
-      });
+
+      fetchNotifications();
+
+      const endpoint = user.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
+      axios.get(endpoint, { headers: { Authorization: `Bearer ${token}` } }).then((res) => {
+        const confirmed = res.data.filter((appt) => appt.status === 'confirmed');
+        setHasAppointments(confirmed.length > 0);
+      }).catch((err) => console.error('Error fetching appointments:', err));
     }
+  }, [user]);
+
+  // Polling κάθε 30s
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(id);
   }, [user]);
 
   useEffect(() => {
@@ -69,6 +93,31 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggleNotifications = async () => {
+    const nextOpen = !showNotifications;
+    setShowNotifications(nextOpen);
+
+    if (nextOpen) {
+      const unread = notifications.filter(n => !n.read);
+      if (unread.length) {
+        try {
+          await Promise.all(
+            unread.map(n =>
+              axios.patch(`/api/notifications/${n._id}/read`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+              })
+            )
+          );
+          const updated = notifications.map(n => ({ ...n, read: true }));
+          setNotifications(updated);
+          setUnreadCount(0);
+        } catch (err) {
+          console.error('Failed to mark notifications as read:', err);
+        }
+      }
+    }
+  };
+
   const handleSearch = () => {
     if (!searchTerm.trim()) return;
     const filtered = originalProperties.filter((p) =>
@@ -78,7 +127,6 @@ function Dashboard() {
   };
 
   const handleFavorite = async (propertyId) => {
-    const token = localStorage.getItem('token');
     try {
       if (favorites.includes(propertyId)) {
         await axios.delete(`/api/favorites/${propertyId}`, {
@@ -121,29 +169,40 @@ function Dashboard() {
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">
+          {hasAppointments && (
+            <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
+          )}
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
           <Link to="/profile" className="text-dark text-decoration-none">Profile</Link>
 
           {/* Notifications Dropdown */}
           <div ref={dropdownRef} className="position-relative">
             <button
-              className="btn btn-link text-decoration-none text-dark p-0"
-              onClick={() => setShowNotifications(!showNotifications)}
+              className="btn btn-link text-decoration-none text-dark p-0 position-relative"
+              onClick={handleToggleNotifications}
             >
               Notifications
+              {unreadCount > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  {unreadCount}
+                </span>
+              )}
             </button>
             {showNotifications && (
-            <div
-              className="position-absolute bg-white border shadow p-3 rounded"
-              style={{
-                top: '100%',
-                left: 0,
-                minWidth: '250px',
-                maxHeight: '300px', // περιορίζει το ύψος
-                overflowY: 'auto',  // scroll κάθετα αν χρειαστεί
-                zIndex: 1000
-              }}
-            >
+              <div
+                className="position-absolute bg-white border shadow p-3 rounded"
+                style={{
+                  top: '100%',
+                  left: 0,
+                  minWidth: '250px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  zIndex: 1000
+                }}
+              >
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <strong>Notifications</strong>
                   <button className="btn-close" onClick={() => setShowNotifications(false)}></button>
@@ -153,48 +212,48 @@ function Dashboard() {
                 ) : (
                   <ul className="list-unstyled mb-0">
                     {notifications.map((note, i) => (
-                    <li key={i} className="border-bottom py-2 small">
-                       {note.type === "interest" ? (
-                        <button
-                          type="button"
-                          className="btn btn-link text-decoration-none text-dark p-0"
-                          onClick={() => {
-                            setSelectedInterestId(note.referenceId);
-                            setShowNotifications(false);
-                          }}
-                        >
-                          {note.message || `${note.senderId?.name || 'Someone'} sent an interest.`}
-                        </button>
-                      ) : note.type === "appointment" ? (
-                        <button
-                          type="button"
-                          className="btn btn-link text-decoration-none text-dark p-0"
-                          onClick={() => {
-                            setSelectedAppointmentId(note.referenceId);
-                            setShowNotifications(false);
-                          }}
-                        >
-                          {note.message || "New appointment scheduled."}
-                        </button>
-                      ) : (
-                        <Link
-                          to={`/property/${note.referenceId}`}
-                          className="text-decoration-none text-dark"
-                          onClick={() => setShowNotifications(false)}
-                       >
-                          {note.message ||
-                            (note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
-                            (note.type === "property_removed" && "A property you interacted with was removed.") ||
-                            (note.type === "message" && "New message received.")}
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
+                      <li key={i} className="border-bottom py-2 small">
+                        {note.type === "interest" ? (
+                          <button
+                            type="button"
+                            className="btn btn-link text-decoration-none text-dark p-0"
+                            onClick={() => {
+                              setSelectedInterestId(note.referenceId);
+                              setShowNotifications(false);
+                            }}
+                          >
+                            {note.message || `${note.senderId?.name || 'Someone'} sent an interest.`}
+                          </button>
+                        ) : note.type === "appointment" ? (
+                          <button
+                            type="button"
+                            className="btn btn-link text-decoration-none text-dark p-0"
+                            onClick={() => {
+                              setSelectedAppointmentId(note.referenceId);
+                              setShowNotifications(false);
+                            }}
+                          >
+                            {note.message || "New appointment scheduled."}
+                          </button>
+                        ) : (
+                          <Link
+                            to={`/property/${note.referenceId}`}
+                            className="text-decoration-none text-dark"
+                            onClick={() => setShowNotifications(false)}
+                          >
+                            {note.message ||
+                              (note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
+                              (note.type === "property_removed" && "A property you interacted with was removed.") ||
+                              (note.type === "message" && "New message received.")}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
 
           <input
             type="text"
@@ -315,7 +374,7 @@ function Dashboard() {
           appointmentId={selectedAppointmentId}
           onClose={() => setSelectedAppointmentId(null)}
         />
-    )}
+      )}
     </div>
   );
 }

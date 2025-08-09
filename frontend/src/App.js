@@ -13,6 +13,7 @@ import EditProfile from './pages/EditProfile';
 import AddProperty from './pages/AddProperty';
 import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
+import Appointments from './pages/Appointments';
 //import logo from './logo.svg';
 import './App.css';
 
@@ -56,19 +57,27 @@ function App() {
             </ProtectedRoute>
             }/>
           <Route
-            path="/notifications"
-            element={
-            <ProtectedRoute>
-              <Notifications />
-            </ProtectedRoute>
-            
-            }/>
-          <Route
-            path="/edit-profile"
-            element={
-            <ProtectedRoute>
-              <EditProfile />
-            </ProtectedRoute>
+              path="/notifications"
+              element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+
+              }/>
+            <Route
+              path="/appointments"
+              element={
+              <ProtectedRoute>
+                <Appointments />
+              </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/edit-profile"
+              element={
+              <ProtectedRoute>
+                <EditProfile />
+                </ProtectedRoute>
             
             }/>
 

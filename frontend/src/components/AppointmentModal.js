@@ -6,6 +6,7 @@ function AppointmentModal({ appointmentId, onClose }) {
   const [appointment, setAppointment] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -17,6 +18,8 @@ function AppointmentModal({ appointmentId, onClose }) {
         setAppointment(res.data);
       } catch (err) {
         console.error("Error fetching appointment:", err);
+      } finally {
+        setFetching(false);
       }
     };
 
@@ -28,7 +31,7 @@ function AppointmentModal({ appointmentId, onClose }) {
   const handleConfirm = async () => {
     try {
       setLoading(true);
-      await axios.post(
+      await axios.put(
         `/api/appointments/confirm/${appointmentId}`,
         { selectedSlot },
         {
@@ -48,49 +51,55 @@ function AppointmentModal({ appointmentId, onClose }) {
     }
   };
 
-  if (!appointment) return null;
 
   return (
     <Modal show onHide={onClose} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Choose Appointment Slot</Modal.Title>
+        <Modal.Title>
+          {appointment ? "Choose Appointment Slot" : "Loading Appointment..."}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {appointment.status === "confirmed" ? (
-          <p className="text-success">
-            ✅ This appointment is already confirmed for:{" "}
-            <strong>
-              {new Date(appointment.selectedSlot).toLocaleString()}
-            </strong>
-          </p>
+        {appointment ? (
+          appointment.status === "confirmed" ? (
+            <p className="text-success">
+              ✅ This appointment is already confirmed for:{" "}
+              <strong>
+                {new Date(appointment.selectedSlot).toLocaleString()}
+              </strong>
+            </p>
+          ) : (
+            <>
+              <p>Select one of the proposed times:</p>
+              <ul className="list-unstyled">
+                {appointment.availableSlots.map((slot, idx) => (
+                  <li key={idx} className="mb-2">
+                    <label>
+                      <input
+                        type="radio"
+                        name="slot"
+                        value={slot}
+                        checked={selectedSlot === slot}
+                        onChange={(e) => setSelectedSlot(e.target.value)}
+                        className="me-2"
+                      />
+                      {new Date(slot).toLocaleString()}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )
         ) : (
-          <>
-            <p>Select one of the proposed times:</p>
-            <ul className="list-unstyled">
-              {appointment.availableSlots.map((slot, idx) => (
-                <li key={idx} className="mb-2">
-                  <label>
-                    <input
-                      type="radio"
-                      name="slot"
-                      value={slot}
-                      checked={selectedSlot === slot}
-                      onChange={(e) => setSelectedSlot(e.target.value)}
-                      className="me-2"
-                    />
-                    {new Date(slot).toLocaleString()}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </>
+    
+            <p>Loading...</p>
         )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        {appointment.status !== "confirmed" && (
+        {appointment && appointment.status !== "confirmed" && (
           <Button
             variant="primary"
             onClick={handleConfirm}

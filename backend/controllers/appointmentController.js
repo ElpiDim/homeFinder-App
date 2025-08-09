@@ -58,7 +58,18 @@ exports.confirmAppointmentSlot = async (req, res) => {
     await appointment.save();
 
     // TODO: notify owner (optional)
+    const humanReadable = new Date(selectedSlot).toLocaleString("en-GB",{
+      dateStyle: "medium",
+      timeStyle:"short",
+    });
 
+    await Notification.create({
+      userId: appointment.ownerId,
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: tenantId,
+      message: `Appointment confirmed for ${humanReadable}.`,
+    });
     res.json({ message: "Appointment confirmed", appointment });
   } catch (err) {
     console.error("❌ Error confirming appointment:", err);
