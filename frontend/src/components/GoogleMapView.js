@@ -1,12 +1,53 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  GoogleMap, Marker, InfoWindow, Autocomplete, useJsApiLoader,
-} from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
 const containerStyle = { width: "100%", height: "100%" };
+const LIBRARIES = ["places"]; // σταθερό array
+const LOADER_ID = "gmap";      // ίδιο id παντού
 
-export default function GoogleMapView({
+// Πιάνει Vite / Next / CRA με ασφαλή τρόπο
+function getMapsApiKey() {
+  const viteKey =
+    typeof import.meta !== "undefined" &&
+    import.meta?.env &&
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  return (
+    viteKey ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
+    ""
+  );
+}
+
+/* --------------------- WRAPPER (ΔΕΝ καλεί useJsApiLoader) --------------------- */
+export default function GoogleMapView(props) {
+  const apiKey = getMapsApiKey();
+
+  // Αν δεν υπάρχει key, δείξε μήνυμα και ΜΗΝ φορτώσεις καθόλου τον Loader
+  if (!apiKey) {
+    return (
+      <div className="card shadow-sm d-flex align-items-center justify-content-center" style={{ height: props.height || "500px" }}>
+        <div className="text-center p-3">
+          <div className="fw-bold">Google Maps: Δεν βρέθηκε API key</div>
+          <div className="small text-muted mt-2">
+            Πρόσθεσε στο <code>.env</code> ένα από:
+            <br />
+            <code>VITE_GOOGLE_MAPS_API_KEY</code> (Vite) ή <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> (Next.js) ή <code>REACT_APP_GOOGLE_MAPS_API_KEY</code> (CRA)
+            <br />και κάνε restart το dev server.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <GoogleMapViewInner {...props} apiKey={apiKey} />;
+}
+
+/* --------------------- INNER (ΚΑΛΕΙ useJsApiLoader ΜΙΑ ΦΟΡΑ) --------------------- */
+function GoogleMapViewInner({
+  apiKey,
   properties = [],
   height = "500px",
   zoom = 11,
@@ -14,26 +55,29 @@ export default function GoogleMapView({
   useClustering = true,
   mapId, // optional styled map id
 }) {
-  const apiKey =
-    import.meta?.env?.VITE_GOOGLE_MAPS_API_KEY ||
-    process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-
   const { isLoaded } = useJsApiLoader({
-    id: "gmap",
+    id: LOADER_ID,
     googleMapsApiKey: apiKey,
-    libraries: ["places"],
+    libraries: LIBRARIES,
+    // προαιρετικά κράτα σταθερά αν τα χρησιμοποιήσεις:
+    // language: "el",
+    // region: "GR",
+    // mapIds: mapId ? [mapId] : [],
   });
 
   const [map, setMap] = useState(null);
   const [active, setActive] = useState(null);
-  const acRef = useRef(null);
   const clustererRef = useRef(null);
+
+  // Container & instance refs για το νέο autocomplete
+  const acContainerRef = useRef(null);
+  const acElementRef = useRef(null);
 
   const points = useMemo(
     () =>
       properties
-        .filter(p => p.latitude && p.longitude)
-        .map(p => ({
+        .filter((p) => p.latitude && p.longitude)
+        .map((p) => ({
           id: p._id,
           title: p.title,
           text: p.location,
@@ -43,22 +87,22 @@ export default function GoogleMapView({
     [properties]
   );
 
-  // Fit bounds στα σημεία
+  // Fit bounds
   useEffect(() => {
     if (!map || points.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
-    points.forEach(pt => bounds.extend(pt.position));
+    points.forEach((pt) => bounds.extend(pt.position));
     map.fitBounds(bounds, { padding: 40 });
   }, [map, points]);
 
-  // Clustering (προαιρετικό)
+  // Clustering
   useEffect(() => {
     if (!map || !useClustering) return;
     if (clustererRef.current) {
       clustererRef.current.clearMarkers();
       clustererRef.current = null;
     }
-    const markers = points.map(pt => {
+    const markers = points.map((pt) => {
       const m = new window.google.maps.Marker({ position: pt.position, title: pt.title });
       m.addListener("click", () => setActive(pt));
       return m;
@@ -69,22 +113,53 @@ export default function GoogleMapView({
     return () => clustererRef.current?.clearMarkers();
   }, [map, points, useClustering]);
 
-  const onPlaceChanged = () => {
-    const place = acRef.current?.getPlace();
-    const loc = place?.geometry?.location;
-    if (!loc || !map) return;
-    map.panTo({ lat: loc.lat(), lng: loc.lng() });
-    map.setZoom(14);
-  };
+  // PlaceAutocompleteElement (1 φορά, χωρίς re-attach)
+  useEffect(() => {
+    if (!isLoaded || !acContainerRef.current) return;
+    if (acElementRef.current || acContainerRef.current.childElementCount > 0) return;
+
+    let listener;
+    (async () => {
+      await window.google.maps.importLibrary?.("places");
+
+      const el = new window.google.maps.places.PlaceAutocompleteElement();
+      el.placeholder = "Αναζήτησε διεύθυνση ή μέρος";
+      // el.country = ["gr"];   // optional
+      // el.type = "address";   // optional
+
+      listener = async (e) => {
+        if (!map || !e?.placePrediction) return;
+        const place = e.placePrediction.toPlace();
+        await place.fetchFields({ fields: ["location", "displayName", "formattedAddress"] });
+        const loc = place.location;
+        if (loc) {
+          map.panTo({ lat: loc.lat(), lng: loc.lng() });
+          map.setZoom(14);
+        }
+      };
+      el.addEventListener("gmp-select", listener);
+
+      el.style.width = "100%";
+      acContainerRef.current.appendChild(el);
+      acElementRef.current = el;
+    })();
+
+    return () => {
+      if (acElementRef.current) {
+        if (listener) acElementRef.current.removeEventListener("gmp-select", listener);
+        acElementRef.current.remove();
+        acElementRef.current = null;
+      }
+    };
+  }, [isLoaded, map]);
 
   if (!isLoaded) return <div className="card shadow-sm" style={{ height }} />;
 
   return (
-    <div className="card shadow-sm" style={{ height }}>
+    <div className="card shadow-sm" style={{ height, position: "relative" }}>
+      {/* Autocomplete container */}
       <div style={{ position: "absolute", zIndex: 2, margin: 12, width: "min(480px,90%)" }}>
-        <Autocomplete onLoad={(ac) => (acRef.current = ac)} onPlaceChanged={onPlaceChanged}>
-          <input className="form-control" placeholder="Αναζήτησε διεύθυνση ή μέρος" />
-        </Autocomplete>
+        <div ref={acContainerRef} />
       </div>
 
       <GoogleMap
@@ -93,6 +168,10 @@ export default function GoogleMapView({
         center={defaultCenter}
         zoom={zoom}
         options={{
+          // Κλείνουμε τα default UI για να μην εμφανιστεί το built-in Search του mapId
+          disableDefaultUI: true,
+          // Ενεργοποιούμε ρητά ό,τι χρειάζεσαι
+          zoomControl: true,
           streetViewControl: false,
           mapTypeControl: false,
           gestureHandling: "greedy",
@@ -100,8 +179,12 @@ export default function GoogleMapView({
         }}
       >
         {!useClustering &&
-          points.map(pt => (
-            <Marker key={pt.id || `${pt.position.lat}-${pt.position.lng}`} position={pt.position} onClick={() => setActive(pt)} />
+          points.map((pt) => (
+            <Marker
+              key={pt.id || `${pt.position.lat}-${pt.position.lng}`}
+              position={pt.position}
+              onClick={() => setActive(pt)}
+            />
           ))}
 
         {active && (
@@ -109,7 +192,9 @@ export default function GoogleMapView({
             <div style={{ maxWidth: 220 }}>
               <strong>{active.title}</strong>
               <div className="small text-muted">{active.text}</div>
-              {active.img && <img src={active.img} alt={active.title} style={{ width: "100%", marginTop: 6, borderRadius: 6 }} />}
+              {active.img && (
+                <img src={active.img} alt={active.title} style={{ width: "100%", marginTop: 6, borderRadius: 6 }} />
+              )}
             </div>
           </InfoWindow>
         )}
