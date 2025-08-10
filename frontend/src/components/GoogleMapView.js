@@ -54,6 +54,7 @@ function GoogleMapViewInner({
   defaultCenter = { lat: 37.9838, lng: 23.7275 }, // Αθήνα
   useClustering = true,
   mapId, // optional styled map id
+  showSearch = true,
 }) {
   const { isLoaded } = useJsApiLoader({
     id: LOADER_ID,
@@ -130,16 +131,18 @@ function GoogleMapViewInner({
     <div className="card shadow-sm" style={{ height, position: "relative" }}>
 
       {/* searchbox */}
-      <div style={{ position: "absolute", zIndex: 2, margin: 12, width: "min(480px,90%)" }}>
-          <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
-          <input
-            type="text"
-            placeholder="Αναζήτησε διεύθυνση ή μέρος"
-            className="form-control"
-            style={{ width: "100%" }}
-          />
-        </StandaloneSearchBox>
-      </div>
+      {showSearch && (
+        <div style={{ position: "absolute", zIndex: 2, margin: 12, width: "min(480px,90%)" }}>
+            <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
+            <input
+              type="text"
+              placeholder="Αναζήτησε διεύθυνση ή μέρος"
+              className="form-control"
+              style={{ width: "100%" }}
+            />
+          </StandaloneSearchBox>
+        </div>
+      )}
 
       <GoogleMap
         onLoad={setMap}
