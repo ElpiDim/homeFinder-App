@@ -15,6 +15,13 @@ function EditProperty() {
     status: '', features: []
   });
 
+  // Pastel gradient (same as other pages)
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+  };
+
   useEffect(() => {
     const fetchProperty = async () => {
       try {
@@ -103,7 +110,7 @@ function EditProperty() {
   };
 
   return (
-    <div className="bg-light min-vh-100 py-5">
+    <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '700px' }}>
         <h4 className="fw-bold mb-4">Edit Property</h4>
 
@@ -138,8 +145,13 @@ function EditProperty() {
           </div>
 
           <div className="form-check mb-3">
-            <input type="checkbox" className="form-check-input" id="onTopFloor" checked={formData.onTopFloor}
-              onChange={(e) => setFormData(prev => ({ ...prev, onTopFloor: e.target.checked }))} />
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="onTopFloor"
+              checked={formData.onTopFloor}
+              onChange={(e) => setFormData(prev => ({ ...prev, onTopFloor: e.target.checked }))}
+            />
             <label className="form-check-label" htmlFor="onTopFloor">On Top Floor</label>
           </div>
 

@@ -18,6 +18,13 @@ function EditProfile() {
   const [message, setMessage] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
 
+  // Pastel gradient (same as the others)
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+  };
+
   useEffect(() => {
     if (!user) {
       const token = localStorage.getItem('token');
@@ -66,9 +73,7 @@ function EditProfile() {
     try {
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formDataToSend,
       });
 
@@ -77,7 +82,6 @@ function EditProfile() {
         setMessage('Profile updated successfully!');
 
         const mergedUser = { ...user, ...updatedUser.user };
-
         if (mergedUser.profilePicture && !mergedUser.profilePicture.startsWith('http')) {
           mergedUser.profilePicture = `http://localhost:5000${mergedUser.profilePicture}`;
         }
@@ -104,8 +108,8 @@ function EditProfile() {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       const result = await response.json();
@@ -126,10 +130,16 @@ function EditProfile() {
     }
   };
 
-  if (!user) return <div className="container mt-5">Loading profile...</div>;
+  if (!user) {
+    return (
+      <div style={pageGradient}>
+        <div className="container mt-5">Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-light min-vh-100 py-5">
+    <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '600px' }}>
         <h4 className="fw-bold mb-4">Edit Profile</h4>
         {message && <div className="alert alert-info">{message}</div>}

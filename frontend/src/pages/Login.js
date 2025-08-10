@@ -10,6 +10,14 @@ function Login() {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
+  // Same vibrant gradient used on Login
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #06B6D4 0%, #3B82F6 40%, #8B5CF6 100%)',
+    backgroundAttachment: 'fixed',
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -25,9 +33,16 @@ function Login() {
   };
 
   return (
-    <div className="bg-light min-vh-100">
-      {/*  Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
+    <div style={pageGradient}>
+      {/* Navbar (translucent over the gradient) */}
+      <nav
+        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
         <div className="d-flex align-items-center gap-2">
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
@@ -39,7 +54,7 @@ function Login() {
         </div>
       </nav>
 
-      {/*  Login Card */}
+      {/* Login Card */}
       <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
         <div className="card shadow p-4" style={{ maxWidth: '500px', width: '100%' }}>
           <h4 className="fw-bold mb-3">Sign in to your account</h4>

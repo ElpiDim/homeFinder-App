@@ -8,6 +8,13 @@ function AddProperty() {
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
 
+  // Pastel gradient (same as other pages)
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+  };
+
   const [formData, setFormData] = useState({
     title: '', location: '', price: '', type: '', floor: '',
     squareMeters: '', surface: '', onTopFloor: false, levels: 1,
@@ -60,7 +67,11 @@ function AddProperty() {
   };
 
   if (!user || user.role !== 'owner') {
-    return <p className="text-danger text-center mt-5">Only owners can add properties.</p>;
+    return (
+      <div style={pageGradient}>
+        <p className="text-danger text-center pt-5">Only owners can add properties.</p>
+      </div>
+    );
   }
 
   const roomControls = ['bedrooms', 'bathrooms', 'wc', 'kitchens', 'livingRooms'];
@@ -71,7 +82,7 @@ function AddProperty() {
   ];
 
   return (
-    <div className="bg-light min-vh-100 py-5">
+    <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '700px' }}>
         <h4 className="fw-bold mb-4">Add Property</h4>
 
@@ -82,7 +93,13 @@ function AddProperty() {
           ].map(([label, name]) => (
             <div className="mb-3" key={name}>
               <label className="form-label">{label}</label>
-              <input name={name} type="text" className="form-control" onChange={handleChange} required={name === 'title' || name === 'location' || name === 'price'} />
+              <input
+                name={name}
+                type="text"
+                className="form-control"
+                onChange={handleChange}
+                required={name === 'title' || name === 'location' || name === 'price'}
+              />
             </div>
           ))}
 

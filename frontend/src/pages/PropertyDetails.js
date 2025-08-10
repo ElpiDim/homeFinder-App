@@ -16,6 +16,13 @@ function PropertyDetails() {
 
   const token = localStorage.getItem('token');
 
+  // Pastel gradient (same as other pages)
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+  };
+
   useEffect(() => {
     const fetchProperty = async () => {
       try {
@@ -91,12 +98,18 @@ function PropertyDetails() {
     }
   };
 
-  if (!property) return <p className="text-center mt-5">Loading...</p>;
+  if (!property) {
+    return (
+      <div style={pageGradient}>
+        <p className="text-center pt-5">Loading...</p>
+      </div>
+    );
+  }
 
   const isOwner = user?.role === 'owner' && (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
 
   return (
-    <div className="bg-light min-vh-100 py-5">
+    <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
         <Button
           variant="link"

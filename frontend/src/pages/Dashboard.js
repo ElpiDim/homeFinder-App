@@ -31,6 +31,13 @@ function Dashboard() {
 
   const token = localStorage.getItem('token');
 
+  // Gradient (same vibe as Login/Register)
+  const pageGradient = {
+    minHeight: "100vh",
+    background:
+      "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)",
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setUser(null);
@@ -71,7 +78,7 @@ function Dashboard() {
     }
   }, [user]);
 
-  // Polling κάθε 30s για notifications
+  // Poll notifications every 30s
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
@@ -158,8 +165,18 @@ function Dashboard() {
   };
 
   return (
-    <div className="bg-light min-vh-100">
-      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3">
+    <div style={pageGradient}>
+      {/* Navbar (translucent over the gradient) */}
+      <nav
+        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          position: 'relative', // create stacking context
+          zIndex: 5000,         // keep navbar above cards/map
+        }}
+      >
         <div className="d-flex align-items-center gap-2">
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
@@ -199,7 +216,7 @@ function Dashboard() {
                   minWidth: '250px',
                   maxHeight: '300px',
                   overflowY: 'auto',
-                  zIndex: 1000
+                  zIndex: 6000, // above navbar & everything else
                 }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-2">
@@ -274,7 +291,12 @@ function Dashboard() {
       {showFilters && (
         <div
           className="position-absolute bg-white border shadow p-3 rounded"
-          style={{ top: '60px', right: '150px', zIndex: 1000, width: '250px' }}
+          style={{
+            top: '60px',
+            right: '150px',
+            width: '250px',
+            zIndex: 5500, // above content, below notifications
+          }}
         >
           <h6>Filters</h6>
           <input type="text" placeholder="Location" className="form-control mb-2" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} />
@@ -299,7 +321,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Add Property Button */}
+      {/* Content */}
       <div className="container-fluid py-4">
         {user?.role === 'owner' && (
           <div className="mb-3 text-end">
@@ -315,11 +337,14 @@ function Dashboard() {
             <div className="col-sm-6 col-md-4" key={prop._id}>
               <div className="card h-100 shadow-sm">
                 <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-                  <div className="ratio ratio-16x9 rounded-top" style={{
-                    backgroundImage: `url(${prop.images?.[0] || ''})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                  }} />
+                  <div
+                    className="ratio ratio-16x9 rounded-top"
+                    style={{
+                      backgroundImage: `url(${prop.images?.[0] || ''})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  />
                   <div className="card-body">
                     <h5 className="card-title">{prop.title}</h5>
                     <p className="card-text text-muted">
@@ -339,14 +364,14 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Map View (Google Maps) */}
+        {/* Map View */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
           <GoogleMapView
             properties={properties}
             height="500px"
             useClustering={true}
-            // mapId="YOUR_STYLED_MAP_ID" // optional
+            // mapId="YOUR_STYLED_MAP_ID"
           />
         </div>
       </div>

@@ -14,6 +14,7 @@ import AddProperty from './pages/AddProperty';
 import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
+import MyProperties from './pages/MyProperties';
 //import logo from './logo.svg';
 import './App.css';
 
@@ -105,6 +106,8 @@ function App() {
               <EditProperty />
             </ProtectedRoute>} /> 
       </Routes>
+
+      
     </Router>
   );
 }

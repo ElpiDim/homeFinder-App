@@ -1,6 +1,7 @@
 const Notification = require("../models/notification");
 const Interest = require("../models/interests");
 const Property = require("../models/property");
+
 // GET - fetch all notifications for a user
 exports.getNotifications = async (req, res) => {
   const userId = req.user.userId;
