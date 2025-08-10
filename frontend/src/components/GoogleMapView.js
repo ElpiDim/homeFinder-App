@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, useJsApiLoader, StandaloneSearchBox } from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
 const containerStyle = { width: "100%", height: "100%" };
@@ -69,9 +69,20 @@ function GoogleMapViewInner({
   const [active, setActive] = useState(null);
   const clustererRef = useRef(null);
 
-  // Container & instance refs για το νέο autocomplete
-  const acContainerRef = useRef(null);
-  const acElementRef = useRef(null);
+// SearchBox reference
+  const searchBoxRef = useRef(null);
+  const onSearchLoad = (ref) => {
+    searchBoxRef.current = ref;
+  };
+  const onPlacesChanged = () => {
+    if (!map || !searchBoxRef.current) return;
+    const places = searchBoxRef.current.getPlaces();
+    const place = places && places[0];
+    if (!place?.geometry?.location) return;
+    const loc = place.geometry.location;
+    map.panTo({ lat: loc.lat(), lng: loc.lng() });
+    map.setZoom(14);
+  };
 
   const points = useMemo(
     () =>
@@ -113,53 +124,21 @@ function GoogleMapViewInner({
     return () => clustererRef.current?.clearMarkers();
   }, [map, points, useClustering]);
 
-  // PlaceAutocompleteElement (1 φορά, χωρίς re-attach)
-  useEffect(() => {
-    if (!isLoaded || !acContainerRef.current) return;
-    if (acElementRef.current || acContainerRef.current.childElementCount > 0) return;
-
-    let listener;
-    (async () => {
-      await window.google.maps.importLibrary?.("places");
-
-      const el = new window.google.maps.places.PlaceAutocompleteElement();
-      el.placeholder = "Αναζήτησε διεύθυνση ή μέρος";
-      // el.country = ["gr"];   // optional
-      // el.type = "address";   // optional
-
-      listener = async (e) => {
-        if (!map || !e?.placePrediction) return;
-        const place = e.placePrediction.toPlace();
-        await place.fetchFields({ fields: ["location", "displayName", "formattedAddress"] });
-        const loc = place.location;
-        if (loc) {
-          map.panTo({ lat: loc.lat(), lng: loc.lng() });
-          map.setZoom(14);
-        }
-      };
-      el.addEventListener("gmp-select", listener);
-
-      el.style.width = "100%";
-      acContainerRef.current.appendChild(el);
-      acElementRef.current = el;
-    })();
-
-    return () => {
-      if (acElementRef.current) {
-        if (listener) acElementRef.current.removeEventListener("gmp-select", listener);
-        acElementRef.current.remove();
-        acElementRef.current = null;
-      }
-    };
-  }, [isLoaded, map]);
-
   if (!isLoaded) return <div className="card shadow-sm" style={{ height }} />;
 
   return (
     <div className="card shadow-sm" style={{ height, position: "relative" }}>
-      {/* Autocomplete container */}
+
+      {/* searchbox */}
       <div style={{ position: "absolute", zIndex: 2, margin: 12, width: "min(480px,90%)" }}>
-        <div ref={acContainerRef} />
+          <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
+          <input
+            type="text"
+            placeholder="Αναζήτησε διεύθυνση ή μέρος"
+            className="form-control"
+            style={{ width: "100%" }}
+          />
+        </StandaloneSearchBox>
       </div>
 
       <GoogleMap
@@ -168,9 +147,9 @@ function GoogleMapViewInner({
         center={defaultCenter}
         zoom={zoom}
         options={{
-          // Κλείνουμε τα default UI για να μην εμφανιστεί το built-in Search του mapId
+          // Κλείνουμε τα default UI kai to built in search 
           disableDefaultUI: true,
-          // Ενεργοποιούμε ρητά ό,τι χρειάζεσαι
+          searchControle: false, 
           zoomControl: true,
           streetViewControl: false,
           mapTypeControl: false,
