@@ -10,6 +10,7 @@ const Property = require("../models/property");
 
 router.get("/", propertyController.getAllProperties);
 
+router.get("/mine",verifyToken, propertyController.getMyProperties);
 
 router.post("/", verifyToken, uploadImages, propertyController.createProperty);
 

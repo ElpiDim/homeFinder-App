@@ -87,7 +87,9 @@ const propertySchema = new mongoose.Schema({
     images:[{
         type: String, 
         default: null
-    }], 
+    }],
+    latitude:{type:Number},
+    longitude:{type:Number}, 
     createdAt:{ 
         type: Date, 
         default: Date.now

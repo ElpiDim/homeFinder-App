@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { Modal, Button, Form } from 'react-bootstrap';
@@ -9,18 +9,33 @@ function PropertyDetails() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [property, setProperty] = useState(null);
+
+  // main image index (outside modal, too)
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // favorites / interest
   const [isFavorite, setIsFavorite] = useState(false);
   const [showInterestModal, setShowInterestModal] = useState(false);
   const [interestMessage, setInterestMessage] = useState('');
 
+  // 🔵 NEW: gallery/lightbox modal
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
   const token = localStorage.getItem('token');
 
-  // Pastel gradient (same as other pages)
+  // Optional gradient (αν δεν θες, βάλε το παλιό wrapper)
   const pageGradient = {
     minHeight: '100vh',
     background:
       'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+  };
+
+  const baseUrl = 'http://localhost:5000';
+  const getImageUrl = (path) => {
+    if (!path) return 'https://placehold.co/1200x800?text=No+Image';
+    if (path.startsWith('http')) return path;
+    return `${baseUrl}${path}`;
   };
 
   useEffect(() => {
@@ -48,7 +63,7 @@ function PropertyDetails() {
 
     fetchProperty();
     if (user) checkFavorite();
-  }, [propertyId, user]);
+  }, [propertyId, user, token]);
 
   const handleFavorite = async () => {
     try {
@@ -98,15 +113,45 @@ function PropertyDetails() {
     }
   };
 
-  if (!property) {
-    return (
-      <div style={pageGradient}>
-        <p className="text-center pt-5">Loading...</p>
-      </div>
+  // 🔵 NEW: gallery helpers
+  const openGalleryAt = (idx) => {
+    setGalleryIndex(idx);
+    setShowGallery(true);
+  };
+  const closeGallery = () => setShowGallery(false);
+  const nextImage = () => {
+    if (!property?.images?.length) return;
+    setGalleryIndex((prev) => (prev + 1) % property.images.length);
+  };
+  const prevImage = () => {
+    if (!property?.images?.length) return;
+    setGalleryIndex((prev) =>
+      (prev - 1 + property.images.length) % property.images.length
     );
-  }
+  };
 
-  const isOwner = user?.role === 'owner' && (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
+  // Keyboard navigation for gallery
+  useEffect(() => {
+    if (!showGallery) return;
+    const handler = (e) => {
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'Escape') closeGallery();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showGallery, property?.images?.length]);
+
+  if (!property) return (
+    <div style={pageGradient}>
+      <div className="container py-5">Loading...</div>
+    </div>
+  );
+
+  const isOwner = user?.role === 'owner' &&
+    (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
+
+  const imgs = property.images || [];
 
   return (
     <div style={pageGradient} className="py-5">
@@ -119,23 +164,52 @@ function PropertyDetails() {
           ← Back to search
         </Button>
 
-        <img
-          src={property.images?.[currentImageIndex]
-            ? `http://localhost:5000${property.images[currentImageIndex]}`
-            : "https://placehold.co/800x400?text=No+Image"}
-          alt={property.title}
-          className="img-fluid rounded mb-4"
-          style={{ maxHeight: '400px', objectFit: 'cover', width: '100%' }}
-        />
+        {/* Main image */}
+        <div className="position-relative">
+          <img
+            src={imgs[currentImageIndex] ? getImageUrl(imgs[currentImageIndex]) : "https://placehold.co/800x400?text=No+Image"}
+            alt={property.title}
+            className="img-fluid rounded mb-3"
+            style={{ maxHeight: '420px', objectFit: 'cover', width: '100%', cursor: imgs.length ? 'zoom-in' : 'default' }}
+            onClick={() => imgs.length && openGalleryAt(currentImageIndex)}
+          />
 
-        {property.images?.length > 1 && (
-          <div className="d-flex justify-content-between mb-4">
-            <Button variant="light" onClick={() =>
-              setCurrentImageIndex((prev) => prev === 0 ? property.images.length - 1 : prev - 1)
-            }>◀</Button>
-            <Button variant="light" onClick={() =>
-              setCurrentImageIndex((prev) => prev === property.images.length - 1 ? 0 : prev + 1)
-            }>▶</Button>
+          {imgs.length > 1 && (
+            <div className="d-flex justify-content-between mb-3">
+              <Button variant="light" onClick={() =>
+                setCurrentImageIndex((prev) => prev === 0 ? imgs.length - 1 : prev - 1)
+              }>◀</Button>
+              <Button variant="light" onClick={() =>
+                setCurrentImageIndex((prev) => prev === imgs.length - 1 ? 0 : prev + 1)
+              }>▶</Button>
+            </div>
+          )}
+        </div>
+
+        {/* Thumbnails */}
+        {imgs.length > 1 && (
+          <div className="d-flex flex-wrap gap-2 mb-4">
+            {imgs.map((src, i) => (
+              <button
+                key={i}
+                type="button"
+                className="p-0 border-0 bg-transparent"
+                onClick={() => { setCurrentImageIndex(i); openGalleryAt(i); }}
+                title={`Image ${i + 1}`}
+              >
+                <img
+                  src={getImageUrl(src)}
+                  alt={`Thumbnail ${i + 1}`}
+                  style={{
+                    width: 96,
+                    height: 64,
+                    objectFit: 'cover',
+                    borderRadius: 6,
+                    outline: i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb'
+                  }}
+                />
+              </button>
+            ))}
           </div>
         )}
 
@@ -194,7 +268,29 @@ function PropertyDetails() {
         )}
       </div>
 
-      {/* Interest Modal */}
+      {/* 🔵 NEW: Gallery Modal */}
+      <Modal show={showGallery} onHide={closeGallery} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Gallery ({imgs.length ? galleryIndex + 1 : 0}/{imgs.length})
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <img
+            src={imgs.length ? getImageUrl(imgs[galleryIndex]) : 'https://placehold.co/1200x800?text=No+Image'}
+            alt={`Image ${galleryIndex + 1}`}
+            style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8 }}
+          />
+        </Modal.Body>
+        {imgs.length > 1 && (
+          <Modal.Footer className="d-flex justify-content-between">
+            <Button variant="light" onClick={prevImage}>◀ Prev</Button>
+            <Button variant="light" onClick={nextImage}>Next ▶</Button>
+          </Modal.Footer>
+        )}
+      </Modal>
+
+      {/* Interest Modal (existing) */}
       <Modal show={showInterestModal} onHide={() => setShowInterestModal(false)}>
         <Form onSubmit={handleInterestSubmit}>
           <Modal.Header closeButton>

@@ -99,6 +99,15 @@ function App() {
             </ProtectedRoute>
             }/>
 
+             <Route
+            path="/my-properties"
+            element={
+              <ProtectedRoute>
+                <MyProperties />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/edit-property/:propertyId"
             element={

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -10,6 +10,7 @@ import AppointmentModal from '../components/AppointmentModal';
 function Dashboard() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+
   const [properties, setProperties] = useState([]);
   const [originalProperties, setOriginalProperties] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,8 +18,13 @@ function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef(null);
-  const filterRef = useRef(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const dropdownRef = useRef(null);      // notifications
+  const profileMenuRef = useRef(null);   // profile menu
+  const filterButtonRef = useRef(null);  // filters button
+  const filterPanelRef = useRef(null);   // filters panel
+
   const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
@@ -31,11 +37,10 @@ function Dashboard() {
 
   const token = localStorage.getItem('token');
 
-  // Gradient (same vibe as Login/Register)
   const pageGradient = {
-    minHeight: "100vh",
+    minHeight: '100vh',
     background:
-      "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)",
+      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
   };
 
   const handleLogout = () => {
@@ -44,59 +49,86 @@ function Dashboard() {
     navigate('/');
   };
 
-  const fetchNotifications = async () => {
+  // ✅ Memoized for ESLint/deps
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await axios.get('/api/notifications', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setNotifications(res.data);
-      setUnreadCount(res.data.filter(n => !n.read).length);
+      setUnreadCount(res.data.filter((n) => !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    if (user) {
-      axios.get('/api/properties').then((res) => {
-        setProperties(res.data);
-        setOriginalProperties(res.data);
-      });
-      axios.get('/api/favorites', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then((res) => {
+    if (!user) return;
+
+    axios.get('/api/properties').then((res) => {
+      setProperties(res.data);
+      setOriginalProperties(res.data);
+    });
+
+    axios
+      .get('/api/favorites', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
         setFavorites(res.data.map((fav) => fav._id));
       });
 
-      fetchNotifications();
+    fetchNotifications();
 
-      const endpoint = user.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
-      axios.get(endpoint, { headers: { Authorization: `Bearer ${token}` } }).then((res) => {
+    const endpoint =
+      user.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
+
+    axios
+      .get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
         const confirmed = res.data.filter((appt) => appt.status === 'confirmed');
         setHasAppointments(confirmed.length > 0);
-      }).catch((err) => console.error('Error fetching appointments:', err));
-    }
-  }, [user]);
+      })
+      .catch((err) => console.error('Error fetching appointments:', err));
+  }, [user, token, fetchNotifications]);
 
   // Poll notifications every 30s
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
-  }, [user]);
+  }, [user, fetchNotifications]);
 
+  // Close popovers on outside click + Esc
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
-        filterRef.current && !filterRef.current.contains(e.target)
-      ) {
+      const outsideNotifications =
+        dropdownRef.current && !dropdownRef.current.contains(e.target);
+      const outsideProfile =
+        profileMenuRef.current && !profileMenuRef.current.contains(e.target);
+      const outsideFilters =
+        (!filterButtonRef.current || !filterButtonRef.current.contains(e.target)) &&
+        (!filterPanelRef.current || !filterPanelRef.current.contains(e.target));
+
+      if (outsideNotifications) setShowNotifications(false);
+      if (outsideProfile) setShowProfileMenu(false);
+      if (outsideFilters) setShowFilters(false);
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
         setShowNotifications(false);
+        setShowProfileMenu(false);
         setShowFilters(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
 
   const handleToggleNotifications = async () => {
@@ -104,17 +136,19 @@ function Dashboard() {
     setShowNotifications(nextOpen);
 
     if (nextOpen) {
-      const unread = notifications.filter(n => !n.read);
+      const unread = notifications.filter((n) => !n.read);
       if (unread.length) {
         try {
           await Promise.all(
-            unread.map(n =>
-              axios.patch(`/api/notifications/${n._id}/read`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-              })
+            unread.map((n) =>
+              axios.patch(
+                `/api/notifications/${n._id}/read`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              )
             )
           );
-          const updated = notifications.map(n => ({ ...n, read: true }));
+          const updated = notifications.map((n) => ({ ...n, read: true }));
           setNotifications(updated);
           setUnreadCount(0);
         } catch (err) {
@@ -136,16 +170,20 @@ function Dashboard() {
     try {
       if (favorites.includes(propertyId)) {
         await axios.delete(`/api/favorites/${propertyId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        setFavorites(favorites.filter(id => id !== propertyId));
+        setFavorites(favorites.filter((id) => id !== propertyId));
       } else {
-        await axios.post('/api/favorites', { propertyId }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        await axios.post(
+          '/api/favorites',
+          { propertyId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           }
-        });
+        );
         setFavorites([...favorites, propertyId]);
       }
     } catch (err) {
@@ -155,7 +193,9 @@ function Dashboard() {
 
   const handleFilter = () => {
     const filtered = originalProperties.filter((p) => {
-      const matchLocation = locationFilter ? p.location.toLowerCase().includes(locationFilter.toLowerCase()) : true;
+      const matchLocation = locationFilter
+        ? (p.location || '').toLowerCase().includes(locationFilter.toLowerCase())
+        : true;
       const matchType = typeFilter ? p.type === typeFilter : true;
       const matchMin = minPrice ? p.price >= parseFloat(minPrice) : true;
       const matchMax = maxPrice ? p.price <= parseFloat(maxPrice) : true;
@@ -164,17 +204,24 @@ function Dashboard() {
     setProperties(filtered);
   };
 
+  const imgUrl = (src) =>
+    src
+      ? src.startsWith('http')
+        ? src
+        : `http://localhost:5000${src}`
+      : 'https://via.placeholder.com/400x225?text=No+Image';
+
   return (
     <div style={pageGradient}>
-      {/* Navbar (translucent over the gradient) */}
+      {/* Navbar */}
       <nav
         className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
         style={{
           background: 'rgba(255,255,255,0.72)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          position: 'relative', // create stacking context
-          zIndex: 5000,         // keep navbar above cards/map
+          position: 'relative',
+          zIndex: 5000,
         }}
       >
         <div className="d-flex align-items-center gap-2">
@@ -186,10 +233,53 @@ function Dashboard() {
 
         <div className="ms-auto d-flex align-items-center gap-3">
           {hasAppointments && (
-            <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
+            <Link to="/appointments" className="text-dark text-decoration-none">
+              Appointments
+            </Link>
           )}
-          <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
-          <Link to="/profile" className="text-dark text-decoration-none">Profile</Link>
+          <Link to="/favorites" className="text-dark text-decoration-none">
+            Favorites
+          </Link>
+
+          {/* Profile Dropdown */}
+          <div ref={profileMenuRef} className="position-relative">
+            <button
+              type="button"
+              className="btn btn-outline-dark dropdown-toggle"
+              onClick={() => setShowProfileMenu((v) => !v)}
+            >
+              Profile
+            </button>
+            {showProfileMenu && (
+              <div
+                className="position-absolute end-0 mt-2 bg-white border rounded shadow"
+                style={{ minWidth: 200, zIndex: 6500 }}
+              >
+                <button
+                  type="button"
+                  className="dropdown-item w-100 text-start"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate('/profile');
+                  }}
+                >
+                  Profile
+                </button>
+                {user?.role === 'owner' && (
+                  <button
+                    type="button"
+                    className="dropdown-item w-100 text-start"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      navigate('/my-properties');
+                    }}
+                  >
+                    My Properties
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Notifications Dropdown */}
           <div ref={dropdownRef} className="position-relative">
@@ -216,12 +306,12 @@ function Dashboard() {
                   minWidth: '250px',
                   maxHeight: '300px',
                   overflowY: 'auto',
-                  zIndex: 6000, // above navbar & everything else
+                  zIndex: 6000,
                 }}
               >
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <strong>Notifications</strong>
-                  <button className="btn-close" onClick={() => setShowNotifications(false)}></button>
+                  <button className="btn-close" onClick={() => setShowNotifications(false)} />
                 </div>
                 {notifications.length === 0 ? (
                   <p className="text-muted mb-0">No notifications</p>
@@ -229,7 +319,7 @@ function Dashboard() {
                   <ul className="list-unstyled mb-0">
                     {notifications.map((note, i) => (
                       <li key={i} className="border-bottom py-2 small">
-                        {note.type === "interest" ? (
+                        {note.type === 'interest' ? (
                           <button
                             type="button"
                             className="btn btn-link text-decoration-none text-dark p-0"
@@ -238,9 +328,10 @@ function Dashboard() {
                               setShowNotifications(false);
                             }}
                           >
-                            {note.message || `${note.senderId?.name || 'Someone'} sent an interest.`}
+                            {note.message ||
+                              `${note.senderId?.name || 'Someone'} sent an interest.`}
                           </button>
-                        ) : note.type === "appointment" ? (
+                        ) : note.type === 'appointment' ? (
                           <button
                             type="button"
                             className="btn btn-link text-decoration-none text-dark p-0"
@@ -249,7 +340,7 @@ function Dashboard() {
                               setShowNotifications(false);
                             }}
                           >
-                            {note.message || "New appointment scheduled."}
+                            {note.message || 'New appointment scheduled.'}
                           </button>
                         ) : (
                           <Link
@@ -258,9 +349,11 @@ function Dashboard() {
                             onClick={() => setShowNotifications(false)}
                           >
                             {note.message ||
-                              (note.type === "favorite" && `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
-                              (note.type === "property_removed" && "A property you interacted with was removed.") ||
-                              (note.type === "message" && "New message received.")}
+                              (note.type === 'favorite' &&
+                                `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
+                              (note.type === 'property_removed' &&
+                                'A property you interacted with was removed.') ||
+                              (note.type === 'message' && 'New message received.')}
                           </Link>
                         )}
                       </li>
@@ -271,6 +364,7 @@ function Dashboard() {
             )}
           </div>
 
+          {/* Search */}
           <input
             type="text"
             placeholder="Search..."
@@ -278,45 +372,93 @@ function Dashboard() {
             style={{ maxWidth: '180px' }}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button className="btn btn-outline-dark" onClick={handleSearch}>🔍</button>
-          <button className="btn btn-light" onClick={() => setShowFilters(!showFilters)} ref={filterRef}>
+          <button className="btn btn-outline-dark" onClick={handleSearch}>
+            🔍
+          </button>
+
+          {/* Filters button */}
+          <button
+            ref={filterButtonRef}
+            className="btn btn-light"
+            onClick={() => setShowFilters((v) => !v)}
+          >
             <img src={filterIcon} alt="filter" style={{ width: '20px' }} />
           </button>
 
-          <button className="btn btn-outline-danger" onClick={handleLogout}>Logout</button>
+          <button className="btn btn-outline-danger" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </nav>
 
-      {/* Filters Panel */}
+      {/* Filters Panel (fixed so it never hides behind content) */}
       {showFilters && (
         <div
-          className="position-absolute bg-white border shadow p-3 rounded"
+          ref={filterPanelRef}
+          className="bg-white border shadow p-3 rounded"
           style={{
-            top: '60px',
-            right: '150px',
-            width: '250px',
-            zIndex: 5500, // above content, below notifications
+            position: 'fixed',
+            top: 76,          // just under navbar
+            right: 16,
+            width: 280,
+            zIndex: 6500,
           }}
+          onClick={(e) => e.stopPropagation()}
         >
           <h6>Filters</h6>
-          <input type="text" placeholder="Location" className="form-control mb-2" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} />
-          <select className="form-control mb-2" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+          <input
+            type="text"
+            placeholder="Location"
+            className="form-control mb-2"
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+          />
+          <select
+            className="form-control mb-2"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
             <option value="">Type</option>
             <option value="sale">Sale</option>
             <option value="rent">Rent</option>
           </select>
-          <input type="number" placeholder="Min Price" className="form-control mb-2" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
-          <input type="number" placeholder="Max Price" className="form-control mb-2" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
+          <input
+            type="number"
+            placeholder="Min Price"
+            className="form-control mb-2"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Max Price"
+            className="form-control mb-2"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+          />
           <div className="d-flex gap-2">
-            <button className="btn btn-primary w-100" onClick={() => { handleFilter(); setShowFilters(false); }}>Apply</button>
-            <button className="btn btn-outline-secondary w-100" onClick={() => {
-              setLocationFilter('');
-              setTypeFilter('');
-              setMinPrice('');
-              setMaxPrice('');
-              setProperties(originalProperties);
-              setShowFilters(false);
-            }}>Clear</button>
+            <button
+              className="btn btn-primary w-100"
+              onClick={() => {
+                handleFilter();
+                setShowFilters(false);
+              }}
+            >
+              Apply
+            </button>
+            <button
+              className="btn btn-outline-secondary w-100"
+              onClick={() => {
+                setLocationFilter('');
+                setTypeFilter('');
+                setMinPrice('');
+                setMaxPrice('');
+                setProperties(originalProperties);
+                setShowFilters(false);
+              }}
+            >
+              Clear
+            </button>
           </div>
         </div>
       )}
@@ -332,47 +474,51 @@ function Dashboard() {
         )}
 
         <h4 className="fw-bold mb-3">Featured Properties</h4>
-        <div className="row g-3">
-          {properties.map((prop) => (
-            <div className="col-sm-6 col-md-4" key={prop._id}>
-              <div className="card h-100 shadow-sm">
-                <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-                  <div
-                    className="ratio ratio-16x9 rounded-top"
-                    style={{
-                      backgroundImage: `url(${prop.images?.[0] || ''})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center'
-                    }}
-                  />
-                  <div className="card-body">
-                    <h5 className="card-title">{prop.title}</h5>
-                    <p className="card-text text-muted">
-                      📍 {prop.location}<br />
-                      💶 {prop.price} €<br />
-                      🏷️ {prop.type}
-                    </p>
+        {properties.length === 0 ? (
+          <p className="text-muted">No properties found.</p>
+        ) : (
+          <div className="row g-3">
+            {properties.map((prop) => (
+              <div className="col-sm-6 col-md-4" key={prop._id}>
+                <div className="card h-100 shadow-sm">
+                  <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
+                    <div
+                      className="ratio ratio-16x9 rounded-top"
+                      style={{
+                        backgroundImage: `url(${imgUrl(prop.images?.[0])})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    />
+                    <div className="card-body">
+                      <h5 className="card-title">{prop.title}</h5>
+                      <p className="card-text text-muted mb-0">
+                        📍 {prop.location}
+                      </p>
+                      <p className="card-text text-muted mb-0">
+                        💶 {Number(prop.price).toLocaleString()} €
+                      </p>
+                      <p className="card-text text-muted">🏷️ {prop.type}</p>
+                    </div>
+                  </Link>
+                  <div className="card-footer text-end bg-white border-0">
+                    <button
+                      className="btn btn-sm btn-outline-warning"
+                      onClick={() => handleFavorite(prop._id)}
+                    >
+                      {favorites.includes(prop._id) ? '★' : '☆'}
+                    </button>
                   </div>
-                </Link>
-                <div className="card-footer text-end bg-white border-0">
-                  <button className="btn btn-sm btn-outline-warning" onClick={() => handleFavorite(prop._id)}>
-                    {favorites.includes(prop._id) ? '★' : '☆'}
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Map View */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
-          <GoogleMapView
-            properties={properties}
-            height="500px"
-            useClustering={true}
-            // mapId="YOUR_STYLED_MAP_ID"
-          />
+          <GoogleMapView properties={properties} height="500px" useClustering={true} />
         </div>
       </div>
 

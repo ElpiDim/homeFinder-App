@@ -37,6 +37,18 @@ export default function MyProperties() {
     load();
   }, [user]);
 
+    const handleDelete = async (id) => {
+    if (!window.confirm('Delete this property?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`/api/properties/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setItems(items.filter((p) => p._id !== id));
+    } catch (e) {
+      console.error('Failed to delete property', e);
+    }
+  };
   if (!user) {
     return (
       <div style={pageGradient}>
@@ -109,6 +121,7 @@ export default function MyProperties() {
                       <div className="btn-group">
                         <Link to={`/property/${p._id}`} className="btn btn-sm btn-outline-secondary">Open</Link>
                         <Link to={`/edit-property/${p._id}`} className="btn btn-sm btn-primary">Edit</Link>
+                        <button onClick={() => handleDelete(p._id)} className="btn btn-sm btn-danger">Delete</button>
                       </div>
                     </td>
                   </tr>
