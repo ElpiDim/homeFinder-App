@@ -1,30 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { Modal, Button, Form } from 'react-bootstrap';
+import GoogleMapView from '../components/GoogleMapView';
 
 function PropertyDetails() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [property, setProperty] = useState(null);
 
-  // main image index (outside modal, too)
+  const [property, setProperty] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // favorites / interest
   const [isFavorite, setIsFavorite] = useState(false);
   const [showInterestModal, setShowInterestModal] = useState(false);
   const [interestMessage, setInterestMessage] = useState('');
 
-  // 🔵 NEW: gallery/lightbox modal
+  // Gallery
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   const token = localStorage.getItem('token');
 
-  // Optional gradient (αν δεν θες, βάλε το παλιό wrapper)
   const pageGradient = {
     minHeight: '100vh',
     background:
@@ -39,11 +37,15 @@ function PropertyDetails() {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchProperty = async () => {
       try {
         const res = await axios.get(`/api/properties/${propertyId}`);
-        setProperty(res.data);
-        setCurrentImageIndex(0);
+        if (mounted) {
+          setProperty(res.data);
+          setCurrentImageIndex(0);
+        }
       } catch (err) {
         console.error('Error fetching property:', err);
       }
@@ -52,29 +54,35 @@ function PropertyDetails() {
     const checkFavorite = async () => {
       try {
         const res = await axios.get('/api/favorites', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
-        const fav = res.data.find(f => f.propertyId?._id === propertyId);
-        setIsFavorite(!!fav);
+        const fav = res.data.find((f) => f.propertyId?._id === propertyId);
+        if (mounted) setIsFavorite(!!fav);
       } catch (err) {
         console.error('Error fetching favorites:', err);
       }
     };
 
     fetchProperty();
-    if (user) checkFavorite();
+    if (user && token) checkFavorite();
+
+    return () => {
+      mounted = false;
+    };
   }, [propertyId, user, token]);
 
   const handleFavorite = async () => {
     try {
       if (!isFavorite) {
-        await axios.post('/api/favorites', { propertyId }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await axios.post(
+          '/api/favorites',
+          { propertyId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         setIsFavorite(true);
       } else {
         await axios.delete(`/api/favorites/${propertyId}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         setIsFavorite(false);
       }
@@ -86,13 +94,11 @@ function PropertyDetails() {
   const handleInterestSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/interests', {
-        propertyId,
-        message: interestMessage,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      await axios.post(
+        '/api/interests',
+        { propertyId, message: interestMessage },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setShowInterestModal(false);
       alert('Your interest has been sent to the owner!');
     } catch (err) {
@@ -105,7 +111,7 @@ function PropertyDetails() {
     if (!window.confirm('Are you sure you want to delete this property?')) return;
     try {
       await axios.delete(`/api/properties/${propertyId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       navigate('/dashboard');
     } catch (err) {
@@ -113,7 +119,7 @@ function PropertyDetails() {
     }
   };
 
-  // 🔵 NEW: gallery helpers
+  // Gallery helpers
   const openGalleryAt = (idx) => {
     setGalleryIndex(idx);
     setShowGallery(true);
@@ -125,12 +131,10 @@ function PropertyDetails() {
   };
   const prevImage = () => {
     if (!property?.images?.length) return;
-    setGalleryIndex((prev) =>
-      (prev - 1 + property.images.length) % property.images.length
-    );
+    setGalleryIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
   };
 
-  // Keyboard navigation for gallery
+  // Keyboard nav for gallery
   useEffect(() => {
     if (!showGallery) return;
     const handler = (e) => {
@@ -142,16 +146,23 @@ function PropertyDetails() {
     return () => window.removeEventListener('keydown', handler);
   }, [showGallery, property?.images?.length]);
 
-  if (!property) return (
-    <div style={pageGradient}>
-      <div className="container py-5">Loading...</div>
-    </div>
-  );
+  if (!property)
+    return (
+      <div style={pageGradient}>
+        <div className="container py-5">Loading...</div>
+      </div>
+    );
 
-  const isOwner = user?.role === 'owner' &&
+  const isOwner =
+    user?.role === 'owner' &&
     (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
 
   const imgs = property.images || [];
+  const hasCoords =
+    property.latitude != null &&
+    property.longitude != null &&
+    !Number.isNaN(Number(property.latitude)) &&
+    !Number.isNaN(Number(property.longitude));
 
   return (
     <div style={pageGradient} className="py-5">
@@ -167,21 +178,40 @@ function PropertyDetails() {
         {/* Main image */}
         <div className="position-relative">
           <img
-            src={imgs[currentImageIndex] ? getImageUrl(imgs[currentImageIndex]) : "https://placehold.co/800x400?text=No+Image"}
+            src={
+              imgs[currentImageIndex]
+                ? getImageUrl(imgs[currentImageIndex])
+                : 'https://placehold.co/800x400?text=No+Image'
+            }
             alt={property.title}
             className="img-fluid rounded mb-3"
-            style={{ maxHeight: '420px', objectFit: 'cover', width: '100%', cursor: imgs.length ? 'zoom-in' : 'default' }}
+            style={{
+              maxHeight: '420px',
+              objectFit: 'cover',
+              width: '100%',
+              cursor: imgs.length ? 'zoom-in' : 'default',
+            }}
             onClick={() => imgs.length && openGalleryAt(currentImageIndex)}
           />
 
           {imgs.length > 1 && (
             <div className="d-flex justify-content-between mb-3">
-              <Button variant="light" onClick={() =>
-                setCurrentImageIndex((prev) => prev === 0 ? imgs.length - 1 : prev - 1)
-              }>◀</Button>
-              <Button variant="light" onClick={() =>
-                setCurrentImageIndex((prev) => prev === imgs.length - 1 ? 0 : prev + 1)
-              }>▶</Button>
+              <Button
+                variant="light"
+                onClick={() =>
+                  setCurrentImageIndex((prev) => (prev === 0 ? imgs.length - 1 : prev - 1))
+                }
+              >
+                ◀
+              </Button>
+              <Button
+                variant="light"
+                onClick={() =>
+                  setCurrentImageIndex((prev) => (prev === imgs.length - 1 ? 0 : prev + 1))
+                }
+              >
+                ▶
+              </Button>
             </div>
           )}
         </div>
@@ -194,7 +224,10 @@ function PropertyDetails() {
                 key={i}
                 type="button"
                 className="p-0 border-0 bg-transparent"
-                onClick={() => { setCurrentImageIndex(i); openGalleryAt(i); }}
+                onClick={() => {
+                  setCurrentImageIndex(i);
+                  openGalleryAt(i);
+                }}
                 title={`Image ${i + 1}`}
               >
                 <img
@@ -205,7 +238,8 @@ function PropertyDetails() {
                     height: 64,
                     objectFit: 'cover',
                     borderRadius: 6,
-                    outline: i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb'
+                    outline:
+                      i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb',
                   }}
                 />
               </button>
@@ -217,15 +251,22 @@ function PropertyDetails() {
           <div>
             <h3 className="fw-bold">{property.title}</h3>
             <p className="text-muted">
-              {property.bedrooms} beds · {property.bathrooms} baths · {property.squareMeters || 0} m²
+              {property.bedrooms} beds · {property.bathrooms} baths ·{' '}
+              {property.squareMeters || 0} m²
             </p>
-            <p><strong>Location:</strong> {property.location}</p>
-            <p><strong>Type:</strong> {property.type}</p>
-            <p><strong>Price:</strong> €{property.price}</p>
+            <p>
+              <strong>Location:</strong> {property.location}
+            </p>
+            <p>
+              <strong>Type:</strong> {property.type}
+            </p>
+            <p>
+              <strong>Price:</strong> €{property.price}
+            </p>
           </div>
 
           <div className="d-flex flex-column gap-2">
-            <Button variant={isFavorite ? "warning" : "outline-warning"} onClick={handleFavorite}>
+            <Button variant={isFavorite ? 'warning' : 'outline-warning'} onClick={handleFavorite}>
               {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
             </Button>
             {!isOwner && user?.role === 'client' && (
@@ -237,15 +278,49 @@ function PropertyDetails() {
         </div>
 
         <hr />
+
+        {/* Map (no duplicate search bar) */}
+        {hasCoords && (
+          <div className="mb-4">
+            <h5 className="fw-bold">Location on Map</h5>
+            <GoogleMapView
+              properties={[property]}
+              height="300px"
+              useClustering={false}
+              showSearch={false} // 🔒 no extra search box here
+              defaultCenter={{
+                lat: Number(property.latitude),
+                lng: Number(property.longitude),
+              }}
+              zoom={14}
+            />
+          </div>
+        )}
+
+        <hr />
         <h5 className="fw-bold">Facts and features</h5>
         <div className="row row-cols-2">
-          <div className="col"><strong>Floor:</strong> {property.floor}</div>
-          <div className="col"><strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}</div>
-          <div className="col"><strong>Levels:</strong> {property.levels}</div>
-          <div className="col"><strong>Surface:</strong> {property.surface} m²</div>
-          <div className="col"><strong>WC:</strong> {property.wc}</div>
-          <div className="col"><strong>Kitchens:</strong> {property.kitchens}</div>
-          <div className="col"><strong>Living Rooms:</strong> {property.livingRooms}</div>
+          <div className="col">
+            <strong>Floor:</strong> {property.floor}
+          </div>
+          <div className="col">
+            <strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}
+          </div>
+          <div className="col">
+            <strong>Levels:</strong> {property.levels}
+          </div>
+          <div className="col">
+            <strong>Surface:</strong> {property.surface} m²
+          </div>
+          <div className="col">
+            <strong>WC:</strong> {property.wc}
+          </div>
+          <div className="col">
+            <strong>Kitchens:</strong> {property.kitchens}
+          </div>
+          <div className="col">
+            <strong>Living Rooms:</strong> {property.livingRooms}
+          </div>
         </div>
 
         {property.features?.length > 0 && (
@@ -262,13 +337,17 @@ function PropertyDetails() {
 
         {isOwner && (
           <div className="mt-4 d-flex gap-2">
-            <Button variant="primary" onClick={() => navigate(`/edit-property/${propertyId}`)}>Edit</Button>
-            <Button variant="danger" onClick={handleDelete}>Delete</Button>
+            <Button variant="primary" onClick={() => navigate(`/edit-property/${propertyId}`)}>
+              Edit
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
           </div>
         )}
       </div>
 
-      {/* 🔵 NEW: Gallery Modal */}
+      {/* Gallery Modal */}
       <Modal show={showGallery} onHide={closeGallery} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
@@ -277,20 +356,28 @@ function PropertyDetails() {
         </Modal.Header>
         <Modal.Body className="text-center">
           <img
-            src={imgs.length ? getImageUrl(imgs[galleryIndex]) : 'https://placehold.co/1200x800?text=No+Image'}
+            src={
+              imgs.length
+                ? getImageUrl(imgs[galleryIndex])
+                : 'https://placehold.co/1200x800?text=No+Image'
+            }
             alt={`Image ${galleryIndex + 1}`}
             style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8 }}
           />
         </Modal.Body>
         {imgs.length > 1 && (
           <Modal.Footer className="d-flex justify-content-between">
-            <Button variant="light" onClick={prevImage}>◀ Prev</Button>
-            <Button variant="light" onClick={nextImage}>Next ▶</Button>
+            <Button variant="light" onClick={prevImage}>
+              ◀ Prev
+            </Button>
+            <Button variant="light" onClick={nextImage}>
+              Next ▶
+            </Button>
           </Modal.Footer>
         )}
       </Modal>
 
-      {/* Interest Modal (existing) */}
+      {/* Interest Modal */}
       <Modal show={showInterestModal} onHide={() => setShowInterestModal(false)}>
         <Form onSubmit={handleInterestSubmit}>
           <Modal.Header closeButton>

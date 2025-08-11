@@ -518,7 +518,7 @@ function Dashboard() {
         {/* Map View */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
-          <GoogleMapView properties={properties} height="500px" useClustering={true} />
+          <GoogleMapView properties={properties} height="500px" useClustering={false} />
         </div>
       </div>
 
