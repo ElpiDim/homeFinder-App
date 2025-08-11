@@ -1,58 +1,76 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+// src/context/AuthContext.jsx
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import axios from "axios";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Rehydrate from localStorage on first load
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  });
+  const [token, setToken] = useState(() => localStorage.getItem("token") || null);
+  const [authReady, setAuthReady] = useState(false);
 
+  // Keep axios Authorization header in sync with token
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    if (token) axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    else delete axios.defaults.headers.common.Authorization;
+  }, [token]);
 
-    // 🔒 Αν δεν υπάρχει token, μην προσπαθείς να κάνεις fetch
-    if (!token) {
-      console.warn("No token found — user not authenticated.");
-      return;
-    }
-
-    const fetchUserProfile = async () => {
+  // Verify token / refresh user once on mount
+  useEffect(() => {
+    let cancelled = false;
+    const bootstrap = async () => {
+      if (!token) { setAuthReady(true); return; }
       try {
-        const response = await fetch('/api/user/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log(' User profile data:', data);
-          setUser({
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            role: data.role,
-            address: data.address,
-            occupation: data.occupation,
-            salary: data.salary,
-            profilePicture: data.profilePicture,
-            createdAt: data.createdAt,
-          });
-        } else {
-          console.warn(' Unauthorized or failed profile fetch');
+        const res = await axios.get("/api/user/profile");
+        const data = res.data?.user || res.data; // handle either shape
+        if (!cancelled && data) {
+          setUser(data);
+          localStorage.setItem("user", JSON.stringify(data));
         }
-      } catch (error) {
-        console.error(' Failed to fetch user profile:', error);
+      } catch {
+        // invalid token -> clear
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        setToken(null);
+      } finally {
+        if (!cancelled) setAuthReady(true);
       }
     };
+    bootstrap();
+    return () => { cancelled = true; };
+  }, []); // run once
 
-    fetchUserProfile();
-  }, []);
+  // Optional helpers
+  const login = async (email, password) => {
+    const res = await axios.post("/api/auth/login", { email, password });
+    const tk = res.data.token;
+    const usr = res.data.user;
+    setToken(tk);
+    setUser(usr);
+    localStorage.setItem("token", tk);
+    localStorage.setItem("user", JSON.stringify(usr));
+    axios.defaults.headers.common.Authorization = `Bearer ${tk}`;
+  };
 
-  return (
-    <AuthContext.Provider value={{ user, setUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    delete axios.defaults.headers.common.Authorization;
+  };
+
+  const value = useMemo(() => ({
+    user, setUser,
+    token, setToken,
+    login, logout,
+    authReady,
+  }), [user, token, authReady]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => useContext(AuthContext);

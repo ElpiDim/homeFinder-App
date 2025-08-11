@@ -88,8 +88,14 @@ function GoogleMapViewInner({
   const points = useMemo(
     () =>
       properties
-        .filter((p) => p.latitude && p.longitude)
-        .map((p) => ({
+        .filter(
+          (p) =>
+            p.latitude != null &&
+            p.longitude != null &&
+            !Number.isNaN(Number(p.latitude)) &&
+            !Number.isNaN(Number(p.longitude))
+        )
+        .map((p) =>({
           id: p._id,
           title: p.title,
           text: p.location,

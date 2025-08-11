@@ -120,10 +120,7 @@ function PropertyDetails() {
   };
 
   // Gallery helpers
-  const openGalleryAt = (idx) => {
-    setGalleryIndex(idx);
-    setShowGallery(true);
-  };
+  const openGalleryAt = (idx) => { setGalleryIndex(idx); setShowGallery(true); };
   const closeGallery = () => setShowGallery(false);
   const nextImage = () => {
     if (!property?.images?.length) return;
@@ -146,12 +143,13 @@ function PropertyDetails() {
     return () => window.removeEventListener('keydown', handler);
   }, [showGallery, property?.images?.length]);
 
-  if (!property)
+  if (!property) {
     return (
       <div style={pageGradient}>
         <div className="container py-5">Loading...</div>
       </div>
     );
+  }
 
   const isOwner =
     user?.role === 'owner' &&
@@ -163,6 +161,10 @@ function PropertyDetails() {
     property.longitude != null &&
     !Number.isNaN(Number(property.latitude)) &&
     !Number.isNaN(Number(property.longitude));
+
+  const mapCenter = hasCoords
+    ? { lat: Number(property.latitude), lng: Number(property.longitude) }
+    : { lat: 37.9838, lng: 23.7275 }; // Athens fallback
 
   return (
     <div style={pageGradient} className="py-5">
@@ -224,10 +226,7 @@ function PropertyDetails() {
                 key={i}
                 type="button"
                 className="p-0 border-0 bg-transparent"
-                onClick={() => {
-                  setCurrentImageIndex(i);
-                  openGalleryAt(i);
-                }}
+                onClick={() => { setCurrentImageIndex(i); openGalleryAt(i); }}
                 title={`Image ${i + 1}`}
               >
                 <img
@@ -238,8 +237,7 @@ function PropertyDetails() {
                     height: 64,
                     objectFit: 'cover',
                     borderRadius: 6,
-                    outline:
-                      i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb',
+                    outline: i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb',
                   }}
                 />
               </button>
@@ -251,18 +249,11 @@ function PropertyDetails() {
           <div>
             <h3 className="fw-bold">{property.title}</h3>
             <p className="text-muted">
-              {property.bedrooms} beds · {property.bathrooms} baths ·{' '}
-              {property.squareMeters || 0} m²
+              {property.bedrooms} beds · {property.bathrooms} baths · {property.squareMeters || 0} m²
             </p>
-            <p>
-              <strong>Location:</strong> {property.location}
-            </p>
-            <p>
-              <strong>Type:</strong> {property.type}
-            </p>
-            <p>
-              <strong>Price:</strong> €{property.price}
-            </p>
+            <p><strong>Location:</strong> {property.location}</p>
+            <p><strong>Type:</strong> {property.type}</p>
+            <p><strong>Price:</strong> €{property.price}</p>
           </div>
 
           <div className="d-flex flex-column gap-2">
@@ -279,48 +270,34 @@ function PropertyDetails() {
 
         <hr />
 
-        {/* Map (no duplicate search bar) */}
-        {hasCoords && (
-          <div className="mb-4">
-            <h5 className="fw-bold">Location on Map</h5>
-            <GoogleMapView
-              properties={[property]}
-              height="300px"
-              useClustering={false}
-              showSearch={false} // 🔒 no extra search box here
-              defaultCenter={{
-                lat: Number(property.latitude),
-                lng: Number(property.longitude),
-              }}
-              zoom={14}
-            />
-          </div>
-        )}
+        {/* Always render the map (fallback center). Marker only if coords exist. */}
+        <div className="mb-4">
+          <h5 className="fw-bold">Location on Map</h5>
+          <GoogleMapView
+            properties={hasCoords ? [property] : []}
+            height="300px"
+            useClustering={false}
+            showSearch={false}   // make sure your GoogleMapView respects this
+            defaultCenter={mapCenter}
+            zoom={hasCoords ? 14 : 11}
+          />
+          {!hasCoords && (
+            <div className="small text-muted mt-2">
+              No saved pin for this property. Add one via “Edit Property”.
+            </div>
+          )}
+        </div>
 
         <hr />
         <h5 className="fw-bold">Facts and features</h5>
         <div className="row row-cols-2">
-          <div className="col">
-            <strong>Floor:</strong> {property.floor}
-          </div>
-          <div className="col">
-            <strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}
-          </div>
-          <div className="col">
-            <strong>Levels:</strong> {property.levels}
-          </div>
-          <div className="col">
-            <strong>Surface:</strong> {property.surface} m²
-          </div>
-          <div className="col">
-            <strong>WC:</strong> {property.wc}
-          </div>
-          <div className="col">
-            <strong>Kitchens:</strong> {property.kitchens}
-          </div>
-          <div className="col">
-            <strong>Living Rooms:</strong> {property.livingRooms}
-          </div>
+          <div className="col"><strong>Floor:</strong> {property.floor}</div>
+          <div className="col"><strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}</div>
+          <div className="col"><strong>Levels:</strong> {property.levels}</div>
+          <div className="col"><strong>Surface:</strong> {property.surface} m²</div>
+          <div className="col"><strong>WC:</strong> {property.wc}</div>
+          <div className="col"><strong>Kitchens:</strong> {property.kitchens}</div>
+          <div className="col"><strong>Living Rooms:</strong> {property.livingRooms}</div>
         </div>
 
         {property.features?.length > 0 && (
@@ -350,29 +327,23 @@ function PropertyDetails() {
       {/* Gallery Modal */}
       <Modal show={showGallery} onHide={closeGallery} centered size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>
-            Gallery ({imgs.length ? galleryIndex + 1 : 0}/{imgs.length})
-          </Modal.Title>
+          <Modal.Title>Gallery ({property.images?.length ? galleryIndex + 1 : 0}/{property.images?.length || 0})</Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
           <img
             src={
-              imgs.length
-                ? getImageUrl(imgs[galleryIndex])
+              property.images?.length
+                ? getImageUrl(property.images[galleryIndex])
                 : 'https://placehold.co/1200x800?text=No+Image'
             }
             alt={`Image ${galleryIndex + 1}`}
             style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 8 }}
           />
         </Modal.Body>
-        {imgs.length > 1 && (
+        {property.images?.length > 1 && (
           <Modal.Footer className="d-flex justify-content-between">
-            <Button variant="light" onClick={prevImage}>
-              ◀ Prev
-            </Button>
-            <Button variant="light" onClick={nextImage}>
-              Next ▶
-            </Button>
+            <Button variant="light" onClick={prevImage}>◀ Prev</Button>
+            <Button variant="light" onClick={nextImage}>Next ▶</Button>
           </Modal.Footer>
         )}
       </Modal>
@@ -396,12 +367,8 @@ function PropertyDetails() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowInterestModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary">
-              Send Interest
-            </Button>
+            <Button variant="secondary" onClick={() => setShowInterestModal(false)}>Cancel</Button>
+            <Button type="submit" variant="primary">Send Interest</Button>
           </Modal.Footer>
         </Form>
       </Modal>

@@ -7,6 +7,43 @@ import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 
+// --- helpers for the notifications UI (outside component) ---
+const iconForType = (t) => {
+  switch (t) {
+    case 'appointment': return '📅';
+    case 'interest': return '👋';
+    case 'favorite': return '⭐';
+    case 'property_removed': return '🏠❌';
+    case 'message': return '💬';
+    default: return '🔔';
+  }
+};
+
+const titleForNote = (n) => {
+  if (n.message) return n.message;
+  switch (n.type) {
+    case 'appointment': return 'You have new appointment options from the property owner.';
+    case 'interest': return `${n.senderId?.name || 'Someone'} sent an interest.`;
+    case 'favorite': return `${n.senderId?.name || 'Someone'} added your property to favorites.`;
+    case 'property_removed': return 'A property you interacted with was removed.';
+    case 'message': return 'New message received.';
+    default: return 'Notification';
+  }
+};
+
+const timeAgo = (d) => {
+  if (!d) return '';
+  const diff = Math.max(0, Date.now() - new Date(d).getTime());
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const dys = Math.floor(h / 24);
+  return `${dys}d ago`;
+};
+
 function Dashboard() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -49,7 +86,7 @@ function Dashboard() {
     navigate('/');
   };
 
-  // ✅ Memoized for ESLint/deps
+  // memoized
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await axios.get('/api/notifications', {
@@ -92,7 +129,6 @@ function Dashboard() {
       .catch((err) => console.error('Error fetching appointments:', err));
   }, [user, token, fetchNotifications]);
 
-  // Poll notifications every 30s
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
@@ -161,7 +197,7 @@ function Dashboard() {
   const handleSearch = () => {
     if (!searchTerm.trim()) return;
     const filtered = originalProperties.filter((p) =>
-      p.title.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.title || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
     setProperties(filtered);
   };
@@ -281,7 +317,7 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Notifications Dropdown */}
+          {/* Notifications Dropdown — revamped */}
           <div ref={dropdownRef} className="position-relative">
             <button
               className="btn btn-link text-decoration-none text-dark p-0 position-relative"
@@ -297,69 +333,146 @@ function Dashboard() {
                 </span>
               )}
             </button>
+
             {showNotifications && (
               <div
-                className="position-absolute bg-white border shadow p-3 rounded"
-                style={{
-                  top: '100%',
-                  left: 0,
-                  minWidth: '250px',
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  zIndex: 6000,
-                }}
+                className="position-absolute"
+                style={{ top: '100%', right: 0, zIndex: 6000, width: 380, maxWidth: '86vw' }}
               >
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <strong>Notifications</strong>
-                  <button className="btn-close" onClick={() => setShowNotifications(false)} />
-                </div>
-                {notifications.length === 0 ? (
-                  <p className="text-muted mb-0">No notifications</p>
-                ) : (
-                  <ul className="list-unstyled mb-0">
-                    {notifications.map((note, i) => (
-                      <li key={i} className="border-bottom py-2 small">
-                        {note.type === 'interest' ? (
-                          <button
-                            type="button"
-                            className="btn btn-link text-decoration-none text-dark p-0"
-                            onClick={() => {
+                <div className="card shadow-sm" style={{ fontSize: '0.95rem' }}>
+                  <div className="card-header d-flex align-items-center" style={{ fontWeight: 600 }}>
+                    <span>Notifications</span>
+                    <div className="ms-auto d-flex align-items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={async () => {
+                            const unread = notifications.filter(n => !n.read);
+                            try {
+                              await Promise.all(
+                                unread.map(n =>
+                                  axios.patch(`/api/notifications/${n._id}/read`, {}, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  })
+                                )
+                              );
+                              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                              setUnreadCount(0);
+                            } catch (e) {
+                              console.error('Mark all read failed', e);
+                            }
+                          }}
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                      <button className="btn-close" onClick={() => setShowNotifications(false)} />
+                    </div>
+                  </div>
+
+                  <div className="card-body p-0" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                    <ul className="list-group list-group-flush">
+                      {(() => {
+                        const seen = new Set();
+                        const list = notifications.filter(n => {
+                          const id = n._id || `${n.type}-${n.referenceId}-${n.createdAt || ''}`;
+                          if (seen.has(id)) return false;
+                          seen.add(id);
+                          return true;
+                        });
+
+                        if (list.length === 0) {
+                          return (
+                            <li className="list-group-item text-center text-muted py-4">
+                              No notifications
+                            </li>
+                          );
+                        }
+
+                        return list.map(note => {
+                          const isUnread = !note.read;
+                          const go = async () => {
+                            if (isUnread) {
+                              setNotifications(prev => prev.map(n => n._id === note._id ? { ...n, read: true } : n));
+                              setUnreadCount(c => Math.max(0, c - 1));
+                              try {
+                                await axios.patch(`/api/notifications/${note._id}/read`, {}, {
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                              } catch (e) {
+                                setNotifications(prev => prev.map(n => n._id === note._id ? { ...n, read: false } : n));
+                                setUnreadCount(c => c + 1);
+                              }
+                            }
+
+                            if (note.type === 'interest') {
                               setSelectedInterestId(note.referenceId);
                               setShowNotifications(false);
-                            }}
-                          >
-                            {note.message ||
-                              `${note.senderId?.name || 'Someone'} sent an interest.`}
-                          </button>
-                        ) : note.type === 'appointment' ? (
-                          <button
-                            type="button"
-                            className="btn btn-link text-decoration-none text-dark p-0"
-                            onClick={() => {
+                            } else if (note.type === 'appointment') {
                               setSelectedAppointmentId(note.referenceId);
                               setShowNotifications(false);
-                            }}
-                          >
-                            {note.message || 'New appointment scheduled.'}
-                          </button>
-                        ) : (
-                          <Link
-                            to={`/property/${note.referenceId}`}
-                            className="text-decoration-none text-dark"
-                            onClick={() => setShowNotifications(false)}
-                          >
-                            {note.message ||
-                              (note.type === 'favorite' &&
-                                `${note.senderId?.name || 'Someone'} added your property to favorites.`) ||
-                              (note.type === 'property_removed' &&
-                                'A property you interacted with was removed.') ||
-                              (note.type === 'message' && 'New message received.')}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                            } else if (note.referenceId) {
+                              setShowNotifications(false);
+                              navigate(`/property/${note.referenceId}`);
+                            }
+                          };
+
+                          return (
+                            <li
+                              key={note._id}
+                              className="list-group-item py-3 px-3"
+                              onClick={go}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <div className="d-flex align-items-start">
+                                <div
+                                  className="me-3 d-flex align-items-center justify-content-center"
+                                  style={{
+                                    width: 36, height: 36, borderRadius: 12,
+                                    background: 'rgba(13,110,253,.08)', fontSize: 18, flex: '0 0 36px'
+                                  }}
+                                >
+                                  {iconForType(note.type)}
+                                </div>
+
+                                <div className="flex-grow-1">
+                                  <div className="d-flex">
+                                    <div style={{ lineHeight: 1.35, color: '#212529' }}>
+                                      {titleForNote(note)}
+                                    </div>
+                                    {isUnread && (
+                                      <span
+                                        className="ms-auto mt-1"
+                                        style={{
+                                          width: 8, height: 8, borderRadius: 9999,
+                                          background: '#dc3545', display: 'inline-block', flex: '0 0 auto'
+                                        }}
+                                        aria-label="unread"
+                                      />
+                                    )}
+                                  </div>
+                                  <div style={{ color: '#6c757d', marginTop: 4 }}>
+                                    {timeAgo(note.createdAt)}
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        });
+                      })()}
+                    </ul>
+                  </div>
+
+                  <div className="card-footer bg-light text-center">
+                    <button
+                      className="btn btn-link text-decoration-none"
+                      onClick={() => { setShowNotifications(false); navigate('/notifications'); }}
+                    >
+                      View all
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -391,14 +504,14 @@ function Dashboard() {
         </div>
       </nav>
 
-      {/* Filters Panel (fixed so it never hides behind content) */}
+      {/* Filters Panel */}
       {showFilters && (
         <div
           ref={filterPanelRef}
           className="bg-white border shadow p-3 rounded"
           style={{
             position: 'fixed',
-            top: 76,          // just under navbar
+            top: 76,
             right: 16,
             width: 280,
             zIndex: 6500,
@@ -492,12 +605,8 @@ function Dashboard() {
                     />
                     <div className="card-body">
                       <h5 className="card-title">{prop.title}</h5>
-                      <p className="card-text text-muted mb-0">
-                        📍 {prop.location}
-                      </p>
-                      <p className="card-text text-muted mb-0">
-                        💶 {Number(prop.price).toLocaleString()} €
-                      </p>
+                      <p className="card-text text-muted mb-0">📍 {prop.location}</p>
+                      <p className="card-text text-muted mb-0">💶 {Number(prop.price).toLocaleString()} €</p>
                       <p className="card-text text-muted">🏷️ {prop.type}</p>
                     </div>
                   </Link>

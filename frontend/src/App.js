@@ -15,10 +15,15 @@ import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
+import {useAuth} from "./context/AuthContext";
+
 //import logo from './logo.svg';
 import './App.css';
 
 function App() {
+  const {authReady } =useAuth();
+  if(!authReady) return <div className='p-4'> Loading... </div>;
+  
   return (
     <Router>
       <Routes>
