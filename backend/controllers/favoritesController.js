@@ -1,8 +1,10 @@
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const Property = require("../models/property");
+const User = require("../models/user");
 
-// ADD FAVORITE
+
+// ADD FAVORITE// ADD FAVORITE
 const addFavorite = async (req, res) => {
   const userId = req.user.userId;
   const { propertyId } = req.body;
@@ -19,14 +21,23 @@ const addFavorite = async (req, res) => {
 
     const ownerId = property.ownerId;
 
-    // Send notification to the owner if different from current user
+    // Get a robust display name for the sender
+    const tenant = await User
+      .findById(userId)
+      .select("name firstName lastName email");
+    const senderName =
+      (tenant?.name && tenant.name.trim()) ||
+      [tenant?.firstName, tenant?.lastName].filter(Boolean).join(" ").trim() ||
+      tenant?.email ||
+      "A user";
+
     if (ownerId && ownerId.toString() !== userId) {
       await Notification.create({
-        userId: ownerId,               // recipient
-        type: "favorite",             // ✅ changed to "favorite"
+        userId: ownerId,
+        type: "favorite",
         referenceId: property._id,
         senderId: userId,
-         message: `${req.user.name} added your property "${property.title}" to favorites.`
+        message: `${senderName} added your property "${property.title}" to favorites.`
       });
     }
 
@@ -36,6 +47,7 @@ const addFavorite = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // GET FAVORITES
 const getFavorites = async (req, res) => {
