@@ -31,11 +31,27 @@ exports.proposeAppointmentSlots = async (req, res) => {
         .status(400)
         .json({ message: "No accepted interest found for this tenant" });
     }
+
+    if (!Array.isArray(availableSlots) || availableSlots.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Please provide at least one available slot" });
+    }
+
+    const parsedSlots = availableSlots.map((s) => new Date(s));
+    if (parsedSlots.some((d) => isNaN(d.getTime()))) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+    if (parsedSlots.length > 3) {
+      return res
+        .status(400)
+        .json({ message: "A maximum of 3 slots can be proposed" });
+    }
     const appointment = new Appointment({
       propertyId,
       tenantId,
       ownerId,
-      availableSlots,
+      availableSlots: parsedSlots,
     });
     await appointment.save();
 
