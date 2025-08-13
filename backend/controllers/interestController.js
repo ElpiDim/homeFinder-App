@@ -10,7 +10,7 @@ const STATUS = Object.freeze({
 });
 
 // helper to create notifications
-async function sendNotification({ userId, senderId, type, referenceId, message }) {
+function sendNotification({ userId, senderId, type, referenceId, message }) {
   return Notification.create({ userId, senderId, type, referenceId, message });
 }
 
@@ -94,9 +94,7 @@ exports.getInterestById = async (req, res) => {
  *   PUT   /api/interests/:interestId
  *   PATCH /api/interests/:id/status
  * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string|null }
- *
  * Notifies tenant on accepted/declined.
- * If status stays "pending" but preferredDate changes, sends "interest_proposed".
  */
 exports.updateInterestStatus = async (req, res) => {
   console.log("[updateInterestStatus] params:", req.params, "body:", req.body);
@@ -126,43 +124,40 @@ exports.updateInterestStatus = async (req, res) => {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    // capture previous proposed date before changes
-    const prevDate = interest.preferredDate ? +interest.preferredDate : null;
-
-    // set status
     interest.status = status;
 
-    // handle preferredDate:
-    // - undefined => keep as is
-    // - null or "" => clear
-    // - string/Date => parse and set
-    if (preferredDate === null || preferredDate === "") {
-      interest.preferredDate = undefined;
-    } else if (preferredDate !== undefined) {
-      const d = new Date(preferredDate);
-      if (isNaN(d.getTime())) {
-        return res.status(400).json({ message: "Invalid preferredDate" });
+    // accept either Date or ISO/string for preferredDate; allow clearing with null
+    if (preferredDate !== undefined && preferredDate !== "") {
+      if (preferredDate === null) {
+        interest.preferredDate = undefined;
+      } else {
+        const d = new Date(preferredDate);
+        if (isNaN(d.getTime())) {
+          return res.status(400).json({ message: "Invalid preferredDate" });
+        }
+        interest.preferredDate = d;
       }
-      interest.preferredDate = d;
     }
 
     await interest.save();
 
-    // Determine if the proposed date changed while staying PENDING
-    const newDate = interest.preferredDate ? +interest.preferredDate : null;
-    const dateChanged = prevDate !== newDate;
-
-    // --- Notifications ---
+    // notify tenant when accepted/declined
     if (status === STATUS.ACCEPTED || status === STATUS.DECLINED) {
-      // match UI names: interest_accepted / interest_rejected
-      const type = status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
+            // NOTE: Notification model + frontend expect "interest_rejected"
+      // for declined interests. Using a mismatched type caused
+      // validation errors and missing notifications. Keep naming
+      // consistent across backend and frontend.
+      const type =
+        status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
 
-      let msg = `Your interest for "${interest.propertyId.title || "the property"}" was ${
-        status === STATUS.ACCEPTED ? "accepted" : "rejected"
-      }.`;
+      let msg = `Your interest for "${
+        interest.propertyId.title || "the property"
+      }" was ${status === STATUS.ACCEPTED ? "accepted" : "declined"}.`;
 
       if (status === STATUS.ACCEPTED && interest.preferredDate) {
-        msg += ` Proposed date: ${new Date(interest.preferredDate).toLocaleString()}`;
+        msg += ` Proposed date: ${new Date(
+          interest.preferredDate
+        ).toLocaleString()}`;
       }
 
       await sendNotification({
@@ -171,17 +166,6 @@ exports.updateInterestStatus = async (req, res) => {
         type,
         referenceId: interest._id,
         message: msg,
-      });
-    } else if (status === STATUS.PENDING && dateChanged) {
-      // owner proposed/changed/cleared a date while still pending -> inform tenant
-      await sendNotification({
-        userId: interest.tenantId,
-        senderId: req.user.userId,
-        type: "interest_proposed",
-        referenceId: interest._id,
-        message: interest.preferredDate
-          ? `Owner proposed date: ${new Date(interest.preferredDate).toLocaleString()}`
-          : `Owner cleared the proposed date.`,
       });
     }
 

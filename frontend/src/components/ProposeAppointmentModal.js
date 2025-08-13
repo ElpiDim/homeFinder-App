@@ -20,30 +20,21 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     e.preventDefault();
     setSubmitting(true);
 
-     const cleanSlots = slots
-      .filter((s) => s && s.trim() !== "")
-      .map((s) => new Date(s).toISOString());
-
-    if (cleanSlots.length === 0) {
-      alert("Please provide at least one time slot.");
-      setSubmitting(false);
-      return;
-    }
-
     try {
       await axios.post(
         "/api/appointments/propose",
         {
           tenantId,
           propertyId,
-          availableSlots: cleanSLots
+          availableSlots: slots
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-      });
+            "Content-Type": "application/json"
+          }
+        }
+      );
       onClose();
     } catch (err) {
       console.error("Failed to propose appointment:", err);
