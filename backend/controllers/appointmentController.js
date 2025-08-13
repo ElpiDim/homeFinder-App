@@ -74,12 +74,28 @@ exports.confirmAppointmentSlot = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    appointment.selectedSlot = selectedSlot;
+    if (!selectedSlot) {
+      return res.status(400).json({ message: "No slot selected" });
+    }
+
+    if (appointment.status === "confirmed") {
+      return res.status(400).json({ message: "Appointment already confirmed" });
+    }
+
+    const slotDate = new Date(selectedSlot);
+    const isValidSlot = appointment.availableSlots.some(
+      (slot) => new Date(slot).getTime() === slotDate.getTime()
+    );
+
+    if (!isValidSlot) {
+      return res.status(400).json({ message: "Selected slot is not one of the proposed options" });
+    }
+
+    appointment.selectedSlot = slotDate;
     appointment.status = "confirmed";
     await appointment.save();
 
-    // TODO: notify owner (optional)
-    const humanReadable = new Date(selectedSlot).toLocaleString("en-GB",{
+    const humanReadable = slotDate.toLocaleString("en-GB", {
       dateStyle: "medium",
       timeStyle:"short",
     });
