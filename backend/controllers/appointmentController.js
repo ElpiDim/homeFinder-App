@@ -122,11 +122,41 @@ exports.getAppointmentById = async (req, res) => {
 // Update appointment status (e.g. cancel, reject)
 exports.updateAppointmentStatus = async (req, res) => {
   try {
-    const appointment = await Appointment.findByIdAndUpdate(
-      req.params.appointmentId,
-      { status: req.body.status },
-      { new: true }
-    );
+     const { status } = req.body;
+    const appointment = await Appointment.findById(req.params.appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const userId = req.user.userId;
+    const isOwner = appointment.ownerId.toString() === userId;
+    const isTenant = appointment.tenantId.toString() === userId;
+
+    if (!isOwner && !isTenant) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    appointment.status = status;
+    await appointment.save();
+
+    // Notify the other party about the change
+    const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
+    let message = `Appointment status updated to ${status}.`;
+
+    if (isOwner && (status === "cancelled" || status === "rejected")) {
+      message = "Your appointment was rejected by the property owner.";
+    } else if (isTenant && status === "cancelled") {
+      message = "The tenant cancelled the appointment.";
+    }
+
+    await Notification.create({
+      userId: recipientId,
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: userId,
+      message,
+    });
     res.json(appointment);
   } catch (err) {
     res.status(500).json({ message: "Server error" });

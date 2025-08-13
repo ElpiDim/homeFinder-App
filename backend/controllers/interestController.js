@@ -6,11 +6,11 @@ const Notification = require("../models/notification");
 const STATUS = Object.freeze({
   PENDING: "pending",
   ACCEPTED: "accepted",
-  DECLINED: "declined", // 👈 match your schema enum
+  DECLINED: "declined", // ← matches schema enum
 });
 
 // helper to create notifications
-async function sendNotification({ userId, senderId, type, referenceId, message }) {
+function sendNotification({ userId, senderId, type, referenceId, message }) {
   return Notification.create({ userId, senderId, type, referenceId, message });
 }
 
@@ -90,20 +90,33 @@ exports.getInterestById = async (req, res) => {
 
 /**
  * Owner updates interest status (+ optional preferredDate)
- * PATCH /api/interests/:id/status
- * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string }
+ * Supports BOTH:
+ *   PUT   /api/interests/:interestId
+ *   PATCH /api/interests/:id/status
+ * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string|null }
  * Notifies tenant on accepted/declined.
  */
 exports.updateInterestStatus = async (req, res) => {
-  try {
-    const { status, preferredDate } = req.body;
+  console.log("[updateInterestStatus] params:", req.params, "body:", req.body);
 
-    if (!status || ![STATUS.PENDING, STATUS.ACCEPTED, STATUS.DECLINED].includes(status)) {
-      return res.status(400).json({ message: "Invalid or missing status" });
+  try {
+    const interestId = req.params.interestId || req.params.id;
+    if (!interestId) return res.status(400).json({ message: "Missing interest id" });
+
+    let { status, preferredDate } = req.body;
+    if (!status) return res.status(400).json({ message: "Invalid or missing status" });
+
+    // normalize common synonyms from frontend
+    const norm = String(status).toLowerCase().trim();
+    if (norm === "rejected" || norm === "declined") status = STATUS.DECLINED;
+    else if (norm === "accepted") status = STATUS.ACCEPTED;
+    else if (norm === "pending") status = STATUS.PENDING;
+
+    if (![STATUS.PENDING, STATUS.ACCEPTED, STATUS.DECLINED].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
     }
 
-    // load interest + property for authorization and message
-    const interest = await Interest.findById(req.params.id).populate("propertyId");
+    const interest = await Interest.findById(interestId).populate("propertyId");
     if (!interest) return res.status(404).json({ message: "Interest not found" });
 
     // only the property owner can update
@@ -113,16 +126,17 @@ exports.updateInterestStatus = async (req, res) => {
 
     interest.status = status;
 
-    // accept either Date or ISO/string for preferredDate
-    if (preferredDate !== undefined && preferredDate !== null && preferredDate !== "") {
-      const d = new Date(preferredDate);
-      if (isNaN(d.getTime())) {
-        return res.status(400).json({ message: "Invalid preferredDate" });
+    // accept either Date or ISO/string for preferredDate; allow clearing with null
+    if (preferredDate !== undefined && preferredDate !== "") {
+      if (preferredDate === null) {
+        interest.preferredDate = undefined;
+      } else {
+        const d = new Date(preferredDate);
+        if (isNaN(d.getTime())) {
+          return res.status(400).json({ message: "Invalid preferredDate" });
+        }
+        interest.preferredDate = d;
       }
-      interest.preferredDate = d;
-    } else if (preferredDate === null) {
-      // allow clearing the date
-      interest.preferredDate = undefined;
     }
 
     await interest.save();
@@ -130,20 +144,19 @@ exports.updateInterestStatus = async (req, res) => {
     // notify tenant when accepted/declined
     if (status === STATUS.ACCEPTED || status === STATUS.DECLINED) {
       const type = status === STATUS.ACCEPTED ? "interest_accepted" : "interest_declined";
-      let message = `Your interest for "${interest.propertyId.title || "the property"}" was ${
+      let msg = `Your interest for "${interest.propertyId.title || "the property"}" was ${
         status === STATUS.ACCEPTED ? "accepted" : "declined"
       }.`;
-
       if (status === STATUS.ACCEPTED && interest.preferredDate) {
-        message += ` Proposed date: ${new Date(interest.preferredDate).toLocaleString()}`;
+        msg += ` Proposed date: ${new Date(interest.preferredDate).toLocaleString()}`;
       }
 
       await sendNotification({
-        userId: interest.tenantId,       // receiver: tenant
-        senderId: req.user.userId,       // sender: owner
+        userId: interest.tenantId,   // tenant receives
+        senderId: req.user.userId,   // owner is sender
         type,
         referenceId: interest._id,
-        message,
+        message: msg,
       });
     }
 
@@ -160,7 +173,7 @@ exports.updateInterestStatus = async (req, res) => {
 };
 
 /**
- * Tenant fetches all his interests
+ * Tenant fetches all their interests
  * GET /api/interests
  */
 exports.getInterests = async (req, res) => {
