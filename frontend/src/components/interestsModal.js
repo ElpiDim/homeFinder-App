@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ProposeAppointmentModal from './ProposeAppointmentModal';
+import {useAuth} from '../context/AuthContext';
+
 
 function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
@@ -8,6 +10,7 @@ function InterestsModal({ interestId, onClose }) {
   const [preferredDate, setPreferredDate] = useState('');
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
+  const {user} = useAuth();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -33,20 +36,27 @@ function InterestsModal({ interestId, onClose }) {
     fetchInterest();
   }, [interestId, token]);
 
+  const isOwner=
+    user && interest?.propertyId?.ownerId && interest.propertyId.ownerId === user._id;
+
   const handleUpdate = async () => {
+    if (!isOwner) return; 
     try {
-       await axios.put(
+      await axios.put(
         `/api/interests/${interestId}/status`,
         {
           status,
-          preferredDate: preferredDate ? new Date(preferredDate).toISOString() : null,
+          preferredDate: preferredDate
+            ? new Date(preferredDate).toISOString()
+            : null,
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+        },
       });
+    
 
       alert('Interest updated!');
       onClose();
@@ -79,38 +89,46 @@ function InterestsModal({ interestId, onClose }) {
             <p>{interest.message || '-'}</p>
 
 
-            <div className="mb-3">
-              <label className="form-label">Status</label>
-              <select
-                className="form-select"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="pending">Pending</option>
-                <option value="accepted">Accept</option>
-                <option value="declined">Decline</option>
-              </select>
-            </div>
+            {isOwner && (
+              <>
+                <div className="mb-3">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accept</option>
+                    <option value="declined">Decline</option>
+                  </select>
+                </div>
 
-            {status === 'accepted' && (
-              <div className="mb-3">
-                <button
-                  className="btn btn-outline-primary"
-                  onClick={() => setShowAppointmentModal(true)}
-                >
-                  📅 Propose Appointment
-                </button>
-              </div>
+                {status === 'accepted' && (
+                  <div className="mb-3">
+                    <button
+                      className="btn btn-outline-primary"
+                      onClick={() => setShowAppointmentModal(true)}
+                    >
+                      📅 Propose Appointment
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>Close</button>
-            <button className="btn btn-primary" onClick={handleUpdate}>Save</button>
+             {isOwner && (
+              <button className="btn btn-primary" onClick={handleUpdate}>
+                Save
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {showAppointmentModal && (
+      {isOwner && showAppointmentModal && (
         <ProposeAppointmentModal
           show={showAppointmentModal}
           onClose={() => setShowAppointmentModal(false)}

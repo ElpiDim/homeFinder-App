@@ -1,5 +1,7 @@
 const Appointment = require("../models/appointments");
 const Notification = require("../models/notification");
+const Property = require("../models/property");
+const Interest = require("../models/interests");
 
 // OWNER proposes slots
 exports.proposeAppointmentSlots = async (req, res) => {
@@ -7,29 +9,48 @@ exports.proposeAppointmentSlots = async (req, res) => {
   const ownerId = req.user.userId;
 
   try {
+     const property = await Property.findById(propertyId);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    if (String(property.ownerId) !== String(ownerId)) {
+      return res
+        .status(403)
+        .json({ message: "Only the property owner can propose appointments" });
+    }
+
+    const interest = await Interest.findOne({
+      propertyId,
+      tenantId,
+      status: "accepted",
+    });
+
+    if (!interest) {
+      return res
+        .status(400)
+        .json({ message: "No accepted interest found for this tenant" });
+    }
     const appointment = new Appointment({
       propertyId,
       tenantId,
       ownerId,
-      availableSlots
+      availableSlots,
     });
     await appointment.save();
 
     await Notification.create({
     userId: tenantId,
-    type: "appointment",                // ✅ valid enum type
-    referenceId: appointment._id,      // ✅ matches your schema
-    senderId: ownerId,                 // optional but helpful
-    message: "You have new appointment options from the property owner.",
-  });
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: ownerId,
+      message: "You have new appointment options from the property owner.",
+    });
 
 
-
-    // TODO: create notification for tenant here if needed
-    console.log(" User inside proposeAppointmentSlots:", req.user);
-
-
-    res.status(201).json({ message: "Appointment slots proposed", appointment });
+    res
+      .status(201)
+      .json({ message: "Appointment slots proposed", appointment });
   } catch (err) {
     console.error("❌ Error proposing appointment:", err);
     res.status(500).json({ message: "Server error" });
