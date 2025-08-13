@@ -36,7 +36,7 @@ function InterestsModal({ interestId, onClose }) {
   const handleUpdate = async () => {
     try {
        await axios.put(
-        `/api/interests/${interestId}`,
+        `/api/interests/${interestId}/status`,
         {
           status,
           preferredDate: preferredDate ? new Date(preferredDate).toISOString() : null,

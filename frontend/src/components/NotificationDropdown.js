@@ -86,7 +86,7 @@
                     }
                   }
 
-                  if (note.type === "interest") {
+                  if (["interest", "interest_accepted", "interest_rejected"].includes(note.type)) {
                     setSelectedInterestId(note.referenceId);
                     setShowNotifications(false);
                   } else if (note.type === "appointment") {

@@ -72,7 +72,7 @@ export default function NotificationsPage() {
       const name = note?.senderId?.name || 'Someone';
       return `${name} added your property to favorites.`;
     }
-    if (note.type === 'interest') {
+    if (note.type === 'interest' || note.type === 'interest_accepted' || note.type === 'interest_rejected') {
       const name = note?.senderId?.name || 'Someone';
       return note.message || `${name} sent an interest.`;
     }
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
         </button>
       );
     }
-    if (note.type === 'interest') {
+     if (note.type === 'interest' || note.type === 'interest_accepted' || note.type === 'interest_rejected') {
       return (
         <button
           className="btn btn-sm btn-white-outline-primary"

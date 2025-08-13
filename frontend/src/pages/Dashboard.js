@@ -13,6 +13,8 @@ const iconForType = (t) => {
     case 'appointment': return '📅';
     case 'interest': return '👋';
     case 'favorite': return '⭐';
+    case 'interest_accepted': return '✅';
+    case 'interest_rejected': return '❌';
     case 'property_removed': return '🏠❌';
     case 'message': return '💬';
     default: return '🔔';
@@ -23,7 +25,10 @@ const titleForNote = (n) => {
   if (n.message) return n.message;
   switch (n.type) {
     case 'appointment': return 'You have new appointment options from the property owner.';
-    case 'interest': return `${n.senderId?.name || 'Someone'} sent an interest.`;
+    case 'interest':
+    case 'interest_accepted':
+    case 'interest_rejected':
+      return n.message || `${n.senderId?.name || 'Someone'} sent an interest.`;
     case 'favorite': return `${n.senderId?.name || 'Someone'} added your property to favorites.`;
     case 'property_removed': return 'A property you interacted with was removed.';
     case 'message': return 'New message received.';
@@ -406,7 +411,7 @@ function Dashboard() {
                               }
                             }
 
-                            if (note.type === 'interest') {
+                            if (['interest', 'interest_accepted', 'interest_rejected'].includes(note.type)) {
                               setSelectedInterestId(note.referenceId);
                               setShowNotifications(false);
                             } else if (note.type === 'appointment') {
