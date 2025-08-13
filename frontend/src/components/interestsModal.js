@@ -78,15 +78,6 @@ function InterestsModal({ interestId, onClose }) {
             <h6>Message</h6>
             <p>{interest.message || '-'}</p>
 
-            <div className="mb-3">
-              <label className="form-label">Appointment Date & Time</label>
-              <input
-                type="datetime-local"
-                className="form-control"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-              />
-            </div>
 
             <div className="mb-3">
               <label className="form-label">Status</label>

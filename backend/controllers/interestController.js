@@ -143,12 +143,21 @@ exports.updateInterestStatus = async (req, res) => {
 
     // notify tenant when accepted/declined
     if (status === STATUS.ACCEPTED || status === STATUS.DECLINED) {
-      const type = status === STATUS.ACCEPTED ? "interest_accepted" : "interest_declined";
-      let msg = `Your interest for "${interest.propertyId.title || "the property"}" was ${
-        status === STATUS.ACCEPTED ? "accepted" : "declined"
-      }.`;
+            // NOTE: Notification model + frontend expect "interest_rejected"
+      // for declined interests. Using a mismatched type caused
+      // validation errors and missing notifications. Keep naming
+      // consistent across backend and frontend.
+      const type =
+        status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
+
+      let msg = `Your interest for "${
+        interest.propertyId.title || "the property"
+      }" was ${status === STATUS.ACCEPTED ? "accepted" : "declined"}.`;
+
       if (status === STATUS.ACCEPTED && interest.preferredDate) {
-        msg += ` Proposed date: ${new Date(interest.preferredDate).toLocaleString()}`;
+        msg += ` Proposed date: ${new Date(
+          interest.preferredDate
+        ).toLocaleString()}`;
       }
 
       await sendNotification({
