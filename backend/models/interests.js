@@ -19,6 +19,12 @@ const interestSchema = new mongoose.Schema({
     default: "pending"
   },
 
+  // Dates proposed by the owner; tenant may later choose one
+  proposedDates: [{
+    type: Date,
+    default: undefined
+  }],
+
   preferredDate: { // 👈 από τον OWNER
     type: Date
   },

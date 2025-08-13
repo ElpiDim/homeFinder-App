@@ -10,6 +10,7 @@ const notificationSchema = new mongoose.Schema({
     type: String,
       enum: [
       "interest",
+      "interest_proposed",
       "interest_accepted",
       "interest_rejected",
       "message",
