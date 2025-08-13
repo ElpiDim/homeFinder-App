@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import GoogleMapView from '../components/GoogleMapView';
 import filterIcon from '../assets/filters.jpg';
-import InterestsModal from '../components/InterestsModal';
+import InterestsModal from '../components/interestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 
 // --- helpers for the notifications UI (outside component) ---

@@ -10,7 +10,7 @@ const STATUS = Object.freeze({
 });
 
 // helper to create notifications
-async function sendNotification({ userId, senderId, type, referenceId, message }) {
+function sendNotification({ userId, senderId, type, referenceId, message }) {
   return Notification.create({ userId, senderId, type, referenceId, message });
 }
 
@@ -93,6 +93,7 @@ exports.getInterestById = async (req, res) => {
  * POST /api/interests/:id/proposals
  * body: { dates: string[] }
  */
+
 exports.proposeDates = async (req, res) => {
   try {
     const { dates } = req.body || {};
@@ -148,16 +149,19 @@ exports.proposeDates = async (req, res) => {
   }
 };
 
+
 /**
  * Owner updates interest status (+ optional preferredDate)
  * Supports BOTH:
  *   PUT   /api/interests/:interestId
  *   PATCH /api/interests/:id/status
  * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string|null }
- *
  * Notifies tenant on accepted/declined.
  */
+
+
 exports.updateInterestStatus = async (req, res) => {
+  
   try {
     const interestId = req.params.interestId || req.params.id;
     if (!interestId) return res.status(400).json({ message: "Missing interest id" });
@@ -177,43 +181,58 @@ exports.updateInterestStatus = async (req, res) => {
     const interest = await Interest.findById(interestId).populate("propertyId");
     if (!interest) return res.status(404).json({ message: "Interest not found" });
 
+    
     if (String(interest.propertyId.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     interest.status = status;
 
-    if (preferredDate === null || preferredDate === "") {
-      interest.preferredDate = undefined;
-    } else if (preferredDate !== undefined) {
-      const d = new Date(preferredDate);
-      if (isNaN(d.getTime())) {
-        return res.status(400).json({ message: "Invalid preferredDate" });
+    // accept either Date or ISO/string for preferredDate; allow clearing with null
+    if (preferredDate !== undefined && preferredDate !== "") {
+      if (preferredDate === null) {
+        
+        interest.preferredDate = undefined;
+      } else {
+        const d = new Date(preferredDate);
+        if (isNaN(d.getTime())) {
+          return res.status(400).json({ message: "Invalid preferredDate" });
+        }
+        interest.preferredDate = d;
       }
-      interest.preferredDate = d;
-      // remove from proposedDates if chosen
-      interest.proposedDates = interest.proposedDates.filter((pd) => +pd !== +d);
     }
 
     await interest.save();
 
+    // notify tenant when accepted/declined
     if (status === STATUS.ACCEPTED || status === STATUS.DECLINED) {
-      const type = status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
-      let msg = `Your interest for "${interest.propertyId.title || "the property"}" was ${
-        status === STATUS.ACCEPTED ? "accepted" : "rejected"
-      }.`;
+            // NOTE: Notification model + frontend expect "interest_rejected"
+      // for declined interests. Using a mismatched type caused
+      // validation errors and missing notifications. Keep naming
+      // consistent across backend and frontend.
+      const type =
+        status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
+
+      let msg = `Your interest for "${
+        interest.propertyId.title || "the property"
+      }" was ${status === STATUS.ACCEPTED ? "accepted" : "declined"}.`;
+
       if (status === STATUS.ACCEPTED && interest.preferredDate) {
-        msg += ` Date: ${new Date(interest.preferredDate).toLocaleString()}`;
+        msg += ` Proposed date: ${new Date(
+          interest.preferredDate
+        ).toLocaleString()}`;
       }
+
       await sendNotification({
-        userId: interest.tenantId,
-        senderId: req.user.userId,
+        userId: interest.tenantId,   // tenant receives
+        senderId: req.user.userId,   // owner is sender
         type,
         referenceId: interest._id,
         message: msg,
       });
     }
 
+    // return populated interest for immediate UI update
     const updated = await Interest.findById(interest._id)
       .populate("tenantId", "name email phone")
       .populate("propertyId", "title location ownerId");
