@@ -5,17 +5,14 @@ import ProposeAppointmentModal from './ProposeAppointmentModal';
 import { useAuth } from '../context/AuthContext';
 import { Modal, Form, Button } from 'react-bootstrap';
 
-function interestsModal({ interestId, onClose }) {
+function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
-
   const { user } = useAuth();
   const token = localStorage.getItem('token');
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
   const [proposedDate, setProposedDate] = useState('');
 
   const isOwner = useMemo(() => {
@@ -28,8 +25,10 @@ function interestsModal({ interestId, onClose }) {
     return String(uid) === String(ownerId);
   }, [user, interest]);
 
-  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-
+    const headers = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : undefined),
+    [token]
+  );
   const formatDateTime = (iso) => {
     if (!iso) return '-';
     try {
@@ -85,12 +84,16 @@ function interestsModal({ interestId, onClose }) {
     const payload = { status: 'accepted' };
     if (proposedDate) payload.preferredDate = proposedDate;
     const ok = await submitUpdate(payload);
-    if (ok) onClose?.();
+   if (ok) {
+      await refetchInterest();
+    }
   };
 
   const handleReject = async () => {
     const ok = await submitUpdate({ status: 'declined' });
-    if (ok) onClose?.();
+    if (ok) {
+      await refetchInterest();
+    }
   };
 
   const handleProposeSingle = async () => {
@@ -98,10 +101,14 @@ function interestsModal({ interestId, onClose }) {
       setError('Choose a date/time to propose.');
       return;
     }
-    const ok = await submitUpdate({ status: 'pending', preferredDate: proposedDate });
-    if (ok) onClose?.();
+    const ok = await submitUpdate({
+      status: 'pending',
+      preferredDate: proposedDate,
+    });
+    if (ok) {
+      await refetchInterest();
+    }
   };
-
   return (
     <Modal show onHide={onClose} centered>
       <Modal.Header closeButton>

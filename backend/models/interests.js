@@ -23,10 +23,15 @@ const interestSchema = new mongoose.Schema(
     default: "pending"
   },
 
-  preferredDate: { // 👈 από τον OWNER
-    type: Date
-  },
+   preferredDate: { // 👈 από τον OWNER
+      type: Date
+    },
 
+    // Dates proposed by the owner for a possible appointment
+    proposedDates: {
+      type: [Date],
+      default: [],
+    },
   submittedAt: {
     type: Date,
     default: Date.now

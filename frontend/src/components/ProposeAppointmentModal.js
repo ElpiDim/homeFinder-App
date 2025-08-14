@@ -96,5 +96,4 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     </Modal>
   );
 }
-
 export default ProposeAppointmentModal;

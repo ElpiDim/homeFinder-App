@@ -122,6 +122,9 @@ exports.proposeDates = async (req, res) => {
       return res.status(400).json({ message: "No valid dates provided" });
     }
 
+     // ensure array exists for interests created before this field
+    interest.proposedDates = interest.proposedDates || [];
+
     const existing = new Set(interest.proposedDates.map((d) => +d));
     for (const ts of unique) {
       if (!existing.has(ts)) {
