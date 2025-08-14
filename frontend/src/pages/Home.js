@@ -67,7 +67,7 @@ function Home() {
       {/* Map + Search */}
       <div className="container my-5">
         <div className="card border-0 shadow-sm">
-          <GoogleMapView properties={properties} height="320px" />
+          <GoogleMapView properties={properties} height="320px" navigateOnMarkerClick />
         </div>
       </div>
 

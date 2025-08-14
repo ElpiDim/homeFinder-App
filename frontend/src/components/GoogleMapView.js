@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader, StandaloneSearchBox } from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import {useNavigate} from "react-router-dom";
 
 const containerStyle = { width: "100%", height: "100%" };
 const LIBRARIES = ["places"]; // σταθερό array
@@ -55,6 +56,7 @@ function GoogleMapViewInner({
   useClustering = true,
   mapId, // optional styled map id
   showSearch = true,
+  navigateOnMarkerClick = false,
 }) {
   const { isLoaded } = useJsApiLoader({
     id: LOADER_ID,
@@ -69,6 +71,7 @@ function GoogleMapViewInner({
   const [map, setMap] = useState(null);
   const [active, setActive] = useState(null);
   const clustererRef = useRef(null);
+  const navigate = useNavigate();
 
 // SearchBox reference
   const searchBoxRef = useRef(null);
@@ -122,7 +125,13 @@ function GoogleMapViewInner({
     }
     const markers = points.map((pt) => {
       const m = new window.google.maps.Marker({ position: pt.position, title: pt.title });
-      m.addListener("click", () => setActive(pt));
+      m.addListener("click", () => {
+        if (navigateOnMarkerClick && pt.id) {
+          navigate(`/property/${pt.id}`);
+        } else {
+          setActive(pt);
+        }
+      });
       return m;
     });
     if (markers.length) {
@@ -171,7 +180,13 @@ function GoogleMapViewInner({
             <Marker
               key={pt.id || `${pt.position.lat}-${pt.position.lng}`}
               position={pt.position}
-              onClick={() => setActive(pt)}
+               onClick={() => {
+                if (navigateOnMarkerClick && pt.id) {
+                  navigate(`/property/${pt.id}`);
+                } else {
+                  setActive(pt);
+                }
+              }}
             />
           ))}
 
