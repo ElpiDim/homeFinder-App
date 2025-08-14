@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import AppointmentModal from '../components/AppointmentModal'; // ✅ σωστό import (front-end modal)
 
 function Appointments() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState([]);
+  const [appointments, setAppointments] = useState([]);            // ✅ ξεσχολιασμένο
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null); // ✅ συνεπές όνομα
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  // Pastel gradient (same as other pages)
   const pageGradient = {
     minHeight: '100vh',
     background:
@@ -24,12 +25,10 @@ function Appointments() {
         const endpoint =
           user?.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
 
-        const res = await axios.get(endpoint, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined; // ✅ μόνο αν υπάρχει token
 
-        const confirmed = res.data.filter((appt) => appt.status === 'confirmed');
-        setAppointments(confirmed);
+        const res = await axios.get(endpoint, { headers });
+        setAppointments(res.data || []);
       } catch (err) {
         console.error('Error fetching appointments:', err);
         setError('Failed to load appointments.');
@@ -64,7 +63,7 @@ function Appointments() {
         {loading ? (
           <p className="text-muted">Loading…</p>
         ) : appointments.length === 0 ? (
-          <p className="text-muted mb-0">No confirmed appointments.</p>
+          <p className="text-muted mb-0">No appointments.</p>
         ) : (
           <ul className="list-group">
             {appointments.map((appt) => (
@@ -73,7 +72,9 @@ function Appointments() {
                   <div>
                     <strong>{appt.propertyId?.title || 'Property'}</strong>
                     <div className="small text-muted">
-                      {new Date(appt.selectedSlot).toLocaleString()}
+                      {appt.status === 'confirmed'
+                        ? new Date(appt.selectedSlot).toLocaleString()
+                        : 'Pending confirmation'}
                     </div>
 
                     {user?.role === 'owner' && appt.tenantId && (
@@ -84,22 +85,51 @@ function Appointments() {
                     )}
                   </div>
 
-                  {appt.propertyId?._id && (
-                    <Link
-                      to={`/property/${appt.propertyId._id}`}
-                      className="btn btn-sm btn-outline-primary"
-                    >
-                      View property
-                    </Link>
-                  )}
+                  <div className="d-flex flex-column align-items-end gap-2">
+                    {appt.propertyId?._id && (
+                      <Link
+                        to={`/property/${appt.propertyId._id}`}
+                        className="btn btn-sm btn-outline-primary"
+                      >
+                        View property
+                      </Link>
+                    )}
+
+                    {user?.role === 'tenant' && appt.status !== 'confirmed' && (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setSelectedAppointmentId(appt._id)} // ✅ σωστή setter
+                      >
+                        Choose time
+                      </button>
+                    )}
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {selectedAppointmentId && (
+        <AppointmentModal
+          appointmentId={selectedAppointmentId}
+          onClose={() => setSelectedAppointmentId(null)}
+          onConfirmed={() => {
+            // προαιρετικά κάνε refresh τη λίστα μετά από confirm
+            setSelectedAppointmentId(null);
+            setLoading(true);
+            axios
+              .get(user?.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant', {
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+              })
+              .then((res) => setAppointments(res.data || []))
+              .catch(() => {})
+              .finally(() => setLoading(false));
+          }}
+        />
+      )}
     </div>
   );
 }
-
 export default Appointments;

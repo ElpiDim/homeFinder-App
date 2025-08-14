@@ -1,11 +1,11 @@
 // src/components/InterestsModal.jsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import ProposeAppointmentModal from './ProposeAppointmentModal';
 import { useAuth } from '../context/AuthContext';
 import { Modal, Form, Button } from 'react-bootstrap';
 
-function InterestsModal({ interestId, onClose }) {
+function interestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
@@ -16,7 +16,6 @@ function InterestsModal({ interestId, onClose }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Local editable date (owner can propose or accept w/ date)
   const [proposedDate, setProposedDate] = useState('');
 
   const isOwner = useMemo(() => {
@@ -25,51 +24,54 @@ function InterestsModal({ interestId, onClose }) {
       typeof interest.propertyId.ownerId === 'object'
         ? interest.propertyId.ownerId._id
         : interest.propertyId.ownerId;
-    return user.id === ownerId;
+    const uid = user?.id || user?._id || user?.userId;
+    return String(uid) === String(ownerId);
   }, [user, interest]);
 
-  useEffect(() => {
-    let alive = true;
-    async function fetchInterest() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await axios.get(`/api/interests/${interestId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!alive) return;
-        setInterest(res.data);
-        // prefill proposedDate from server if exists
-        if (res.data?.preferredDate) {
-          const d = new Date(res.data.preferredDate);
-          // to 'YYYY-MM-DDTHH:mm' format for datetime-local
-          const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16);
-          setProposedDate(iso);
-        }
-      } catch (e) {
-        if (!alive) return;
-        setError(e.response?.data?.message || 'Failed to load interest.');
-      } finally {
-        if (alive) setLoading(false);
-      }
+  const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+  const formatDateTime = (iso) => {
+    if (!iso) return '-';
+    try {
+      return new Date(iso).toLocaleString();
+    } catch {
+      return iso;
     }
-    if (interestId && token) fetchInterest();
-    return () => {
-      alive = false;
-    };
-  }, [interestId, token]);
+  };
+
+  const refetchInterest = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axios.get(`/api/interests/${interestId}`, { headers });
+      setInterest(res.data);
+
+      if (res.data?.preferredDate) {
+        const d = new Date(res.data.preferredDate);
+        const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+        setProposedDate(isoLocal);
+      } else {
+        setProposedDate('');
+      }
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to load interest.');
+    } finally {
+      setLoading(false);
+    }
+  }, [interestId, headers]);
+
+  useEffect(() => {
+    if (interestId && token) refetchInterest();
+  }, [interestId, token, refetchInterest]);
 
   const submitUpdate = async (payload) => {
     setSaving(true);
     setError('');
     try {
-      // PUT /api/interests/:interestId
-      const res = await axios.put(`/api/interests/${interestId}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setInterest(res.data?.interest || res.data); // controller may return {message, interest}
+      const res = await axios.put(`/api/interests/${interestId}`, payload, { headers });
+      setInterest(res.data?.interest || res.data);
       return true;
     } catch (e) {
       setError(e.response?.data?.message || 'Update failed.');
@@ -83,7 +85,7 @@ function InterestsModal({ interestId, onClose }) {
     const payload = { status: 'accepted' };
     if (proposedDate) payload.preferredDate = proposedDate;
     const ok = await submitUpdate(payload);
-    if (ok) onClose?.(); // close after success
+    if (ok) onClose?.();
   };
 
   const handleReject = async () => {
@@ -91,23 +93,13 @@ function InterestsModal({ interestId, onClose }) {
     if (ok) onClose?.();
   };
 
-  const handlePropose = async () => {
+  const handleProposeSingle = async () => {
     if (!proposedDate) {
       setError('Choose a date/time to propose.');
       return;
     }
-    // Keep status pending, only set preferredDate
     const ok = await submitUpdate({ status: 'pending', preferredDate: proposedDate });
     if (ok) onClose?.();
-  };
-
-  const formatDateTime = (iso) => {
-    if (!iso) return '-';
-    try {
-      return new Date(iso).toLocaleString();
-    } catch {
-      return iso;
-    }
   };
 
   return (
@@ -146,13 +138,6 @@ function InterestsModal({ interestId, onClose }) {
               </div>
             </div>
 
-            <div className="mb-3">
-              <strong>Message:</strong>
-              <div className="mt-1">
-                {interest.message || <span className="text-muted">No message</span>}
-              </div>
-            </div>
-
             <div className="row g-2 mb-3">
               <div className="col-6">
                 <div>
@@ -167,11 +152,27 @@ function InterestsModal({ interestId, onClose }) {
               </div>
               <div className="col-12">
                 <div>
-                  <strong>Proposed date:</strong>{' '}
-                  {formatDateTime(interest.preferredDate)}
+                  <strong>Proposed date:</strong> {formatDateTime(interest.preferredDate)}
                 </div>
               </div>
             </div>
+
+            {Array.isArray(interest?.proposedDates) && interest.proposedDates.length > 0 && (
+              <>
+                <hr />
+                <div className="mb-2 fw-semibold">Already proposed dates</div>
+                <ul className="list-group">
+                  {interest.proposedDates
+                    .slice()
+                    .sort((a, b) => new Date(a) - new Date(b))
+                    .map((d) => (
+                      <li key={d} className="list-group-item">
+                        {formatDateTime(d)}
+                      </li>
+                    ))}
+                </ul>
+              </>
+            )}
 
             {isOwner && (
               <>
@@ -184,7 +185,7 @@ function InterestsModal({ interestId, onClose }) {
                     onChange={(e) => setProposedDate(e.target.value)}
                   />
                   <Form.Text className="text-muted">
-                    You can set a proposed date alone (keeps status pending) or accept and
+                    You can set a single proposed date (keeps status pending), or accept and
                     include a date.
                   </Form.Text>
                 </Form.Group>
@@ -201,28 +202,26 @@ function InterestsModal({ interestId, onClose }) {
 
         {isOwner && !loading && interest && (
           <div className="d-flex gap-2">
-            <Button
-              variant="outline-danger"
-              onClick={handleReject}
-              disabled={saving}
-              title="Reject interest"
-            >
+            <Button variant="outline-danger" onClick={handleReject} disabled={saving}>
               Reject
             </Button>
             <Button
-              variant="outline-primary"
-              onClick={handlePropose}
+              variant="outline-secondary"
+              onClick={() => setShowAppointmentModal(true)}
               disabled={saving}
-              title="Propose date (keeps pending)"
+              title="Propose multiple dates"
+            >
+              Propose multiple dates
+            </Button>
+            <Button
+              variant="outline-primary"
+              onClick={handleProposeSingle}
+              disabled={saving}
+              title="Propose single date (keeps pending)"
             >
               Propose date
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleAccept}
-              disabled={saving}
-              title="Accept interest"
-            >
+            <Button variant="primary" onClick={handleAccept} disabled={saving}>
               Accept
             </Button>
           </div>
@@ -232,7 +231,13 @@ function InterestsModal({ interestId, onClose }) {
       {isOwner && showAppointmentModal && (
         <ProposeAppointmentModal
           show={showAppointmentModal}
-          onClose={() => setShowAppointmentModal(false)}
+          onClose={async (didSubmit) => {
+            setShowAppointmentModal(false);
+            if (didSubmit) {
+              await refetchInterest();
+            }
+          }}
+          interestId={interest._id}
           tenantId={interest.tenantId?._id}
           propertyId={interest.propertyId?._id}
         />
@@ -241,4 +246,4 @@ function InterestsModal({ interestId, onClose }) {
   );
 }
 
-export default InterestsModal;
+export default interestsModal;

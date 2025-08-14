@@ -83,9 +83,23 @@ exports.getUserProfile = async (req, res) => {
 
     const baseUrl = process.env.BASE_URL || "http://localhost:5000";
     const userObj = user.toObject();
-    if (userObj.profilePicture) {
-      userObj.profilePicture = `${baseUrl}${userObj.profilePicture}`;
-    }
+     const fullProfilePicture = user.profilePicture
+      ? `${baseUrl}${user.profilePicture}`
+      : null;
+
+    // 🔁 Επιστρέφουμε ένα αντικείμενο συμβατό με το login
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      address: user.address,
+      occupation: user.occupation,
+      salary: user.salary,
+      profilePicture: fullProfilePicture,
+      createdAt: user.createdAt,
+    });
 
     res.json(userObj);
   } catch (err) {

@@ -3,7 +3,7 @@ import { Modal, Button, Form } from "react-bootstrap";
 import axios from "axios";
 
 function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
-  const [slots, setSlots] = useState([""]);
+  const [slots, setSlots] = useState(["", "", "", ""]);
   const [submitting, setSubmitting] = useState(false);
   const token = localStorage.getItem("token");
 
@@ -64,7 +64,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
                 onChange={(e) => handleSlotChange(i, e.target.value)}
                 required
               />
-              {slots.length > 1 && (
+              {slots.length > 4 && (
                 <Button
                   variant="danger"
                   className="ms-2"
