@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader, StandaloneSearchBox } from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const containerStyle = { width: "100%", height: "100%" };
-const LIBRARIES = ["places"]; // σταθερό array
-const LOADER_ID = "gmap";      // ίδιο id παντού
+const LIBRARIES = ["places"];
+const LOADER_ID = "gmap";
+const PLACEHOLDER = "https://via.placeholder.com/120x80?text=No+Image";
 
-// Πιάνει Vite / Next / CRA με ασφαλή τρόπο
 function getMapsApiKey() {
   const viteKey =
     typeof import.meta !== "undefined" &&
@@ -22,11 +22,8 @@ function getMapsApiKey() {
   );
 }
 
-/* --------------------- WRAPPER (ΔΕΝ καλεί useJsApiLoader) --------------------- */
 export default function GoogleMapView(props) {
   const apiKey = getMapsApiKey();
-
-  // Αν δεν υπάρχει key, δείξε μήνυμα και ΜΗΝ φορτώσεις καθόλου τον Loader
   if (!apiKey) {
     return (
       <div className="card shadow-sm d-flex align-items-center justify-content-center" style={{ height: props.height || "500px" }}>
@@ -34,50 +31,53 @@ export default function GoogleMapView(props) {
           <div className="fw-bold">Google Maps: Δεν βρέθηκε API key</div>
           <div className="small text-muted mt-2">
             Πρόσθεσε στο <code>.env</code> ένα από:
-            <br />
-            <code>VITE_GOOGLE_MAPS_API_KEY</code> (Vite) ή <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> (Next.js) ή <code>REACT_APP_GOOGLE_MAPS_API_KEY</code> (CRA)
-            <br />και κάνε restart το dev server.
+            <code> VITE_GOOGLE_MAPS_API_KEY</code> / <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> / <code>REACT_APP_GOOGLE_MAPS_API_KEY</code>
           </div>
         </div>
       </div>
     );
   }
-
   return <GoogleMapViewInner {...props} apiKey={apiKey} />;
 }
 
-/* --------------------- INNER (ΚΑΛΕΙ useJsApiLoader ΜΙΑ ΦΟΡΑ) --------------------- */
 function GoogleMapViewInner({
   apiKey,
   properties = [],
   height = "500px",
   zoom = 11,
-  defaultCenter = { lat: 37.9838, lng: 23.7275 }, // Αθήνα
+  defaultCenter = { lat: 37.9838, lng: 23.7275 },
   useClustering = true,
-  mapId, // optional styled map id
+  mapId,
   showSearch = true,
-  navigateOnMarkerClick = false,
 }) {
   const { isLoaded } = useJsApiLoader({
     id: LOADER_ID,
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
-    // προαιρετικά κράτα σταθερά αν τα χρησιμοποιήσεις:
-    // language: "el",
-    // region: "GR",
-    // mapIds: mapId ? [mapId] : [],
   });
 
   const [map, setMap] = useState(null);
-  const [active, setActive] = useState(null);
+  const [active, setActive] = useState(null); // { id, title, text, img, position }
   const clustererRef = useRef(null);
   const navigate = useNavigate();
 
-// SearchBox reference
+  // 1ο κλικ: ανοίγει InfoWindow | 2ο κλικ στο ίδιο pin: navigate
+  const handleMarkerClick = useCallback(
+    (pt) => {
+      setActive((prev) => {
+        if (prev && prev.id === pt.id) {
+          navigate(`/property/${pt.id}`);
+          return prev; // state δεν αλλάζει
+        }
+        return pt; // ανοίγει το InfoWindow
+      });
+    },
+    [navigate]
+  );
+
+  // SearchBox
   const searchBoxRef = useRef(null);
-  const onSearchLoad = (ref) => {
-    searchBoxRef.current = ref;
-  };
+  const onSearchLoad = (ref) => (searchBoxRef.current = ref);
   const onPlacesChanged = () => {
     if (!map || !searchBoxRef.current) return;
     const places = searchBoxRef.current.getPlaces();
@@ -98,7 +98,7 @@ function GoogleMapViewInner({
             !Number.isNaN(Number(p.latitude)) &&
             !Number.isNaN(Number(p.longitude))
         )
-        .map((p) =>({
+        .map((p) => ({
           id: p._id,
           title: p.title,
           text: p.location,
@@ -108,7 +108,7 @@ function GoogleMapViewInner({
     [properties]
   );
 
-  // Fit bounds
+  // Fit bounds στα properties
   useEffect(() => {
     if (!map || points.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
@@ -125,30 +125,22 @@ function GoogleMapViewInner({
     }
     const markers = points.map((pt) => {
       const m = new window.google.maps.Marker({ position: pt.position, title: pt.title });
-      m.addListener("click", () => {
-        if (navigateOnMarkerClick && pt.id) {
-          navigate(`/property/${pt.id}`);
-        } else {
-          setActive(pt);
-        }
-      });
+      m.addListener("click", () => handleMarkerClick(pt));
       return m;
     });
     if (markers.length) {
       clustererRef.current = new MarkerClusterer({ markers, map });
     }
     return () => clustererRef.current?.clearMarkers();
-  }, [map, points, useClustering]);
+  }, [map, points, useClustering, handleMarkerClick]);
 
   if (!isLoaded) return <div className="card shadow-sm" style={{ height }} />;
 
   return (
     <div className="card shadow-sm" style={{ height, position: "relative" }}>
-
-      {/* searchbox */}
       {showSearch && (
         <div style={{ position: "absolute", zIndex: 2, margin: 12, width: "min(480px,90%)" }}>
-            <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
+          <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
             <input
               type="text"
               placeholder="Αναζήτησε διεύθυνση ή μέρος"
@@ -165,9 +157,7 @@ function GoogleMapViewInner({
         center={defaultCenter}
         zoom={zoom}
         options={{
-          // Κλείνουμε τα default UI kai to built in search 
           disableDefaultUI: true,
-          searchControle: false, 
           zoomControl: true,
           streetViewControl: false,
           mapTypeControl: false,
@@ -175,32 +165,46 @@ function GoogleMapViewInner({
           mapId,
         }}
       >
+        {/* Χωρίς clustering: κατευθείαν <Marker/> */}
         {!useClustering &&
           points.map((pt) => (
             <Marker
               key={pt.id || `${pt.position.lat}-${pt.position.lng}`}
               position={pt.position}
-               onClick={() => {
-                if (navigateOnMarkerClick && pt.id) {
-                  navigate(`/property/${pt.id}`);
-                } else {
-                  setActive(pt);
-                }
-              }}
+              onClick={() => handleMarkerClick(pt)}
             />
           ))}
 
+        {/* InfoWindow στο ενεργό pin */}
         {active && (
-          <InfoWindow position={active.position} onCloseClick={() => setActive(null)}>
-            <div style={{ maxWidth: 220 }}>
-              <strong>{active.title}</strong>
-              <div className="small text-muted">{active.text}</div>
-              {active.img && (
-                <img src={active.img} alt={active.title} style={{ width: "100%", marginTop: 6, borderRadius: 6 }} />
-              )}
-            </div>
-          </InfoWindow>
-        )}
+    <InfoWindow position={active.position} onCloseClick={() => setActive(null)}>
+      <div style={{ maxWidth: 240 }}>
+        <div
+          onClick={() => navigate(`/property/${active.id}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/property/${active.id}`)}
+          style={{ cursor: 'pointer' }}
+          aria-label={`Open ${active.title}`}
+          title="Open details"
+        >
+          <img
+            src={active.img || PLACEHOLDER}
+            alt={active.title}
+            style={{
+              width: "100%",
+              height: 100,
+              objectFit: "cover",
+              borderRadius: 6,
+              marginBottom: 6
+            }}
+          />
+          <div style={{ fontWeight: 600 }}>{active.title}</div>
+        </div>
+        <div className="small text-muted">{active.text}</div>
+      </div>
+    </InfoWindow>
+  )}
       </GoogleMap>
     </div>
   );

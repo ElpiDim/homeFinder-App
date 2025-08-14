@@ -5,18 +5,46 @@ import GoogleMapView from "../components/GoogleMapView";
 
 function Home() {
   const [properties, setProperties] = useState([]);
+  const [userLat, setUserLat] = useState(null);
+  const [userLng, setUserLng] = useState(null);
 
+  // 1) Πάρε (προαιρετικά) γεωτοποθεσία χρήστη
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+      },
+      () => {
+        // αν απορριφθεί, συνεχίζουμε χωρίς lat/lng
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
+    );
+  }, []);
+
+  // 2) Φέρε featured με sort=relevance (με/χωρίς lat,lng)
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await axios.get("/api/properties");
-        setProperties(res.data);
+        const res = await axios.get("/api/properties", {
+          params: {
+            sort: "relevance",
+            q: "",                  // κενό query στη home
+            lat: userLat ?? undefined,
+            lng: userLng ?? undefined,
+            page: 1,
+            limit: 24,
+          },
+        });
+        setProperties(res.data || []);
       } catch (err) {
         console.error("Failed to load featured properties:", err);
+        setProperties([]);
       }
     };
     fetchFeatured();
-  }, []);
+  }, [userLat, userLng]);
 
   // απαλό πολύχρωμο gradient φόντο για όλη τη σελίδα
   const pageGradient = {
@@ -24,6 +52,13 @@ function Home() {
     background:
       "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)",
   };
+
+  const imgUrl = (src) =>
+    src
+      ? src.startsWith("http")
+        ? src
+        : `http://localhost:5000${src}`
+      : "https://via.placeholder.com/400x200?text=No+Image";
 
   return (
     <div style={pageGradient}>
@@ -84,7 +119,7 @@ function Home() {
                   <div
                     className="rounded-top"
                     style={{
-                      backgroundImage: `url(${prop.images?.[0] || "https://via.placeholder.com/400x200?text=No+Image"})`,
+                      backgroundImage: `url(${imgUrl(prop.images?.[0])})`,
                       backgroundSize: "cover",
                       backgroundPosition: "center",
                       height: "200px",
@@ -92,9 +127,13 @@ function Home() {
                   />
                   <div className="card-body">
                     <h5 className="card-title">{prop.title}</h5>
-                    <p className="card-text text-muted">
-                      {prop.beds} beds, {prop.baths} baths, {prop.size} sq ft
-                    </p>
+                    <p className="card-text text-muted mb-0">📍 {prop.location}</p>
+                    {prop.price != null && (
+                      <p className="card-text text-muted mb-0">
+                        💶 {Number(prop.price).toLocaleString()} €
+                      </p>
+                    )}
+                    {prop.type && <p className="card-text text-muted">🏷️ {prop.type}</p>}
                   </div>
                 </div>
               </div>

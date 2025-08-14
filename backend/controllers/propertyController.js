@@ -81,13 +81,122 @@ exports.createProperty = async (req, res) => {
 /* ---------------------------- GET ALL PROPS ---------------------------- */
 exports.getAllProperties = async (req, res) => {
   try {
-    const properties = await Property.find();
+    const {
+      q,                    // text search in title/location
+      type,                 // property type
+      minPrice,
+      maxPrice,
+      sort = "relevance",   // relevance | newest | price_asc | price_desc | likes
+      lat,
+      lng,
+      page = 1,
+      limit = 24,
+    } = req.query;
+
+    const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
+    const numericPage = Math.max(1, parseInt(page) || 1);
+    const skip = (numericPage - 1) * numericLimit;
+
+    // βασικά φίλτρα
+    const match = {};
+    if (q && `${q}`.trim()) {
+      const rx = new RegExp(`${q}`.trim(), "i");
+      match.$or = [{ title: rx }, { location: rx }];
+    }
+    if (type) match.type = type;
+    if (hasValue(minPrice) || hasValue(maxPrice)) {
+      match.price = {};
+      if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
+      if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
+    }
+
+    // coords (αν υπάρχουν)
+    const hasCoords = hasValue(lat) && hasValue(lng);
+    const userLat = hasCoords ? Number(lat) : null;
+    const userLng = hasCoords ? Number(lng) : null;
+
+    // απόσταση ~ γρήγορη προσέγγιση (km) με ασφαλή μετατροπή τύπων
+    const distanceExpr = hasCoords
+      ? {
+          $multiply: [
+            111.32,
+            {
+              $sqrt: {
+                $add: [
+                  {
+                    $pow: [
+                      { $subtract: [{ $toDouble: "$latitude" }, userLat] },
+                      2,
+                    ],
+                  },
+                  {
+                    $pow: [
+                      {
+                        $multiply: [
+                          { $cos: [{ $degreesToRadians: userLat }] },
+                          { $subtract: [{ $toDouble: "$longitude" }, userLng] },
+                        ],
+                      },
+                      2,
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        }
+      : null;
+
+    const pipeline = [
+      { $match: match },
+
+      // μετράμε favorites
+      {
+        $lookup: {
+          from: "favorites",
+          localField: "_id",
+          foreignField: "propertyId",
+          as: "favDocs",
+        },
+      },
+      { $addFields: { favoritesCount: { $size: "$favDocs" } } },
+
+      // αν έχουμε coords, πρόσθεσε distanceKm
+      ...(hasCoords ? [{ $addFields: { distanceKm: distanceExpr } }] : []),
+    ];
+
+    // ταξινόμηση
+    if (sort === "newest") {
+      pipeline.push({ $sort: { createdAt: -1 } });
+    } else if (sort === "price_asc") {
+      pipeline.push({ $sort: { price: 1, createdAt: -1 } });
+    } else if (sort === "price_desc") {
+      pipeline.push({ $sort: { price: -1, createdAt: -1 } });
+    } else if (sort === "likes") {
+      pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
+    } else {
+      // ✅ strict “relevance”: distance → favorites → newest
+      pipeline.push({
+        $sort: hasCoords
+          ? { distanceKm: 1, favoritesCount: -1, createdAt: -1 }
+          : { favoritesCount: -1, createdAt: -1 },
+      });
+    }
+
+    // pagination
+    pipeline.push({ $skip: skip }, { $limit: numericLimit });
+
+    // καθαρισμός προσωρινών πεδίων
+    pipeline.push({ $project: { favDocs: 0 } });
+
+    const properties = await Property.aggregate(pipeline);
     res.json(properties);
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* ------------------------- GET MY PROPS + STATS ------------------------ */
 exports.getMyProperties = async (req, res) => {

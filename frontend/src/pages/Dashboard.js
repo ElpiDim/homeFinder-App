@@ -54,7 +54,6 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [properties, setProperties] = useState([]);
-  const [originalProperties, setOriginalProperties] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -72,12 +71,42 @@ function Dashboard() {
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // filters (server-side)
   const [locationFilter, setLocationFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
+  // geolocation for distance boost
+  const [userLat, setUserLat] = useState(null);
+  const [userLng, setUserLng] = useState(null);
+
   const token = localStorage.getItem('token');
+
+   const handleFavorite = async (propertyId) => {
+    try {
+      if (favorites.includes(propertyId)) {
+        await axios.delete(`/api/favorites/${propertyId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setFavorites((prev) => prev.filter((id) => id !== propertyId));
+      } else {
+        await axios.post(
+          '/api/favorites',
+          { propertyId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setFavorites((prev) => [...prev, propertyId]);
+      }
+    } catch (err) {
+      console.error('Error updating favorite:', err);
+    }
+  };
 
   const pageGradient = {
     minHeight: '100vh',
@@ -91,7 +120,29 @@ function Dashboard() {
     navigate('/');
   };
 
-  // memoized
+  // ---- fetch properties (server-side relevance) ----
+  const fetchProperties = useCallback(async (overrides = {}) => {
+    try {
+      const params = {
+        sort: 'relevance',
+        q: overrides.q ?? (searchTerm || locationFilter || ''),
+        type: overrides.type ?? (typeFilter || undefined),
+        minPrice: overrides.minPrice ?? (minPrice || undefined),
+        maxPrice: overrides.maxPrice ?? (maxPrice || undefined),
+        lat: overrides.lat ?? (userLat ?? undefined),
+        lng: overrides.lng ?? (userLng ?? undefined),
+        page: overrides.page ?? 1,
+        limit: overrides.limit ?? 24,
+      };
+      const res = await axios.get('/api/properties', { params });
+      setProperties(res.data || []);
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+      setProperties([]); // fail-safe
+    }
+  }, [searchTerm, locationFilter, typeFilter, minPrice, maxPrice, userLat, userLng]);
+
+  // ---- notifications ----
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await axios.get('/api/notifications', {
@@ -104,21 +155,31 @@ function Dashboard() {
     }
   }, [token]);
 
+  // ---- initial load: geolocation + properties + favorites + notifications + appts ----
   useEffect(() => {
     if (!user) return;
 
-    axios.get('/api/properties').then((res) => {
-      setProperties(res.data);
-      setOriginalProperties(res.data);
-    });
+    // Try to get user location (non-blocking)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLat(pos.coords.latitude);
+          setUserLng(pos.coords.longitude);
+        },
+        () => {
+          // ignore denial; we simply won't send lat/lng
+        },
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
+      );
+    }
+
+    // first load with relevance (will re-run once lat/lng set)
+    fetchProperties();
 
     axios
-      .get('/api/favorites', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setFavorites(res.data.map((fav) => fav._id));
-      });
+      .get('/api/favorites', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setFavorites(res.data.map((fav) => fav._id)))
+      .catch(() => {});
 
     fetchNotifications();
 
@@ -132,8 +193,16 @@ function Dashboard() {
         setHasAppointments(confirmed.length > 0);
       })
       .catch((err) => console.error('Error fetching appointments:', err));
-  }, [user, token, fetchNotifications]);
+  }, [user, token, fetchProperties, fetchNotifications]);
 
+  // re-fetch when geolocation arrives
+  useEffect(() => {
+    if (user && (userLat !== null || userLng !== null)) {
+      fetchProperties();
+    }
+  }, [user, userLat, userLng, fetchProperties]);
+
+  // polling notifications
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
@@ -199,50 +268,34 @@ function Dashboard() {
     }
   };
 
+  // Search now calls the server (relevance + q)
   const handleSearch = () => {
-    if (!searchTerm.trim()) return;
-    const filtered = originalProperties.filter((p) =>
-      (p.title || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setProperties(filtered);
+    fetchProperties({ q: searchTerm });
   };
 
-  const handleFavorite = async (propertyId) => {
-    try {
-      if (favorites.includes(propertyId)) {
-        await axios.delete(`/api/favorites/${propertyId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setFavorites(favorites.filter((id) => id !== propertyId));
-      } else {
-        await axios.post(
-          '/api/favorites',
-          { propertyId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        setFavorites([...favorites, propertyId]);
-      }
-    } catch (err) {
-      console.error('Error updating favorite:', err);
-    }
-  };
-
+  // Filters now call the server
   const handleFilter = () => {
-    const filtered = originalProperties.filter((p) => {
-      const matchLocation = locationFilter
-        ? (p.location || '').toLowerCase().includes(locationFilter.toLowerCase())
-        : true;
-      const matchType = typeFilter ? p.type === typeFilter : true;
-      const matchMin = minPrice ? p.price >= parseFloat(minPrice) : true;
-      const matchMax = maxPrice ? p.price <= parseFloat(maxPrice) : true;
-      return matchLocation && matchType && matchMin && matchMax;
+    fetchProperties({
+      q: searchTerm || locationFilter,
+      type: typeFilter || undefined,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
     });
-    setProperties(filtered);
+  };
+
+  const handleClearFilters = () => {
+    setLocationFilter('');
+    setTypeFilter('');
+    setMinPrice('');
+    setMaxPrice('');
+    // keep searchTerm as is, or clear too if θες:
+    // setSearchTerm('');
+    fetchProperties({
+      q: searchTerm || '',
+      type: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+    });
   };
 
   const imgUrl = (src) =>
@@ -322,7 +375,7 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Notifications Dropdown — revamped */}
+          {/* Notifications Dropdown */}
           <div ref={dropdownRef} className="position-relative">
             <button
               className="btn btn-link text-decoration-none text-dark p-0 position-relative"
@@ -488,7 +541,9 @@ function Dashboard() {
             placeholder="Search..."
             className="form-control"
             style={{ maxWidth: '180px' }}
+            value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
           <button className="btn btn-outline-dark" onClick={handleSearch}>
             🔍
@@ -567,11 +622,7 @@ function Dashboard() {
             <button
               className="btn btn-outline-secondary w-100"
               onClick={() => {
-                setLocationFilter('');
-                setTypeFilter('');
-                setMinPrice('');
-                setMaxPrice('');
-                setProperties(originalProperties);
+                handleClearFilters();
                 setShowFilters(false);
               }}
             >
@@ -632,7 +683,7 @@ function Dashboard() {
         {/* Map View */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
-           <GoogleMapView properties={properties} height="500px" useClustering={false} navigateOnMarkerClick />
+          <GoogleMapView properties={properties} height="500px" useClustering={false} navigateOnMarkerClick />
         </div>
       </div>
 
