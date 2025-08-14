@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import AppointmentModal from '../components/AppointmentModal';
-import InterestsModal from '../components/interestsModal';
+import InterestsModal from '../components/InterestsModal';
 
 export default function NotificationsPage() {
   const navigate = useNavigate();

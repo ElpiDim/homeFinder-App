@@ -14,7 +14,7 @@ function PropertyDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [isFavorite, setIsFavorite] = useState(false);
-  const [showInterestsModal, setShowInterestsModal] = useState(false);
+  const [showInterestModal, setShowInterestModal] = useState(false);
   const [interestMessage, setInterestMessage] = useState('');
 
   // Gallery
@@ -99,7 +99,7 @@ function PropertyDetails() {
         { propertyId, message: interestMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setShowInterestsModal(false);
+      setShowInterestModal(false);
       alert('Your interest has been sent to the owner!');
     } catch (err) {
       console.error('Error sending interest:', err.response?.data || err.message);
@@ -261,7 +261,7 @@ function PropertyDetails() {
               {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
             </Button>
             {!isOwner && user?.role === 'client' && (
-              <Button variant="primary" onClick={() => setShowInterestsModal(true)}>
+              <Button variant="primary" onClick={() => setShowInterestModal(true)}>
                 👋 I'm Interested
               </Button>
             )}
@@ -349,7 +349,7 @@ function PropertyDetails() {
       </Modal>
 
       {/* Interest Modal */}
-      <Modal show={showInterestsModal} onHide={() => setShowInterestsModal(false)}>
+      <Modal show={showInterestModal} onHide={() => setShowInterestModal(false)}>
         <Form onSubmit={handleInterestSubmit}>
           <Modal.Header closeButton>
             <Modal.Title>I'm Interested</Modal.Title>
@@ -367,7 +367,7 @@ function PropertyDetails() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowInterestsModal(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => setShowInterestModal(false)}>Cancel</Button>
             <Button type="submit" variant="primary">Send Interest</Button>
           </Modal.Footer>
         </Form>
