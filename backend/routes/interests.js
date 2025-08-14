@@ -13,6 +13,9 @@ router.get("/", verifyToken, interestController.getInterests);
 // Owner: Get single interest by ID (for modal)
 router.get("/:id", verifyToken, interestController.getInterestById);
 
+// Owner: Propose multiple dates
+router.post("/:id/proposals", verifyToken, interestController.proposeDates);
+
 // Owner: Update status + preferredDate
 // supports both styles:
 router.put("/:interestId", verifyToken, interestController.updateInterestStatus);

@@ -89,6 +89,68 @@ exports.getInterestById = async (req, res) => {
 };
 
 /**
+ * Owner proposes multiple dates for an interest
+ * POST /api/interests/:id/proposals
+ * body: { dates: string[] }
+ */
+
+exports.proposeDates = async (req, res) => {
+  try {
+    const { dates } = req.body || {};
+    const interest = await Interest.findById(req.params.id).populate("propertyId");
+    if (!interest) return res.status(404).json({ message: "Interest not found" });
+
+    if (String(interest.propertyId.ownerId) !== String(req.user.userId)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (!Array.isArray(dates) || dates.length === 0) {
+      return res.status(400).json({ message: "dates array required" });
+    }
+
+    // normalize, validate and dedupe
+    const unique = new Set(
+      dates
+        .map((d) => {
+          const date = new Date(d);
+          return isNaN(date.getTime()) ? null : date.getTime();
+        })
+        .filter((ts) => ts !== null)
+    );
+
+    if (unique.size === 0) {
+      return res.status(400).json({ message: "No valid dates provided" });
+    }
+
+    const existing = new Set(interest.proposedDates.map((d) => +d));
+    for (const ts of unique) {
+      if (!existing.has(ts)) {
+        interest.proposedDates.push(new Date(ts));
+      }
+    }
+
+    await interest.save();
+
+    await sendNotification({
+      userId: interest.tenantId,
+      senderId: req.user.userId,
+      type: "interest_proposed",
+      referenceId: interest._id,
+      message: "New proposed dates have been added for your interest.",
+    });
+
+    const updated = await Interest.findById(interest._id)
+      .populate("tenantId", "name email phone")
+      .populate("propertyId", "title location ownerId");
+    res.json({ message: "Dates proposed", interest: updated });
+  } catch (err) {
+    console.error("❌ Propose dates error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+/**
  * Owner updates interest status (+ optional preferredDate)
  * Supports BOTH:
  *   PUT   /api/interests/:interestId
@@ -96,9 +158,10 @@ exports.getInterestById = async (req, res) => {
  * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string|null }
  * Notifies tenant on accepted/declined.
  */
-exports.updateInterestStatus = async (req, res) => {
-  console.log("[updateInterestStatus] params:", req.params, "body:", req.body);
 
+
+exports.updateInterestStatus = async (req, res) => {
+  
   try {
     const interestId = req.params.interestId || req.params.id;
     if (!interestId) return res.status(400).json({ message: "Missing interest id" });
@@ -106,7 +169,6 @@ exports.updateInterestStatus = async (req, res) => {
     let { status, preferredDate } = req.body;
     if (!status) return res.status(400).json({ message: "Invalid or missing status" });
 
-    // normalize common synonyms from frontend
     const norm = String(status).toLowerCase().trim();
     if (norm === "rejected" || norm === "declined") status = STATUS.DECLINED;
     else if (norm === "accepted") status = STATUS.ACCEPTED;
@@ -119,24 +181,25 @@ exports.updateInterestStatus = async (req, res) => {
     const interest = await Interest.findById(interestId).populate("propertyId");
     if (!interest) return res.status(404).json({ message: "Interest not found" });
 
-    // only the property owner can update
+    
     if (String(interest.propertyId.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     interest.status = status;
 
-    // accept either Date or ISO/string for preferredDate; allow clearing with null
-    if (preferredDate !== undefined && preferredDate !== "") {
-      if (preferredDate === null) {
-        interest.preferredDate = undefined;
-      } else {
-        const d = new Date(preferredDate);
-        if (isNaN(d.getTime())) {
-          return res.status(400).json({ message: "Invalid preferredDate" });
-        }
-        interest.preferredDate = d;
+    // handle preferredDate:
+    // - undefined => keep as is
+    // - null or "" => clear
+    // - string/Date => parse and set
+    if (preferredDate === null || preferredDate === "") {
+      interest.preferredDate = undefined;
+    } else if (preferredDate !== undefined) {
+      const d = new Date(preferredDate);
+      if (isNaN(d.getTime())) {
+        return res.status(400).json({ message: "Invalid preferredDate" });
       }
+      interest.preferredDate = d;
     }
 
     await interest.save();
