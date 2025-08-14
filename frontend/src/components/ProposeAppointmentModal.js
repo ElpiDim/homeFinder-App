@@ -1,59 +1,97 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import axios from "axios";
 
 function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
-  const [slots, setSlots] = useState(["", "", "", ""]);
+  const [slots, setSlots] = useState([""]); // ξεκινάμε με 1 πεδίο
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
   const token = localStorage.getItem("token");
+  const headers = token
+    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+    : { "Content-Type": "application/json" };
+
+  // reset όταν κλείνει το modal
+  useEffect(() => {
+    if (!show) {
+      setSlots([""]);
+      setError("");
+      setSubmitting(false);
+    }
+  }, [show]);
 
   const handleSlotChange = (index, value) => {
-    const updated = [...slots];
-    updated[index] = value;
-    setSlots(updated);
+    setSlots(prev => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
   };
 
-  const addSlot = () => setSlots([...slots, ""]);
-  const removeSlot = (index) => setSlots(slots.filter((_, i) => i !== index));
+  const addSlot = () => setSlots(prev => [...prev, ""]);
+  const removeSlot = (index) => setSlots(prev => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // guard για διπλό click
     setSubmitting(true);
+    setError("");
+
+    // basic guards
+    if (!tenantId || !propertyId) {
+      setSubmitting(false);
+      setError("Λείπουν tenantId ή propertyId.");
+      return;
+    }
+
+    // Καθάρισμα/validation: future, dedupe, ISO
+    const cleaned = Array.from(
+      new Set(
+        slots
+          .map((s) => (s ? new Date(s) : null))
+          .filter((d) => d && !Number.isNaN(d.getTime()))
+          .filter((d) => d.getTime() > Date.now())
+          .map((d) => d.toISOString())
+      )
+    );
+
+    if (cleaned.length === 0) {
+      setSubmitting(false);
+      setError("Πρόσθεσε τουλάχιστον μία μελλοντική ημερομηνία/ώρα.");
+      return;
+    }
 
     try {
       await axios.post(
         "/api/appointments/propose",
-        {
-          tenantId,
-          propertyId,
-          availableSlots: slots
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        }
+        { tenantId, propertyId, availableSlots: cleaned },
+        { headers }
       );
-      onClose();
+
+      // Κλείσε το modal και ενημέρωσε τον parent ότι υποβλήθηκε επιτυχώς
+      onClose?.(true);
+      return; // σημαντικό: σταματά εδώ για να μην τρέξει το finally και ξανα-ανοίξει κάτι στον parent
     } catch (err) {
       console.error("Failed to propose appointment:", err);
-      alert("Error sending proposal");
+      setError(err?.response?.data?.message || "Error sending proposal.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered>
+    <Modal show={show} onHide={() => onClose?.(false)} centered>
       <Modal.Header closeButton>
         <Modal.Title>Propose Appointment Slots</Modal.Title>
       </Modal.Header>
 
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
+          {error && <div className="alert alert-danger mb-3">{error}</div>}
+
           <p className="small text-muted">
-            Add 1–3 available time slots for the tenant to choose from.
+            Πρόσθεσε 1+ διαθέσιμες ώρες για να επιλέξει ο ενοικιαστής.
           </p>
 
           {slots.map((slot, i) => (
@@ -62,14 +100,16 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
                 type="datetime-local"
                 value={slot}
                 onChange={(e) => handleSlotChange(i, e.target.value)}
-                required
+                disabled={submitting}
               />
-              {slots.length > 4 && (
+              {slots.length > 1 && (
                 <Button
-                  variant="danger"
+                  variant="outline-danger"
                   className="ms-2"
                   size="sm"
                   onClick={() => removeSlot(i)}
+                  type="button"              // να ΜΗΝ είναι submit
+                  disabled={submitting}
                 >
                   ✕
                 </Button>
@@ -77,15 +117,24 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
             </div>
           ))}
 
-          {slots.length < 5 && (
-            <Button variant="outline-primary" onClick={addSlot} size="sm">
-              + Add another slot
-            </Button>
-          )}
+          <Button
+            variant="outline-primary"
+            onClick={addSlot}
+            size="sm"
+            type="button"                  // να ΜΗΝ είναι submit
+            disabled={submitting}
+          >
+            + Add another slot
+          </Button>
         </Modal.Body>
 
         <Modal.Footer>
-          <Button variant="secondary" onClick={onClose} disabled={submitting}>
+          <Button
+            variant="secondary"
+            onClick={() => onClose?.(false)}
+            disabled={submitting}
+            type="button"                  // να ΜΗΝ είναι submit
+          >
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={submitting}>
@@ -96,4 +145,5 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     </Modal>
   );
 }
+
 export default ProposeAppointmentModal;

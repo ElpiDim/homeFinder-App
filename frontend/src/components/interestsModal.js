@@ -8,8 +8,10 @@ import { Modal, Form, Button } from 'react-bootstrap';
 function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+
   const { user } = useAuth();
   const token = localStorage.getItem('token');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -25,10 +27,14 @@ function InterestsModal({ interestId, onClose }) {
     return String(uid) === String(ownerId);
   }, [user, interest]);
 
-    const headers = useMemo(
-    () => (token ? { Authorization: `Bearer ${token}` } : undefined),
+  const headers = useMemo(
+    () =>
+      token
+        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' },
     [token]
   );
+
   const formatDateTime = (iso) => {
     if (!iso) return '-';
     try {
@@ -39,6 +45,7 @@ function InterestsModal({ interestId, onClose }) {
   };
 
   const refetchInterest = useCallback(async () => {
+    if (!interestId) return;
     setLoading(true);
     setError('');
     try {
@@ -49,7 +56,7 @@ function InterestsModal({ interestId, onClose }) {
         const d = new Date(res.data.preferredDate);
         const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
           .toISOString()
-          .slice(0, 16);
+          .slice(0, 16); // YYYY-MM-DDTHH:mm
         setProposedDate(isoLocal);
       } else {
         setProposedDate('');
@@ -82,18 +89,14 @@ function InterestsModal({ interestId, onClose }) {
 
   const handleAccept = async () => {
     const payload = { status: 'accepted' };
-    if (proposedDate) payload.preferredDate = proposedDate;
+    if (proposedDate) payload.preferredDate = proposedDate; // στέλνεται ως local-ISO "YYYY-MM-DDTHH:mm"
     const ok = await submitUpdate(payload);
-   if (ok) {
-      await refetchInterest();
-    }
+    if (ok) await refetchInterest(); // μένει ανοικτό, απλώς φρεσκάρει
   };
 
   const handleReject = async () => {
     const ok = await submitUpdate({ status: 'declined' });
-    if (ok) {
-      await refetchInterest();
-    }
+    if (ok) await refetchInterest();
   };
 
   const handleProposeSingle = async () => {
@@ -101,14 +104,10 @@ function InterestsModal({ interestId, onClose }) {
       setError('Choose a date/time to propose.');
       return;
     }
-    const ok = await submitUpdate({
-      status: 'pending',
-      preferredDate: proposedDate,
-    });
-    if (ok) {
-      await refetchInterest();
-    }
+    const ok = await submitUpdate({ status: 'pending', preferredDate: proposedDate });
+    if (ok) await refetchInterest();
   };
+
   return (
     <Modal show onHide={onClose} centered>
       <Modal.Header closeButton>
@@ -209,13 +208,17 @@ function InterestsModal({ interestId, onClose }) {
 
         {isOwner && !loading && interest && (
           <div className="d-flex gap-2">
-            <Button variant="outline-danger" onClick={handleReject} disabled={saving}>
+            <Button
+              variant="outline-danger"
+              onClick={handleReject}
+              disabled={saving || showAppointmentModal}
+            >
               Reject
             </Button>
             <Button
               variant="outline-secondary"
               onClick={() => setShowAppointmentModal(true)}
-              disabled={saving}
+              disabled={saving || showAppointmentModal}
               title="Propose multiple dates"
             >
               Propose multiple dates
@@ -223,12 +226,16 @@ function InterestsModal({ interestId, onClose }) {
             <Button
               variant="outline-primary"
               onClick={handleProposeSingle}
-              disabled={saving}
+              disabled={saving || showAppointmentModal}
               title="Propose single date (keeps pending)"
             >
               Propose date
             </Button>
-            <Button variant="primary" onClick={handleAccept} disabled={saving}>
+            <Button
+              variant="primary"
+              onClick={handleAccept}
+              disabled={saving || showAppointmentModal}
+            >
               Accept
             </Button>
           </div>
@@ -239,18 +246,19 @@ function InterestsModal({ interestId, onClose }) {
         <ProposeAppointmentModal
           show={showAppointmentModal}
           onClose={async (didSubmit) => {
-            setShowAppointmentModal(false);
+            setShowAppointmentModal(false); // πάντα κλείνει
             if (didSubmit) {
-              await refetchInterest();
+              await refetchInterest(); // μόνο refresh, χωρίς άλλες ενέργειες
             }
           }}
-          interestId={interest._id}
+          // αν χρησιμοποιείς appointments/propose, χρειάζεται tenant & property:
           tenantId={interest.tenantId?._id}
           propertyId={interest.propertyId?._id}
+          // (αν στο μέλλον περάσεις σε interest-based proposals, εδώ θα περνάς interestId και θα αλλάξεις το endpoint στο child)
         />
       )}
     </Modal>
   );
 }
 
-export default interestsModal;
+export default InterestsModal;
