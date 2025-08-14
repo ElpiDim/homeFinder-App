@@ -2,31 +2,29 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import ProposeAppointmentModal from './ProposeAppointmentModal';
-import {useAuth} from '../context/AuthContext';
-
+import { useAuth } from '../context/AuthContext';
+import { Modal, Form, Button } from 'react-bootstrap';
 
 function InterestsModal({ interestId, onClose }) {
   const [interest, setInterest] = useState(null);
-  const [status, setStatus] = useState('');
-  const [preferredDate, setPreferredDate] = useState('');
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
-  const {user} = useAuth();
+  const { user } = useAuth();
   const token = localStorage.getItem('token');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [interest, setInterest] = useState(null);
 
   // Local editable date (owner can propose or accept w/ date)
   const [proposedDate, setProposedDate] = useState('');
 
   const isOwner = useMemo(() => {
     if (!user || !interest?.propertyId?.ownerId) return false;
-    const ownerId = typeof interest.propertyId.ownerId === 'object'
-      ? interest.propertyId.ownerId._id
-      : interest.propertyId.ownerId;
+    const ownerId =
+      typeof interest.propertyId.ownerId === 'object'
+        ? interest.propertyId.ownerId._id
+        : interest.propertyId.ownerId;
     return user.id === ownerId;
   }, [user, interest]);
 
@@ -67,11 +65,11 @@ function InterestsModal({ interestId, onClose }) {
     setSaving(true);
     setError('');
     try {
-      // Your routes expose: PUT /api/interests/:interestId
+      // PUT /api/interests/:interestId
       const res = await axios.put(`/api/interests/${interestId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setInterest(res.data?.interest || res.data); // controller returns {message, interest}
+      setInterest(res.data?.interest || res.data); // controller may return {message, interest}
       return true;
     } catch (e) {
       setError(e.response?.data?.message || 'Update failed.');
@@ -98,7 +96,7 @@ function InterestsModal({ interestId, onClose }) {
       setError('Choose a date/time to propose.');
       return;
     }
-    // Keep status pending, only set preferredDate (backend should notify "interest_proposed")
+    // Keep status pending, only set preferredDate
     const ok = await submitUpdate({ status: 'pending', preferredDate: proposedDate });
     if (ok) onClose?.();
   };
@@ -128,30 +126,50 @@ function InterestsModal({ interestId, onClose }) {
         ) : (
           <>
             <div className="mb-3">
-              <div><strong>Property:</strong> {interest.propertyId?.title || '—'}</div>
-              <div><strong>Location:</strong> {interest.propertyId?.location || '—'}</div>
+              <div>
+                <strong>Property:</strong> {interest.propertyId?.title || '—'}
+              </div>
+              <div>
+                <strong>Location:</strong> {interest.propertyId?.location || '—'}
+              </div>
             </div>
 
             <div className="mb-3">
-              <div><strong>Tenant:</strong> {interest.tenantId?.name || '—'}</div>
-              <div><strong>Email:</strong> {interest.tenantId?.email || '—'}</div>
-              <div><strong>Phone:</strong> {interest.tenantId?.phone || '—'}</div>
+              <div>
+                <strong>Tenant:</strong> {interest.tenantId?.name || '—'}
+              </div>
+              <div>
+                <strong>Email:</strong> {interest.tenantId?.email || '—'}
+              </div>
+              <div>
+                <strong>Phone:</strong> {interest.tenantId?.phone || '—'}
+              </div>
             </div>
 
             <div className="mb-3">
               <strong>Message:</strong>
-              <div className="mt-1">{interest.message || <span className="text-muted">No message</span>}</div>
+              <div className="mt-1">
+                {interest.message || <span className="text-muted">No message</span>}
+              </div>
             </div>
 
             <div className="row g-2 mb-3">
               <div className="col-6">
-                <div><strong>Status:</strong> <span className="text-capitalize">{interest.status}</span></div>
+                <div>
+                  <strong>Status:</strong>{' '}
+                  <span className="text-capitalize">{interest.status}</span>
+                </div>
               </div>
               <div className="col-6">
-                <div><strong>Submitted:</strong> {formatDateTime(interest.submittedAt)}</div>
+                <div>
+                  <strong>Submitted:</strong> {formatDateTime(interest.submittedAt)}
+                </div>
               </div>
               <div className="col-12">
-                <div><strong>Proposed date:</strong> {formatDateTime(interest.preferredDate)}</div>
+                <div>
+                  <strong>Proposed date:</strong>{' '}
+                  {formatDateTime(interest.preferredDate)}
+                </div>
               </div>
             </div>
 
@@ -159,14 +177,15 @@ function InterestsModal({ interestId, onClose }) {
               <>
                 <hr />
                 <Form.Group className="mb-3">
-                  <Form.Label>Propose / confirm date & time</Form.Label>
+                  <Form.Label>Propose / confirm date &amp; time</Form.Label>
                   <Form.Control
                     type="datetime-local"
                     value={proposedDate}
                     onChange={(e) => setProposedDate(e.target.value)}
                   />
                   <Form.Text className="text-muted">
-                    You can set a proposed date alone (keeps status pending) or accept and include a date.
+                    You can set a proposed date alone (keeps status pending) or accept and
+                    include a date.
                   </Form.Text>
                 </Form.Group>
               </>
@@ -207,8 +226,8 @@ function InterestsModal({ interestId, onClose }) {
               Accept
             </Button>
           </div>
-        </div>
-      </div>
+        )}
+      </Modal.Footer>
 
       {isOwner && showAppointmentModal && (
         <ProposeAppointmentModal
@@ -218,7 +237,7 @@ function InterestsModal({ interestId, onClose }) {
           propertyId={interest.propertyId?._id}
         />
       )}
-    </div>
+    </Modal>
   );
 }
 
