@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
 import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
@@ -87,13 +87,13 @@ function Dashboard() {
   const handleFavorite = async (propertyId) => {
     try {
       if (favorites.includes(propertyId)) {
-        await axios.delete(`/api/favorites/${propertyId}`, {
+        await api.delete(`/favorites/${propertyId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setFavorites((prev) => prev.filter((id) => id !== propertyId));
       } else {
-        await axios.post(
-          '/api/favorites',
+        await api.post(
+          '/favorites',
           { propertyId },
           {
             headers: {
@@ -135,7 +135,7 @@ function Dashboard() {
         page: overrides.page ?? 1,
         limit: overrides.limit ?? 24,
       };
-      const res = await axios.get('/api/properties', { params });
+      const res = await api.get('/properties', { params });
 
       // normalize array/object response
       const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
@@ -153,7 +153,7 @@ function Dashboard() {
   // ---- notifications ----
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await axios.get('/api/notifications', {
+      const res = await api.get('/notifications', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const list = Array.isArray(res.data) ? res.data : [];
@@ -184,8 +184,8 @@ function Dashboard() {
 
     fetchProperties();
 
-    axios
-      .get('/api/favorites', { headers: { Authorization: `Bearer ${token}` } })
+    api
+      .get('/favorites', { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
         // map to property ids safely
@@ -197,9 +197,8 @@ function Dashboard() {
     fetchNotifications();
 
     const endpoint =
-      user.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
-
-    axios
+      user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
+    api
       .get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         const appts = Array.isArray(res.data) ? res.data : [];
@@ -268,8 +267,8 @@ function Dashboard() {
         try {
           await Promise.all(
             unread.map((n) =>
-              axios.patch(
-                `/api/notifications/${n._id}/read`,
+              api.patch(
+                `/notifications/${n._id}/read`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
               )
@@ -425,7 +424,7 @@ function Dashboard() {
                             try {
                               await Promise.all(
                                 unread.map(n =>
-                                  axios.patch(`/api/notifications/${n._id}/read`, {}, {
+                                  api.patch(`/notifications/${n._id}/read`, {}, {
                                     headers: { Authorization: `Bearer ${token}` }
                                   })
                                 )
@@ -471,7 +470,7 @@ function Dashboard() {
                               setNotifications(prev => prev.map(n => n._id === note._id ? { ...n, read: true } : n));
                               setUnreadCount(c => Math.max(0, c - 1));
                               try {
-                                await axios.patch(`/api/notifications/${note._id}/read`, {}, {
+                                await api.patch(`/notifications/${note._id}/read`, {}, {
                                   headers: { Authorization: `Bearer ${token}` }
                                 });
                               } catch (e) {

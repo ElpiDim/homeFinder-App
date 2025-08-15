@@ -1,6 +1,6 @@
 // src/components/InterestsModal.jsx
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api';
 import ProposeAppointmentModal from './ProposeAppointmentModal';
 import { useAuth } from '../context/AuthContext';
 import { Modal, Form, Button } from 'react-bootstrap';
@@ -49,7 +49,7 @@ function InterestsModal({ interestId, onClose }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`/api/interests/${interestId}`, { headers });
+      const res = await api.get(`/interests/${interestId}`, { headers });
       setInterest(res.data);
 
       if (res.data?.preferredDate) {
@@ -76,7 +76,7 @@ function InterestsModal({ interestId, onClose }) {
     setSaving(true);
     setError('');
     try {
-      const res = await axios.put(`/api/interests/${interestId}`, payload, { headers });
+      const res = await api.put(`/interests/${interestId}`, payload, { headers });
       setInterest(res.data?.interest || res.data);
       return true;
     } catch (e) {

@@ -1,9 +1,9 @@
-import axios from 'axios';
+import api from '../api';
 
-const API_URL = 'http://localhost:5000/api/favorites';
+const API_URL = '/favorites';
 
 export const getFavorites = async (token) => {
-    const res = await axios.get(`${API_URL}`, {
+    const res = await api.get(`${API_URL}`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -12,7 +12,7 @@ export const getFavorites = async (token) => {
 };
 
 export const addFavorite = async (propertyId, token) => {
-    const res = await axios.post(`${API_URL}`, { propertyId }, {
+    const res = await api.post(`${API_URL}`, { propertyId }, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -21,7 +21,7 @@ export const addFavorite = async (propertyId, token) => {
 };
 
 export const removeFavorite = async (propertyId, token) => {
-    const res = await axios.delete(`${API_URL}/${propertyId}`, {
+    const res = await api.delete(`${API_URL}/${propertyId}`, {
         headers: {
             Authorization: `Bearer ${token}`
         }

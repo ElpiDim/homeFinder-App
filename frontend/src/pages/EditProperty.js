@@ -1,7 +1,7 @@
 // src/pages/EditProperty.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import {
   GoogleMap,
   Marker,
@@ -92,7 +92,7 @@ function EditProperty() {
   useEffect(() => {
     const fetchProperty = async () => {
       try {
-        const res = await axios.get(`/api/properties/${propertyId}`);
+        const res = await api.get(`/properties/${propertyId}`);
         const p = res.data;
 
         setFormData({
@@ -191,7 +191,7 @@ function EditProperty() {
     newImages.forEach((img) => submissionData.append('images', img));
 
     try {
-      await axios.put(`/api/properties/${propertyId}`, submissionData, {
+      await api.put(`/properties/${propertyId}`, submissionData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

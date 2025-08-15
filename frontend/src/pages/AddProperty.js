@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -135,7 +135,7 @@ export default function AddProperty() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("/api/properties", data, {
+      await api.post("/properties", data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import AppointmentModal from '../components/AppointmentModal'; // ✅ σωστό import (front-end modal)
@@ -23,11 +23,11 @@ function Appointments() {
     const fetchAppointments = async () => {
       try {
         const endpoint =
-          user?.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant';
+          user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
 
         const headers = token ? { Authorization: `Bearer ${token}` } : undefined; // ✅ μόνο αν υπάρχει token
 
-        const res = await axios.get(endpoint, { headers });
+        const res = await api.get(endpoint, { headers });
         setAppointments(res.data || []);
       } catch (err) {
         console.error('Error fetching appointments:', err);
@@ -119,8 +119,8 @@ function Appointments() {
             // προαιρετικά κάνε refresh τη λίστα μετά από confirm
             setSelectedAppointmentId(null);
             setLoading(true);
-            axios
-              .get(user?.role === 'owner' ? '/api/appointments/owner' : '/api/appointments/tenant', {
+            api
+              .get(user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant', {
                 headers: token ? { Authorization: `Bearer ${token}` } : undefined,
               })
               .then((res) => setAppointments(res.data || []))

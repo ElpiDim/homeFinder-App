@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { Modal, Button } from "react-bootstrap";
 
 function AppointmentModal({ appointmentId, onClose }) {
@@ -20,7 +20,7 @@ function AppointmentModal({ appointmentId, onClose }) {
       setFetching(true);
       setError("");
       try {
-        const res = await axios.get(`/api/appointments/${appointmentId}`, { headers });
+        const res = await api.get(`/appointments/${appointmentId}`, { headers });
         if (!alive) return;
         setAppointment(res.data);
       } catch (err) {
@@ -41,8 +41,8 @@ function AppointmentModal({ appointmentId, onClose }) {
     setError("");
     try {
       // ✅ σωστό path + method σύμφωνα με το backend
-      await axios.put(
-        `/api/appointments/confirm/${appointmentId}`,
+      await api.put(
+        `/appointments/confirm/${appointmentId}`,
         { selectedSlot },     // ✅ στέλνουμε το original string
         { headers }
       );
