@@ -1,6 +1,6 @@
 // src/pages/NotificationsPage.jsx
 import React, { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import AppointmentModal from '../components/AppointmentModal';
 import InterestsModal from '../components/InterestsModal';
@@ -23,7 +23,7 @@ export default function NotificationsPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/notifications', {
+      const res = await api.get('/notifications', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(res.data || []);
@@ -43,7 +43,7 @@ export default function NotificationsPage() {
       const unread = items.filter(n => !n.read);
       await Promise.all(
         unread.map(n =>
-          axios.patch(`/api/notifications/${n._id}/read`, {}, {
+          api.patch(`/notifications/${n._id}/read`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           })
         )
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
 
   const markSingleRead = async (noteId) => {
     try {
-      await axios.patch(`/api/notifications/${noteId}/read`, {}, {
+      await api.patch(`/notifications/${noteId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(prev => prev.map(n => n._id === noteId ? { ...n, read: true } : n));

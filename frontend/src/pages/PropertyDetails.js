@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import { Modal, Button, Form } from 'react-bootstrap';
 import GoogleMapView from '../components/GoogleMapView';
 
@@ -41,7 +41,7 @@ function PropertyDetails() {
 
     const fetchProperty = async () => {
       try {
-        const res = await axios.get(`/api/properties/${propertyId}`);
+        const res = await api.get(`/properties/${propertyId}`);
         if (mounted) {
           setProperty(res.data);
           setCurrentImageIndex(0);
@@ -53,7 +53,7 @@ function PropertyDetails() {
 
     const checkFavorite = async () => {
       try {
-        const res = await axios.get('/api/favorites', {
+        const res = await api.get('/favorites', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const fav = res.data.find((f) => f.propertyId?._id === propertyId);
@@ -74,14 +74,14 @@ function PropertyDetails() {
   const handleFavorite = async () => {
     try {
       if (!isFavorite) {
-        await axios.post(
-          '/api/favorites',
+        await api.post(
+          '/favorites',
           { propertyId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setIsFavorite(true);
       } else {
-        await axios.delete(`/api/favorites/${propertyId}`, {
+        await api.delete(`/favorites/${propertyId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setIsFavorite(false);
@@ -94,8 +94,8 @@ function PropertyDetails() {
   const handleInterestSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(
-        '/api/interests',
+      await api.post(
+        '/interests',
         { propertyId, message: interestMessage },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -110,7 +110,7 @@ function PropertyDetails() {
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this property?')) return;
     try {
-      await axios.delete(`/api/properties/${propertyId}`, {
+      await api.delete(`/properties/${propertyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       navigate('/dashboard');

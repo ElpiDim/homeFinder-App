@@ -1,3 +1,4 @@
+import api from '../api';
 {/* Notifications Dropdown */}
 <div ref={dropdownRef} className="position-relative">
   <button
@@ -31,7 +32,7 @@
                   try {
                     await Promise.all(
                       unread.map(n =>
-                        axios.patch(`/api/notifications/${n._id}/read`, {}, {
+                        api.patch(`/notifications/${n._id}/read`, {}, {
                           headers: { Authorization: `Bearer ${token}` }
                         })
                       )
@@ -77,7 +78,7 @@
                     setNotifications(prev => prev.map(n => n._id === note._id ? { ...n, read: true } : n));
                     setUnreadCount(c => Math.max(0, c - 1));
                     try {
-                      await axios.patch(`/api/notifications/${note._id}/read`, {}, {
+                      await api.patch(`/notifications/${note._id}/read`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                       });
                     } catch (e) {
@@ -157,3 +158,5 @@
     </div>
   )}
 </div>
+import api from '../api';
+{/* Notifications Dropdown */}

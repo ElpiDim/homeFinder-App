@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
-import axios from "axios";
+import api from "../api";
 
 function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
   const [slots, setSlots] = useState([""]); // ξεκινάμε με 1 πεδίο
@@ -63,8 +63,8 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     }
 
     try {
-      await axios.post(
-        "/api/appointments/propose",
+      await api.post(
+        "/appointments/propose",
         { tenantId, propertyId, availableSlots: cleaned },
         { headers }
       );

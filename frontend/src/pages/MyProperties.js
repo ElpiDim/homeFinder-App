@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { Button, Table, Badge, Spinner } from 'react-bootstrap';
 
 export default function MyProperties() {
@@ -24,7 +24,7 @@ export default function MyProperties() {
       try {
         const token = localStorage.getItem('token');
         // Προτιμώ backend που επιστρέφει ήδη counts:
-        const res = await axios.get('/api/properties/mine?includeStats=1', {
+        const res = await api.get('/properties/mine?includeStats=1', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setItems(res.data || []);
@@ -41,7 +41,7 @@ export default function MyProperties() {
     if (!window.confirm('Delete this property?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/properties/${id}`, {
+      await api.delete(`/properties/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems(items.filter((p) => p._id !== id));

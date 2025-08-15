@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
 
 function Home() {
@@ -27,7 +27,7 @@ function Home() {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const res = await axios.get("/api/properties", {
+        const res = await api.get("/properties", {
           params: {
             sort: "relevance",
             q: "", // κενό query στη home

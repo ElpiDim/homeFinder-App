@@ -1,9 +1,9 @@
-import axios from 'axios';
+import api from '../api';
 
-const API_URL = 'http://localhost:5000/api/messages';
+const API_URL = '/messages';
 
 export const sendMessage = async (receiverId,content, token) => {
-    const res = await axios.post(`${API_URL}`, { receiverId, content }, {
+    const res = await api.post(`${API_URL}`, { receiverId, content }, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -11,7 +11,7 @@ export const sendMessage = async (receiverId,content, token) => {
     return res.data;
 };
 export const getMessages = async (token) => {
-    const res = await axios.get(`${API_URL}`, {
+    const res = await api.get(`${API_URL}`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
