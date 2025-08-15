@@ -22,14 +22,14 @@ const iconForType = (t) => {
 };
 
 const titleForNote = (n) => {
-  if (n.message) return n.message;
-  switch (n.type) {
+  if (n?.message) return n.message;
+  switch (n?.type) {
     case 'appointment': return 'You have new appointment options from the property owner.';
     case 'interest':
     case 'interest_accepted':
     case 'interest_rejected':
-      return n.message || `${n.senderId?.name || 'Someone'} sent an interest.`;
-    case 'favorite': return `${n.senderId?.name || 'Someone'} added your property to favorites.`;
+      return n.message || `${n?.senderId?.name || 'Someone'} sent an interest.`;
+    case 'favorite': return `${n?.senderId?.name || 'Someone'} added your property to favorites.`;
     case 'property_removed': return 'A property you interacted with was removed.';
     case 'message': return 'New message received.';
     default: return 'Notification';
@@ -53,18 +53,19 @@ function Dashboard() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const [properties, setProperties] = useState([]);
+  const [properties, setProperties] = useState([]);        // always array
+  const [meta, setMeta] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [favorites, setFavorites] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [favorites, setFavorites] = useState([]);          // array of propertyIds
+  const [notifications, setNotifications] = useState([]);  // always array
   const [showFilters, setShowFilters] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  const dropdownRef = useRef(null);      // notifications
-  const profileMenuRef = useRef(null);   // profile menu
-  const filterButtonRef = useRef(null);  // filters button
-  const filterPanelRef = useRef(null);   // filters panel
+  const dropdownRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const filterButtonRef = useRef(null);
+  const filterPanelRef = useRef(null);
 
   const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
@@ -77,13 +78,13 @@ function Dashboard() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
-  // geolocation for distance boost
+  // geolocation
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
 
   const token = localStorage.getItem('token');
 
-   const handleFavorite = async (propertyId) => {
+  const handleFavorite = async (propertyId) => {
     try {
       if (favorites.includes(propertyId)) {
         await axios.delete(`/api/favorites/${propertyId}`, {
@@ -135,10 +136,17 @@ function Dashboard() {
         limit: overrides.limit ?? 24,
       };
       const res = await axios.get('/api/properties', { params });
-      setProperties(res.data || []);
+
+      // normalize array/object response
+      const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+      const metaObj = Array.isArray(res.data) ? null : (res.data?.meta || null);
+
+      setProperties(items);
+      setMeta(metaObj);
     } catch (err) {
       console.error('Error fetching properties:', err);
       setProperties([]); // fail-safe
+      setMeta(null);
     }
   }, [searchTerm, locationFilter, typeFilter, minPrice, maxPrice, userLat, userLng]);
 
@@ -148,38 +156,43 @@ function Dashboard() {
       const res = await axios.get('/api/notifications', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setNotifications(res.data);
-      setUnreadCount(res.data.filter((n) => !n.read).length);
+      const list = Array.isArray(res.data) ? res.data : [];
+      setNotifications(list);
+      setUnreadCount(list.filter((n) => !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
+      setNotifications([]);
+      setUnreadCount(0);
     }
   }, [token]);
 
-  // ---- initial load: geolocation + properties + favorites + notifications + appts ----
+  // ---- initial load ----
   useEffect(() => {
     if (!user) return;
 
-    // Try to get user location (non-blocking)
+    // geolocation (non-blocking)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setUserLat(pos.coords.latitude);
           setUserLng(pos.coords.longitude);
         },
-        () => {
-          // ignore denial; we simply won't send lat/lng
-        },
+        () => {},
         { enableHighAccuracy: false, maximumAge: 60000, timeout: 5000 }
       );
     }
 
-    // first load with relevance (will re-run once lat/lng set)
     fetchProperties();
 
     axios
       .get('/api/favorites', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setFavorites(res.data.map((fav) => fav._id)))
-      .catch(() => {});
+      .then((res) => {
+        const arr = Array.isArray(res.data) ? res.data : [];
+        // map to property ids safely
+        const ids = arr.map((fav) => fav._id || fav.propertyId || fav.id).filter(Boolean);
+        setFavorites(ids);
+      })
+      .catch(() => setFavorites([]));
 
     fetchNotifications();
 
@@ -189,10 +202,14 @@ function Dashboard() {
     axios
       .get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        const confirmed = res.data.filter((appt) => appt.status === 'confirmed');
+        const appts = Array.isArray(res.data) ? res.data : [];
+        const confirmed = appts.filter((appt) => appt.status === 'confirmed');
         setHasAppointments(confirmed.length > 0);
       })
-      .catch((err) => console.error('Error fetching appointments:', err));
+      .catch((err) => {
+        console.error('Error fetching appointments:', err);
+        setHasAppointments(false);
+      });
   }, [user, token, fetchProperties, fetchNotifications]);
 
   // re-fetch when geolocation arrives
@@ -288,8 +305,6 @@ function Dashboard() {
     setTypeFilter('');
     setMinPrice('');
     setMaxPrice('');
-    // keep searchTerm as is, or clear too if θες:
-    // setSearchTerm('');
     fetchProperties({
       q: searchTerm || '',
       type: undefined,
@@ -326,11 +341,11 @@ function Dashboard() {
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">
-          {hasAppointments && (
-            <Link to="/appointments" className="text-dark text-decoration-none">
-              Appointments
-            </Link>
-          )}
+          {/* πάντα ορατό Appointments link */}
+          <Link to="/appointments" className="text-dark text-decoration-none">
+            Appointments
+          </Link>
+
           <Link to="/favorites" className="text-dark text-decoration-none">
             Favorites
           </Link>
@@ -434,7 +449,8 @@ function Dashboard() {
                       {(() => {
                         const seen = new Set();
                         const list = notifications.filter(n => {
-                          const id = n._id || `${n.type}-${n.referenceId}-${n.createdAt || ''}`;
+                          const id = n?._id || `${n?.type}-${n?.referenceId}-${n?.createdAt || ''}`;
+                          if (!id) return false;
                           if (seen.has(id)) return false;
                           seen.add(id);
                           return true;
@@ -451,7 +467,7 @@ function Dashboard() {
                         return list.map(note => {
                           const isUnread = !note.read;
                           const go = async () => {
-                            if (isUnread) {
+                            if (isUnread && note._id) {
                               setNotifications(prev => prev.map(n => n._id === note._id ? { ...n, read: true } : n));
                               setUnreadCount(c => Math.max(0, c - 1));
                               try {
@@ -478,7 +494,7 @@ function Dashboard() {
 
                           return (
                             <li
-                              key={note._id}
+                              key={note._id || `${note.type}-${note.referenceId}-${note.createdAt}`}
                               className="list-group-item py-3 px-3"
                               onClick={go}
                               style={{ cursor: 'pointer' }}
@@ -643,7 +659,7 @@ function Dashboard() {
         )}
 
         <h4 className="fw-bold mb-3">Featured Properties</h4>
-        {properties.length === 0 ? (
+        {!Array.isArray(properties) || properties.length === 0 ? (
           <p className="text-muted">No properties found.</p>
         ) : (
           <div className="row g-3">
@@ -662,8 +678,12 @@ function Dashboard() {
                     <div className="card-body">
                       <h5 className="card-title">{prop.title}</h5>
                       <p className="card-text text-muted mb-0">📍 {prop.location}</p>
-                      <p className="card-text text-muted mb-0">💶 {Number(prop.price).toLocaleString()} €</p>
-                      <p className="card-text text-muted">🏷️ {prop.type}</p>
+                      {prop.price != null && (
+                        <p className="card-text text-muted mb-0">
+                          💶 {Number(prop.price).toLocaleString()} €
+                        </p>
+                      )}
+                      {prop.type && <p className="card-text text-muted">🏷️ {prop.type}</p>}
                     </div>
                   </Link>
                   <div className="card-footer text-end bg-white border-0">
@@ -683,7 +703,12 @@ function Dashboard() {
         {/* Map View */}
         <div className="mt-5">
           <h5 className="mb-3 fw-bold">Map View</h5>
-          <GoogleMapView properties={properties} height="500px" useClustering={false} navigateOnMarkerClick />
+          <GoogleMapView
+            properties={Array.isArray(properties) ? properties : []}
+            height="500px"
+            useClustering={false}
+            navigateOnMarkerClick
+          />
         </div>
       </div>
 

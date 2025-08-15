@@ -30,17 +30,23 @@ function Home() {
         const res = await axios.get("/api/properties", {
           params: {
             sort: "relevance",
-            q: "",                  // κενό query στη home
+            q: "", // κενό query στη home
             lat: userLat ?? undefined,
             lng: userLng ?? undefined,
             page: 1,
             limit: 24,
           },
         });
-        setProperties(res.data || []);
+
+        // ✅ Δέξου και array και object με items
+        const items = Array.isArray(res.data)
+          ? res.data
+          : res.data?.items ?? [];
+
+        setProperties(items);
       } catch (err) {
         console.error("Failed to load featured properties:", err);
-        setProperties([]);
+        setProperties([]); // safe fallback
       }
     };
     fetchFeatured();
@@ -62,7 +68,7 @@ function Home() {
 
   return (
     <div style={pageGradient}>
-      {/* Header (ημιδιάφανο για να φαίνεται το gradient από πίσω) */}
+      {/* Header */}
       <nav
         className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
         style={{
@@ -88,7 +94,7 @@ function Home() {
         </div>
       </nav>
 
-      {/* Hero (διαφανές για να περνάει το gradient) */}
+      {/* Hero */}
       <section className="text-center py-5 d-flex flex-column justify-content-center align-items-center">
         <div className="container">
           <h1>
@@ -102,7 +108,11 @@ function Home() {
       {/* Map + Search */}
       <div className="container my-5">
         <div className="card border-0 shadow-sm">
-          <GoogleMapView properties={properties} height="320px" navigateOnMarkerClick />
+          <GoogleMapView
+            properties={Array.isArray(properties) ? properties : []}
+            height="320px"
+            navigateOnMarkerClick
+          />
         </div>
       </div>
 
@@ -110,7 +120,7 @@ function Home() {
       <div className="container pb-5">
         <h4 className="fw-bold mb-3">Featured Properties</h4>
         <div className="row g-4">
-          {properties.length === 0 ? (
+          {!Array.isArray(properties) || properties.length === 0 ? (
             <p className="text-muted">No featured properties yet.</p>
           ) : (
             properties.map((prop) => (
@@ -127,13 +137,17 @@ function Home() {
                   />
                   <div className="card-body">
                     <h5 className="card-title">{prop.title}</h5>
-                    <p className="card-text text-muted mb-0">📍 {prop.location}</p>
+                    <p className="card-text text-muted mb-0">
+                      📍 {prop.location}
+                    </p>
                     {prop.price != null && (
                       <p className="card-text text-muted mb-0">
                         💶 {Number(prop.price).toLocaleString()} €
                       </p>
                     )}
-                    {prop.type && <p className="card-text text-muted">🏷️ {prop.type}</p>}
+                    {prop.type && (
+                      <p className="card-text text-muted">🏷️ {prop.type}</p>
+                    )}
                   </div>
                 </div>
               </div>
