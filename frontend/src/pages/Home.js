@@ -38,7 +38,6 @@ function Home() {
           },
         });
 
-        // ✅ Δέξου και array και object με items
         const items = Array.isArray(res.data)
           ? res.data
           : res.data?.items ?? [];

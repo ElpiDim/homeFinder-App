@@ -1,5 +1,12 @@
+// src/components/GoogleMapView.js
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader, StandaloneSearchBox } from "@react-google-maps/api";
+import {
+  GoogleMap,
+  Marker,
+  InfoWindow,
+  useJsApiLoader,
+  StandaloneSearchBox,
+} from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { useNavigate } from "react-router-dom";
 
@@ -8,17 +15,12 @@ const LIBRARIES = ["places"];
 const LOADER_ID = "gmap";
 const PLACEHOLDER = "https://via.placeholder.com/120x80?text=No+Image";
 
+/** CRA: παίρνουμε ΜΟΝΟ από REACT_APP_* */
 function getMapsApiKey() {
-  const viteKey =
-    typeof import.meta !== "undefined" &&
-    import.meta?.env &&
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
   return (
-    viteKey ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
-    ""
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || // αν έχεις cross-env
+    "" // fallback
   );
 }
 
@@ -26,12 +28,16 @@ export default function GoogleMapView(props) {
   const apiKey = getMapsApiKey();
   if (!apiKey) {
     return (
-      <div className="card shadow-sm d-flex align-items-center justify-content-center" style={{ height: props.height || "500px" }}>
+      <div
+        className="card shadow-sm d-flex align-items-center justify-content-center"
+        style={{ height: props.height || "500px" }}
+      >
         <div className="text-center p-3">
           <div className="fw-bold">Google Maps: Δεν βρέθηκε API key</div>
           <div className="small text-muted mt-2">
-            Πρόσθεσε στο <code>.env</code> ένα από:
-            <code> VITE_GOOGLE_MAPS_API_KEY</code> / <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> / <code>REACT_APP_GOOGLE_MAPS_API_KEY</code>
+            Πρόσθεσε στο <code>.env</code>:
+            <br />
+            <code>REACT_APP_GOOGLE_MAPS_API_KEY=το_κλειδί_σου</code>
           </div>
         </div>
       </div>
@@ -67,9 +73,9 @@ function GoogleMapViewInner({
       setActive((prev) => {
         if (prev && prev.id === pt.id) {
           navigate(`/property/${pt.id}`);
-          return prev; // state δεν αλλάζει
+          return prev;
         }
-        return pt; // ανοίγει το InfoWindow
+        return pt;
       });
     },
     [navigate]
@@ -88,11 +94,14 @@ function GoogleMapViewInner({
     map.setZoom(14);
   };
 
+  // always derive from array (safety)
+  const safeProps = Array.isArray(properties) ? properties : [];
   const points = useMemo(
     () =>
-      properties
+      safeProps
         .filter(
           (p) =>
+            p &&
             p.latitude != null &&
             p.longitude != null &&
             !Number.isNaN(Number(p.latitude)) &&
@@ -105,7 +114,7 @@ function GoogleMapViewInner({
           img: p.images?.[0],
           position: { lat: Number(p.latitude), lng: Number(p.longitude) },
         })),
-    [properties]
+    [safeProps]
   );
 
   // Fit bounds στα properties
@@ -177,34 +186,36 @@ function GoogleMapViewInner({
 
         {/* InfoWindow στο ενεργό pin */}
         {active && (
-    <InfoWindow position={active.position} onCloseClick={() => setActive(null)}>
-      <div style={{ maxWidth: 240 }}>
-        <div
-          onClick={() => navigate(`/property/${active.id}`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/property/${active.id}`)}
-          style={{ cursor: 'pointer' }}
-          aria-label={`Open ${active.title}`}
-          title="Open details"
-        >
-          <img
-            src={active.img || PLACEHOLDER}
-            alt={active.title}
-            style={{
-              width: "100%",
-              height: 100,
-              objectFit: "cover",
-              borderRadius: 6,
-              marginBottom: 6
-            }}
-          />
-          <div style={{ fontWeight: 600 }}>{active.title}</div>
-        </div>
-        <div className="small text-muted">{active.text}</div>
-      </div>
-    </InfoWindow>
-  )}
+          <InfoWindow position={active.position} onCloseClick={() => setActive(null)}>
+            <div style={{ maxWidth: 240 }}>
+              <div
+                onClick={() => navigate(`/property/${active.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) =>
+                  (e.key === "Enter" || e.key === " ") && navigate(`/property/${active.id}`)
+                }
+                style={{ cursor: "pointer" }}
+                aria-label={`Open ${active.title}`}
+                title="Open details"
+              >
+                <img
+                  src={active.img || PLACEHOLDER}
+                  alt={active.title}
+                  style={{
+                    width: "100%",
+                    height: 100,
+                    objectFit: "cover",
+                    borderRadius: 6,
+                    marginBottom: 6,
+                  }}
+                />
+                <div style={{ fontWeight: 600 }}>{active.title}</div>
+              </div>
+              <div className="small text-muted">{active.text}</div>
+            </div>
+          </InfoWindow>
+        )}
       </GoogleMap>
     </div>
   );

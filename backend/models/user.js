@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true, 
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
 
     password: {
@@ -33,6 +35,15 @@ const userSchema = new mongoose.Schema(
     salary: Number,
     profilePicture: String,
 
+    // ✅ Email verification flags
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerifiedAt: {
+      type: Date,
+    },
+
     favorites: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -41,8 +52,11 @@ const userSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // 👈 προσθέτει createdAt και updatedAt
+    timestamps: true, // createdAt & updatedAt
   }
 );
+
+// (προαιρετικό) index για γρήγορα queries σε verified χρήστες
+userSchema.index({ emailVerified: 1 });
 
 module.exports = mongoose.model("User", userSchema);

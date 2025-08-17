@@ -1,3 +1,4 @@
+// src/pages/AddProperty.js
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -13,16 +14,11 @@ const containerStyle = { width: "100%", height: "320px" };
 const LIBRARIES = ["places"];
 const LOADER_ID = "gmap";
 
-// key helper (CRA/Next/Vite)
+// ✅ CRA-friendly: παίρνουμε το key από REACT_APP_*
 function getMapsApiKey() {
-  const viteKey =
-    typeof import.meta !== "undefined" &&
-    import.meta?.env &&
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   return (
-    viteKey ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || // αν το έχεις επίσης
     ""
   );
 }
@@ -33,9 +29,20 @@ export default function AddProperty() {
   const [images, setImages] = useState([]);
 
   const [formData, setFormData] = useState({
-    title: "", location: "", price: "", type: "",
-    floor: "", squareMeters: "", surface: "", onTopFloor: false, levels: 1,
-    bedrooms: 0, bathrooms: 0, wc: 0, kitchens: 0, livingRooms: 0,
+    title: "",
+    location: "",
+    price: "",
+    type: "",
+    floor: "",
+    squareMeters: "",
+    surface: "",
+    onTopFloor: false,
+    levels: 1,
+    bedrooms: 0,
+    bathrooms: 0,
+    wc: 0,
+    kitchens: 0,
+    livingRooms: 0,
     features: [],
   });
 
@@ -44,15 +51,18 @@ export default function AddProperty() {
   const { isLoaded } = useJsApiLoader(
     apiKey
       ? { id: LOADER_ID, googleMapsApiKey: apiKey, libraries: LIBRARIES }
-      : { id: LOADER_ID }
+      : { id: LOADER_ID } // θα δείξουμε μήνυμα αν λείπει key
   );
+
   const [map, setMap] = useState(null);
   const [latLng, setLatLng] = useState(null);
   const [center, setCenter] = useState({ lat: 37.9838, lng: 23.7275 }); // Αθήνα
 
   // StandaloneSearchBox
   const searchBoxRef = useRef(null);
-  const onSearchLoad = (ref) => { searchBoxRef.current = ref; };
+  const onSearchLoad = (ref) => {
+    searchBoxRef.current = ref;
+  };
   const onPlacesChanged = () => {
     if (!map || !searchBoxRef.current) return;
     const places = searchBoxRef.current.getPlaces();
@@ -66,12 +76,8 @@ export default function AddProperty() {
     map.panTo(p);
     map.setZoom(Math.max(map.getZoom() || 0, 14));
 
-    // Προσπάθησε να γεμίσεις το address
     const addr =
-      place.formatted_address ??
-      place.vicinity ??
-      place.name ??
-      formData.location;
+      place.formatted_address ?? place.vicinity ?? place.name ?? formData.location;
     setFormData((prev) => ({ ...prev, location: addr }));
   };
 
@@ -81,7 +87,10 @@ export default function AddProperty() {
       const geocoder = new window.google.maps.Geocoder();
       const { results } = await geocoder.geocode({ location: { lat, lng } });
       if (results && results[0]) {
-        setFormData((prev) => ({ ...prev, location: results[0].formatted_address }));
+        setFormData((prev) => ({
+          ...prev,
+          location: results[0].formatted_address,
+        }));
       }
     } catch (e) {
       console.warn("Reverse geocode failed", e);
@@ -98,6 +107,7 @@ export default function AddProperty() {
   // ---- Form handlers ----
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     if (type === "checkbox" && name === "features") {
       setFormData((prev) => ({
         ...prev,
@@ -105,11 +115,15 @@ export default function AddProperty() {
           ? [...prev.features, value]
           : prev.features.filter((f) => f !== value),
       }));
-    } else if (type === "radio" && name === "onTopFloor") {
-      setFormData((prev) => ({ ...prev, onTopFloor: value === "yes" }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      return;
     }
+
+    if (type === "radio" && name === "onTopFloor") {
+      setFormData((prev) => ({ ...prev, onTopFloor: value === "yes" }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -117,7 +131,9 @@ export default function AddProperty() {
     if (!user || user.role !== "owner") return;
 
     if (!latLng) {
-      const cont = window.confirm("Δεν έχεις ορίσει σημείο στο χάρτη. Συνέχεια χωρίς γεωγραφική θέση;");
+      const cont = window.confirm(
+        "Δεν έχεις ορίσει σημείο στο χάρτη. Συνέχεια χωρίς γεωγραφική θέση;"
+      );
       if (!cont) return;
     }
 
@@ -151,49 +167,83 @@ export default function AddProperty() {
 
   const roomControls = ["bedrooms", "bathrooms", "wc", "kitchens", "livingRooms"];
   const featureOptions = [
-    "Parking spot","Elevator","Secure door","Alarm","Furnished",
-    "Storage space","Fireplace","Balcony","Internal staircase",
-    "Garden","Swimming pool","Playroom","Attic","View","Solar water heating",
+    "Parking spot",
+    "Elevator",
+    "Secure door",
+    "Alarm",
+    "Furnished",
+    "Storage space",
+    "Fireplace",
+    "Balcony",
+    "Internal staircase",
+    "Garden",
+    "Swimming pool",
+    "Playroom",
+    "Attic",
+    "View",
+    "Solar water heating",
   ];
 
   // Gradient
-  const pageGradient = useMemo(() => ({
-    minHeight: "100vh",
-    background:
-      "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)",
-  }), []);
+  const pageGradient = useMemo(
+    () => ({
+      minHeight: "100vh",
+      background:
+        "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)",
+    }),
+    []
+  );
 
   if (!user || user.role !== "owner") {
-    return <p className="text-danger text-center mt-5">Only owners can add properties.</p>;
+    return (
+      <p className="text-danger text-center mt-5">Only owners can add properties.</p>
+    );
   }
+
+  // Αν δεν υπάρχει API key, δείξε καθαρό μήνυμα
+  const noKey = !apiKey;
 
   return (
     <div style={pageGradient} className="py-5">
-      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: 900 }}>
+      <div
+        className="container bg-white shadow-sm rounded p-4"
+        style={{ maxWidth: 900 }}
+      >
         <h4 className="fw-bold mb-4">Add Property</h4>
 
         <form onSubmit={handleSubmit}>
           {/* Basic fields */}
           {[
-            ["Title","title"],["Location","location"],["Price (€)","price"],["Floor","floor"],
-            ["Square Meters","squareMeters"],["Property Surface (m²)","surface"],["Levels","levels"]
+            ["Title", "title"],
+            ["Location", "location"],
+            ["Price (€)", "price"],
+            ["Floor", "floor"],
+            ["Square Meters", "squareMeters"],
+            ["Property Surface (m²)", "surface"],
+            ["Levels", "levels"],
           ].map(([label, name]) => (
             <div className="mb-3" key={name}>
               <label className="form-label">{label}</label>
               <input
                 name={name}
-                type={["price","levels"].includes(name) ? "number" : "text"}
+                type={["price", "levels"].includes(name) ? "number" : "text"}
                 className="form-control"
                 value={formData[name]}
                 onChange={handleChange}
-                required={["title","location","price"].includes(name)}
+                required={["title", "location", "price"].includes(name)}
               />
             </div>
           ))}
 
           <div className="mb-3">
             <label className="form-label">Type</label>
-            <select name="type" className="form-control" onChange={handleChange} required>
+            <select
+              name="type"
+              className="form-control"
+              onChange={handleChange}
+              required
+              value={formData.type}
+            >
               <option value="">Select Type</option>
               <option value="sale">For Sale</option>
               <option value="rent">For Rent</option>
@@ -203,16 +253,42 @@ export default function AddProperty() {
           <div className="mb-3">
             <label className="form-label">Is on Top Floor?</label>
             <div>
-              <input type="radio" name="onTopFloor" value="yes" onChange={handleChange}/> Yes
-              <input type="radio" name="onTopFloor" value="no" onChange={handleChange} className="ms-3"/> No
+              <label className="me-3">
+                <input
+                  type="radio"
+                  name="onTopFloor"
+                  value="yes"
+                  onChange={handleChange}
+                  checked={formData.onTopFloor === true}
+                />{" "}
+                Yes
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="onTopFloor"
+                  value="no"
+                  onChange={handleChange}
+                  checked={formData.onTopFloor === false}
+                />{" "}
+                No
+              </label>
             </div>
           </div>
 
           <h5 className="mt-4">Rooms</h5>
           {roomControls.map((room) => (
             <div key={room} className="mb-2">
-              <label className="form-label">{room.charAt(0).toUpperCase() + room.slice(1)}</label>
-              <input name={room} type="number" className="form-control" onChange={handleChange}/>
+              <label className="form-label">
+                {room.charAt(0).toUpperCase() + room.slice(1)}
+              </label>
+              <input
+                name={room}
+                type="number"
+                className="form-control"
+                value={formData[room]}
+                onChange={handleChange}
+              />
             </div>
           ))}
 
@@ -227,8 +303,11 @@ export default function AddProperty() {
                   value={feature}
                   onChange={handleChange}
                   id={feature}
+                  checked={formData.features.includes(feature)}
                 />
-                <label className="form-check-label" htmlFor={feature}>{feature}</label>
+                <label className="form-check-label" htmlFor={feature}>
+                  {feature}
+                </label>
               </div>
             ))}
           </div>
@@ -237,10 +316,23 @@ export default function AddProperty() {
           <hr className="my-4" />
           <h5 className="fw-bold">Property location</h5>
 
+          {noKey && (
+            <div className="alert alert-warning my-2" role="alert">
+              Google Maps API key is missing. Πρόσθεσε στο <code>frontend/.env</code>:
+              <br />
+              <code>REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE</code>
+              <br />
+              και κάνε restart το <code>npm start</code>.
+            </div>
+          )}
+
           <label className="form-label mt-2">Search address</label>
           <div className="mb-2" style={{ maxWidth: 560 }}>
-            {isLoaded && (
-              <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
+            {isLoaded && apiKey ? (
+              <StandaloneSearchBox
+                onLoad={onSearchLoad}
+                onPlacesChanged={onPlacesChanged}
+              >
                 <input
                   type="text"
                   placeholder="Street, number, area"
@@ -248,13 +340,25 @@ export default function AddProperty() {
                   style={{ width: "100%" }}
                 />
               </StandaloneSearchBox>
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enable Google Maps by setting an API key"
+                disabled
+              />
             )}
           </div>
 
-          <div className="mb-2 small text-muted">Click on the map to pin property location</div>
+          <div className="mb-2 small text-muted">
+            Click on the map to pin property location
+          </div>
 
-          <div className="rounded overflow-hidden border" style={{ height: 320, position: "relative" }}>
-            {isLoaded ? (
+          <div
+            className="rounded overflow-hidden border"
+            style={{ height: 320, position: "relative" }}
+          >
+            {isLoaded && apiKey ? (
               <GoogleMap
                 onLoad={setMap}
                 mapContainerStyle={containerStyle}
@@ -262,27 +366,36 @@ export default function AddProperty() {
                 zoom={12}
                 onClick={onMapClick}
                 options={{
-                  disableDefaultUI: true, // 🔒 κλείνει το built-in Search
+                  disableDefaultUI: true,
                   zoomControl: true,
                   gestureHandling: "greedy",
-                  // Μην περνάς mapId που έχει ενεργό Search στο Cloud Style
                 }}
               >
                 {latLng && <Marker position={latLng} />}
               </GoogleMap>
             ) : (
               <div className="d-flex align-items-center justify-content-center h-100">
-                Loading map…
+                {noKey ? "Google Maps disabled (missing API key)" : "Loading map…"}
               </div>
             )}
           </div>
 
           <div className="row g-2 mt-2" style={{ maxWidth: 560 }}>
             <div className="col">
-              <input className="form-control" value={latLng?.lat || ""} readOnly placeholder="Latitude" />
+              <input
+                className="form-control"
+                value={latLng?.lat || ""}
+                readOnly
+                placeholder="Latitude"
+              />
             </div>
             <div className="col">
-              <input className="form-control" value={latLng?.lng || ""} readOnly placeholder="Longitude" />
+              <input
+                className="form-control"
+                value={latLng?.lng || ""}
+                readOnly
+                placeholder="Longitude"
+              />
             </div>
           </div>
 
@@ -300,10 +413,16 @@ export default function AddProperty() {
           </div>
 
           <div className="d-flex justify-content-between">
-            <button type="button" className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => navigate(-1)}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">Set location & Submit</button>
+            <button type="submit" className="btn btn-primary">
+              Set location & Submit
+            </button>
           </div>
         </form>
       </div>

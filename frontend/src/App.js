@@ -1,4 +1,4 @@
-import{ BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -15,114 +15,124 @@ import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
-import {useAuth} from "./context/AuthContext";
+import { useAuth } from './context/AuthContext';
 
-//import logo from './logo.svg';
 import './App.css';
 
 function App() {
-  const {authReady } =useAuth();
-  if(!authReady) return <div className='p-4'> Loading... </div>;
-  
+  const { authReady } = useAuth();
+  if (!authReady) return <div className="p-4">Loading...</div>;
+
   return (
     <Router>
       <Routes>
-        <Route path = "/" element={<Home/>}/>
-        <Route path = "/login" element={<Login/>}/>
-        <Route path = "/register" element={<Register/>}/>
-
-        <Route 
-          path = "/dashboard"
-          element = {
+        {/* Public routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+       
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
             <ProtectedRoute>
-              <Dashboard/>
+              <Dashboard />
             </ProtectedRoute>
           }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
+        />
 
-          <Route
-            path="/favorites"
-            element={
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/favorites"
+          element={
             <ProtectedRoute>
               <Favorites />
             </ProtectedRoute>
-            }/>
+          }
+        />
 
-          <Route
-            path="/messages"
-            element={
+        <Route
+          path="/messages"
+          element={
             <ProtectedRoute>
-              <Messages/>
+              <Messages />
             </ProtectedRoute>
-            }/>
-          <Route
-              path="/notifications"
-              element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
+          }
+        />
 
-              }/>
-            <Route
-              path="/appointments"
-              element={
-              <ProtectedRoute>
-                <Appointments />
-              </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-profile"
-              element={
-              <ProtectedRoute>
-                <EditProfile />
-                </ProtectedRoute>
-            
-            }/>
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/add-property"
-            element={
-              <ProtectedRoute>
-                <AddProperty />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/appointments"
+          element={
+            <ProtectedRoute>
+              <Appointments />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route 
-            path="/property/:propertyId" 
-            element={
+        <Route
+          path="/edit-profile"
+          element={
+            <ProtectedRoute>
+              <EditProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/add-property"
+          element={
+            <ProtectedRoute>
+              <AddProperty />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/property/:propertyId"
+          element={
             <ProtectedRoute>
               <PropertyDetails />
             </ProtectedRoute>
-            }/>
+          }
+        />
 
-             <Route
-            path="/my-properties"
-            element={
-              <ProtectedRoute>
-                <MyProperties />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/my-properties"
+          element={
+            <ProtectedRoute>
+              <MyProperties />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/edit-property/:propertyId"
-            element={
+        <Route
+          path="/edit-property/:propertyId"
+          element={
             <ProtectedRoute>
               <EditProperty />
-            </ProtectedRoute>} /> 
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-
-      
     </Router>
   );
 }
+
 export default App;

@@ -13,16 +13,11 @@ const containerStyle = { width: '100%', height: '320px' };
 const LIBRARIES = ['places'];
 const LOADER_ID = 'gmap';
 
+// ✅ CRA-friendly: παίρνουμε το key από REACT_APP_*
 function getMapsApiKey() {
-  const viteKey =
-    typeof import.meta !== 'undefined' &&
-    import.meta?.env &&
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
   return (
-    viteKey ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || // αν το έχεις επίσης
     ''
   );
 }
@@ -34,7 +29,7 @@ function EditProperty() {
   const [existingImages, setExistingImages] = useState([]);
 
   const [formData, setFormData] = useState({
-    title: '', location: '', price: '', type: '', floor: '',
+    title: '', location: '', price: '', type: 'sale', floor: '',
     squareMeters: '', surface: '', onTopFloor: false, levels: '',
     bedrooms: '', bathrooms: '', wc: '', kitchens: '', livingRooms: '',
     status: 'available', features: []
@@ -93,7 +88,7 @@ function EditProperty() {
     const fetchProperty = async () => {
       try {
         const res = await api.get(`/properties/${propertyId}`);
-        const p = res.data;
+        const p = res.data || {};
 
         setFormData({
           title: p.title || '',
@@ -114,7 +109,7 @@ function EditProperty() {
           features: Array.isArray(p.features) ? p.features : []
         });
 
-        setExistingImages(p.images || []);
+        setExistingImages(Array.isArray(p.images) ? p.images : []);
 
         if (
           p.latitude != null &&
@@ -215,10 +210,22 @@ function EditProperty() {
       'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
   }), []);
 
+  const noKey = !apiKey;
+
   return (
     <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
         <h4 className="fw-bold mb-4">Edit Property</h4>
+
+        {noKey && (
+          <div className="alert alert-warning">
+            Google Maps API key is missing. Πρόσθεσε στο <code>frontend/.env</code>:
+            <br />
+            <code>REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE</code>
+            <br />
+            και κάνε restart το <code>npm start</code>.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {[
@@ -323,7 +330,7 @@ function EditProperty() {
 
           <label className="form-label mt-2">Search address</label>
           <div className="mb-2" style={{ maxWidth: 560 }}>
-            {isLoaded && (
+            {isLoaded && apiKey ? (
               <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
                 <input
                   type="text"
@@ -332,6 +339,13 @@ function EditProperty() {
                   style={{ width: '100%' }}
                 />
               </StandaloneSearchBox>
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Enable Google Maps by setting an API key"
+                disabled
+              />
             )}
           </div>
 
@@ -340,7 +354,7 @@ function EditProperty() {
           </div>
 
           <div className="rounded overflow-hidden border" style={{ height: 320, position: 'relative' }}>
-            {isLoaded ? (
+            {isLoaded && apiKey ? (
               <GoogleMap
                 onLoad={setMap}
                 mapContainerStyle={containerStyle}
@@ -348,7 +362,7 @@ function EditProperty() {
                 zoom={latLng ? 14 : 12}
                 onClick={onMapClick}
                 options={{
-                  disableDefaultUI: true, // no built-in search
+                  disableDefaultUI: true,
                   zoomControl: true,
                   gestureHandling: 'greedy',
                 }}
@@ -356,7 +370,9 @@ function EditProperty() {
                 {latLng && <Marker position={latLng} />}
               </GoogleMap>
             ) : (
-              <div className="d-flex align-items-center justify-content-center h-100">Loading map…</div>
+              <div className="d-flex align-items-center justify-content-center h-100">
+                {apiKey ? 'Loading map…' : 'Google Maps disabled (missing API key)'}
+              </div>
             )}
           </div>
 

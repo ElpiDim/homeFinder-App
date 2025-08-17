@@ -1,3 +1,4 @@
+// src/pages/Dashboard.js
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -7,7 +8,7 @@ import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 
-// --- helpers for the notifications UI (outside component) ---
+// --- helpers for the notifications UI ---
 const iconForType = (t) => {
   switch (t) {
     case 'appointment': return '📅';
@@ -48,6 +49,21 @@ const timeAgo = (d) => {
   const dys = Math.floor(h / 24);
   return `${dys}d ago`;
 };
+
+// ===== BASE για εικόνες =====
+// Αν έχεις REACT_APP_API_URL (π.χ. το ngrok URL), το χρησιμοποιούμε.
+// Αλλιώς, παίρνουμε το origin της σελίδας (δουλεύει τέλεια και με ngrok και local).
+const API_ORIGIN =
+  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
+function normalizeUploadPath(src) {
+  // δέχεται είτε "/uploads/xyz.jpg" είτε "uploads/xyz.jpg" είτε "xyz.jpg"
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  const clean = src.replace(/^\/+/, '');
+  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+}
 
 function Dashboard() {
   const { user, setUser } = useAuth();
@@ -312,12 +328,13 @@ function Dashboard() {
     });
   };
 
-  const imgUrl = (src) =>
-    src
-      ? src.startsWith('http')
-        ? src
-        : `http://localhost:5000${src}`
-      : 'https://via.placeholder.com/400x225?text=No+Image';
+  // === ΔΙΟΡΘΩΣΗ: εικόνες να παίζουν και με ngrok ===
+  const imgUrl = (src) => {
+    if (!src) return 'https://via.placeholder.com/400x225?text=No+Image';
+    if (src.startsWith('http')) return src;
+    const rel = normalizeUploadPath(src); // π.χ. "/uploads/abc.jpg"
+    return `${API_ORIGIN}${rel}`;
+  };
 
   return (
     <div style={pageGradient}>
