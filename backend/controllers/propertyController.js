@@ -86,6 +86,8 @@ exports.getAllProperties = async (req, res) => {
       type,                 // property type
       minPrice,
       maxPrice,
+      minSqm,
+      maxSqm, 
       sort = "relevance",   // relevance | newest | price_asc | price_desc | likes
       lat,
       lng,
@@ -109,7 +111,12 @@ exports.getAllProperties = async (req, res) => {
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
-
+    if(hasValue(minSqm)||hasValue(maxSqm)){
+      match.squareMeters ={};
+      if(hasValue(minSqm)) match.squareMeters.$gte = parseInt(minSqm);
+      if(hasValue(maxSqm)) match.squareMeters.$lte = parseInt(maxSqm);
+    }
+    
     // coords (αν υπάρχουν)
     const hasCoords = hasValue(lat) && hasValue(lng);
     const userLat = hasCoords ? Number(lat) : null;

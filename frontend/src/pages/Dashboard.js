@@ -591,7 +591,7 @@ function Dashboard() {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            placeholder="Min Sqm"
+            placeholder="Min Square meters"
             className="form-control mb-2"
             value={minSqm}
             onChange={(e) => setMinSqm(e.target.value)}
@@ -600,7 +600,7 @@ function Dashboard() {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            placeholder="Max Sqm"
+            placeholder="Max Square meters"
             className="form-control mb-2"
             value={maxSqm}
             onChange={(e) => setMaxSqm(e.target.value)}
