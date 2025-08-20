@@ -88,6 +88,8 @@ function Dashboard() {
   const filterButtonRef = useRef(null); // κουμπί φίλτρων
   const filterPanelRef = useRef(null);  // panel φίλτρων
   const leftColRef = useRef(null);
+  const stickyWrapRef = useRef(null);
+
   const [mapContainerHeight, setMapContainerHeight] = useState(520);
 
   const token = localStorage.getItem('token');
@@ -292,22 +294,22 @@ function Dashboard() {
   }, []);
 
   /* ---------- sync map height with list ---------- */
-  useEffect(() => {
-    const el = leftColRef.current;
-    if (!el) return;
+useEffect(() => {
+  const el = leftColRef.current;
+  if (!el) return;
 
-    const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
-    setH();
+  const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
+  setH();
 
-    const ro = new ResizeObserver(setH);
-    ro.observe(el);
-    window.addEventListener('resize', setH);
+  const ro = new ResizeObserver(setH);
+  ro.observe(el);
+  window.addEventListener('resize', setH);
 
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', setH);
-    };
-  }, [properties, page, limit, totalPages]);
+  return () => {
+    ro.disconnect();
+    window.removeEventListener('resize', setH);
+  };
+}, [properties, page, limit, totalPages]);
 
   /* ---------- handlers ---------- */
   const handleToggleNotifications = async () => {
@@ -581,14 +583,8 @@ function Dashboard() {
             </h1>
           </div>
         </div>
-        <p
-          className="text-center text-muted"
-          style={{ fontSize: "0.95rem", marginBottom: 0 }}
-        >
-          Find your perfect place
-        </p>
       </div>
-
+      
       {/* Central Top Search Bar */}
       <div className="container" style={{ marginTop: 35 }}>
         <form
@@ -601,7 +597,7 @@ function Dashboard() {
               maxWidth: 760,
               width: '100%',
               borderRadius: 50,
-              overflow: 'hidden',
+              overflow: 'visible',
             }}
           >
             {/* 🔍 Icon */}
