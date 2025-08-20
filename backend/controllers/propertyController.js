@@ -111,10 +111,79 @@ exports.getAllProperties = async (req, res) => {
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
-    if(hasValue(minSqm)||hasValue(maxSqm)){
-      match.squareMeters ={};
-      if(hasValue(minSqm)) match.squareMeters.$gte = parseInt(minSqm);
-      if(hasValue(maxSqm)) match.squareMeters.$lte = parseInt(maxSqm);
+      
+    // square meter filtering handled via separate $match with $expr to coerce strings
+    let sqmMatchStage = null;
+    if (hasValue(minSqm) || hasValue(maxSqm)) {
+      const min = hasValue(minSqm) ? parseInt(minSqm) : undefined;
+      const max = hasValue(maxSqm) ? parseInt(maxSqm) : undefined;
+
+      const sqrExpr = [];
+      const surfExpr = [];
+      if (min !== undefined) {
+        sqrExpr.push({
+          $gte: [
+            {
+              $convert: {
+                input: "$squareMeters",
+                to: "double",
+                onError: null,
+                onNull: null,
+              },
+            },
+            min,
+          ],
+        });
+        surfExpr.push({
+          $gte: [
+            {
+              $convert: {
+                input: "$surface",
+                to: "double",
+                onError: null,
+                onNull: null,
+              },
+            },
+            min,
+          ],
+        });
+      }
+      if (max !== undefined) {
+        sqrExpr.push({
+          $lte: [
+            {
+              $convert: {
+                input: "$squareMeters",
+                to: "double",
+                onError: null,
+                onNull: null,
+              },
+            },
+            max,
+          ],
+        });
+        surfExpr.push({
+          $lte: [
+            {
+              $convert: {
+                input: "$surface",
+                to: "double",
+                onError: null,
+                onNull: null,
+              },
+            },
+            max,
+          ],
+        });
+      }
+      sqmMatchStage = {
+        $match: {
+          $or: [
+            { $expr: { $and: sqrExpr } },
+            { $expr: { $and: surfExpr } },
+          ],
+        },
+      };
     }
     
     // coords (αν υπάρχουν)
@@ -155,6 +224,7 @@ exports.getAllProperties = async (req, res) => {
       : null;
 
     const pipeline = [
+      ...(sqmMatchStage? [sqmMatchStage]: []),
       { $match: match },
 
       // μετράμε favorites

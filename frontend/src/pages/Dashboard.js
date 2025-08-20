@@ -35,20 +35,8 @@ const titleForNote = (n) => {
     default: return 'Notification';
   }
 };
-const timeAgo = (d) => {
-  if (!d) return '';
-  const diff = Math.max(0, Date.now() - new Date(d).getTime());
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const dys = Math.floor(h / 24);
-  return `${dys}d ago`;
-};
 
-/* ---------- εικόνες (local/ngrok) ---------- */
+/* ---------- images (local/ngrok) ---------- */
 const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
   (typeof window !== 'undefined' ? window.location.origin : '');
@@ -64,9 +52,7 @@ function Dashboard() {
   const navigate = useNavigate();
 
   /* ---------- state ---------- */
-  // ΟΛΑ τα properties (για τον χάρτη)
   const [allProperties, setAllProperties] = useState([]);
-  // ΜΟΝΟ της τρέχουσας σελίδας (για τη λίστα)
   const [properties, setProperties] = useState([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
@@ -86,24 +72,20 @@ function Dashboard() {
 
   // filters
   const [locationFilter, setLocationFilter] = useState('');
-  const [minPrice, setMinPrice] = useState(''); // keep as string for smooth typing
-  const [maxPrice, setMaxPrice] = useState(''); // keep as string for smooth typing
-  const [minSqm, setMinSqm] = useState('');    // ✅ ΝΕΟ
-  const [maxSqm, setMaxSqm] = useState('');    // ✅ ΝΕΟ
-  // Τύπος προβολής από toggle ('' | 'sale' | 'rent')
-  const [viewType, setViewType] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [minSqm, setMinSqm] = useState('');
+  const [maxSqm, setMaxSqm] = useState('');
+  const [viewType, setViewType] = useState(''); // '' | 'sale' | 'rent'
 
   // geolocation
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
 
-  // refs (dropdowns)
+  // refs
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
-  const filterButtonRef = useRef(null);
-  const filterPanelRef = useRef(null);
-
-  // refs για μέτρηση ύψους λίστας
+  const filterButtonRef = useRef(null);          // για το anchored panel
   const leftColRef = useRef(null);
   const [mapContainerHeight, setMapContainerHeight] = useState(520);
 
@@ -125,7 +107,6 @@ function Dashboard() {
 
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
 
-  // κρατά μόνο ψηφία και επιστρέφει Number ή undefined
   const toNum = (v) => {
     const s = String(v ?? '').replace(/\D+/g, '');
     if (!s) return undefined;
@@ -165,13 +146,13 @@ function Dashboard() {
     }
   };
 
-  // Φέρνει ΟΛΑ τα properties που ταιριάζουν στα φίλτρα (ο χάρτης τα δείχνει όλα)
+  // fetch all for map + client-side pagination for list
   const fetchAllProperties = useCallback(async (overrides = {}) => {
     try {
       const minPriceParam = toNum(overrides.minPrice ?? minPrice);
       const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
-      const minSqmParam   = toNum(overrides.minSqm   ?? minSqm); // ✅ ΝΕΟ
-      const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm); // ✅ ΝΕΟ
+      const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
+      const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
       const params = {
         sort: 'relevance',
@@ -179,22 +160,21 @@ function Dashboard() {
         type: overrides.type ?? (viewType || undefined),
         minPrice: minPriceParam,
         maxPrice: maxPriceParam,
-        minSqm: minSqmParam,       // ✅ ΝΕΟ
-        maxSqm: maxSqmParam,       // ✅ ΝΕΟ
+        minSqm: minSqmParam,
+        maxSqm: maxSqmParam,
         lat: overrides.lat ?? (userLat ?? undefined),
         lng: overrides.lng ?? (userLng ?? undefined),
         page: 1,
-        limit: 9999, // Φέρε τα όλα — pagination κάνουμε client-side
+        limit: 9999,
       };
+
       const res = await api.get('/properties', { params });
       const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
 
       setAllProperties(items);
 
-      // client-side pagination
       const total = items.length;
       const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
-
       const currentPage = overrides.page ?? page;
       const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
       const start = (safePage - 1) * limit;
@@ -209,7 +189,7 @@ function Dashboard() {
       setProperties([]);
       setMeta({ total: 0, totalPages: 1, limit, page: 1 });
     }
-  }, [searchTerm, locationFilter, viewType, minPrice, maxPrice, minSqm, maxSqm, userLat, userLng, page, limit]); // ✅ πρόσθεσα minSqm/maxSqm
+  }, [searchTerm, locationFilter, viewType, minPrice, maxPrice, minSqm, maxSqm, userLat, userLng, page, limit]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -243,8 +223,7 @@ function Dashboard() {
 
     fetchAllProperties({ page: 1 });
 
-    api
-      .get('/favorites', { headers: { Authorization: `Bearer ${token}` } })
+    api.get('/favorites', { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
         const ids = arr.map((fav) => fav._id || fav.propertyId || fav.id).filter(Boolean);
@@ -254,10 +233,8 @@ function Dashboard() {
 
     fetchNotifications();
 
-    const endpoint =
-      user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
-    api
-      .get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+    const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
+    api.get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         const appts = Array.isArray(res.data) ? res.data : [];
         const confirmed = appts.filter((appt) => appt.status === 'confirmed');
@@ -266,7 +243,6 @@ function Dashboard() {
       .catch(() => setHasAppointments(false));
   }, [user, token, fetchAllProperties, fetchNotifications]);
 
-  // Όταν αλλάξει page → client-side σελιδοποίηση
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -276,7 +252,6 @@ function Dashboard() {
     setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
   }, [page, limit, allProperties]);
 
-  // notifications polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
@@ -288,12 +263,9 @@ function Dashboard() {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
       const outsideProfile = profileMenuRef.current && !profileMenuRef.current.contains(e.target);
-      const outsideFilters =
-        (!filterButtonRef.current || !filterButtonRef.current.contains(e.target)) &&
-        (!filterPanelRef.current || !filterPanelRef.current.contains(e.target));
       if (outsideNotifications) setShowNotifications(false);
       if (outsideProfile) setShowProfileMenu(false);
-      if (outsideFilters) setShowFilters(false);
+      // Μην κλείνουμε το filters εδώ – είναι anchored στο search bar.
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -310,16 +282,12 @@ function Dashboard() {
     };
   }, []);
 
-  /* ---------- measure LEFT column height & sync map height ---------- */
+  /* ---------- sync map height with list ---------- */
   useEffect(() => {
     const el = leftColRef.current;
     if (!el) return;
 
-    const setH = () => {
-      const h = el.scrollHeight;
-      setMapContainerHeight(Math.max(h, 460));
-    };
-
+    const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
     setH();
 
     const ro = new ResizeObserver(setH);
@@ -356,7 +324,6 @@ function Dashboard() {
     }
   };
 
-  // Κάθε αλλαγή φίλτρων/αναζήτησης → φέρνει ξανά ΟΛΟ το dataset & reset page 1
   const handleSearch = () => {
     setPage(1);
     fetchAllProperties({ q: searchTerm, page: 1 });
@@ -367,41 +334,40 @@ function Dashboard() {
     fetchAllProperties({
       q: searchTerm || locationFilter,
       page: 1,
-      // min/max values (price/sqm) καθαρίζονται από το toNum μέσα στο fetchAllProperties
     });
+    setShowFilters(false);
   };
 
   const handleClearFilters = () => {
     setLocationFilter('');
     setMinPrice('');
     setMaxPrice('');
-    setMinSqm('');   // ✅ ΝΕΟ
-    setMaxSqm('');   // ✅ ΝΕΟ
+    setMinSqm('');
+    setMaxSqm('');
     setSearchTerm('');
-    setViewType(''); // reset σε All
+    setViewType('');
     setPage(1);
     fetchAllProperties({
       q: '',
       type: undefined,
       minPrice: undefined,
       maxPrice: undefined,
-      minSqm: undefined,  // ✅ ΝΕΟ
-      maxSqm: undefined,  // ✅ ΝΕΟ
+      minSqm: undefined,
+      maxSqm: undefined,
       page: 1
     });
+    setShowFilters(false);
   };
 
   // pagination helpers
   const canPrev = page > 1;
   const canNext = page < totalPages;
-
   const goPrev = () => { if (!canPrev) return; setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goNext = () => { if (!canNext) return; setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goPage = (p) => { if (p === page) return; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const renderPager = () => {
     if (!properties || properties.length === 0) return null;
-
     if (totalPages && totalPages > 1) {
       const windowSize = 5;
       const start = Math.max(1, page - Math.floor(windowSize / 2));
@@ -442,7 +408,6 @@ function Dashboard() {
         </nav>
       );
     }
-
     return null;
   };
 
@@ -468,6 +433,24 @@ function Dashboard() {
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
+
+          {/* Notifications first */}
+          <div ref={dropdownRef} className="position-relative">
+            <button
+              className="btn btn-link text-decoration-none text-dark p-0 position-relative"
+              onClick={handleToggleNotifications}
+            >
+              Notifications
+              {unreadCount > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* Profile Dropdown */}
           <div ref={profileMenuRef} className="position-relative">
@@ -503,125 +486,150 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Notifications (button) */}
-          <div ref={dropdownRef} className="position-relative">
-            <button
-              className="btn btn-link text-decoration-none text-dark p-0 position-relative"
-              onClick={handleToggleNotifications}
-            >
-              Notifications
-              {unreadCount > 0 && (
-                <span
-                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                  style={{ fontSize: '0.65rem' }}
-                >
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search..."
-            className="form-control"
-            style={{ maxWidth: '180px' }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button className="btn btn-outline-dark" onClick={handleSearch}>🔍</button>
-
-          {/* Filters button */}
-          <button
-            ref={filterButtonRef}
-            className="btn btn-light"
-            onClick={() => setShowFilters((v) => !v)}
-          >
-            <img src={filterIcon} alt="filter" style={{ width: '20px' }} />
-          </button>
-
+          {/* Logout last */}
           <button className="btn btn-outline-danger" onClick={handleLogout}>
             Logout
           </button>
         </div>
       </nav>
 
-      {/* Filters Panel (type ελέγχεται από το toggle) */}
-      {showFilters && (
-        <div
-          ref={filterPanelRef}
-          className="bg-white border shadow p-3 rounded"
-          style={{ position: 'fixed', top: 76, right: 16, width: 300, zIndex: 6500 }}
-          onClick={(e) => e.stopPropagation()}
+      {/* 🌟 Central Top Search Bar */}
+      <div className="container" style={{ marginTop: 35 }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+          className="d-flex justify-content-center"
         >
-          <h6 className="mb-2">Filters</h6>
+          <div
+            className="input-group shadow-sm"
+            style={{
+              maxWidth: 760,
+              width: '100%',
+              borderRadius: 50,
+              overflow: 'hidden',
+            }}
+          >
+            {/* 🔍 Icon */}
+            <span className="input-group-text bg-white border-0 px-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 21l-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
 
-          <input
-            type="text"
-            placeholder="Location"
-            className="form-control mb-2"
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-          />
+            {/* 🔎 Input */}
+            <input
+              type="text"
+              className="form-control border-0"
+              style={{ fontSize: 15, paddingTop: 10, paddingBottom: 10 }}
+              placeholder="Search by city, area or address…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
 
-          {/* number-as-text για smooth typing */}
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Min Price"
-            className="form-control mb-2"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-          />
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Max Price"
-            className="form-control mb-2"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-          />
+            {/* ⚙️ Filters (anchored panel) */}
+            <div className="position-relative">
+              <button
+                type="button"
+                ref={filterButtonRef}
+                className="btn btn-light border-start px-3"
+                onClick={() => setShowFilters((v) => !v)}
+                title="Filters"
+              >
+                <img src={filterIcon} alt="Filters" style={{ width: 16 }} />
+              </button>
 
-          {/* ✅ Τετραγωνικά μέτρα */}
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Min Square meters"
-            className="form-control mb-2"
-            value={minSqm}
-            onChange={(e) => setMinSqm(e.target.value)}
-          />
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            placeholder="Max Square meters"
-            className="form-control mb-2"
-            value={maxSqm}
-            onChange={(e) => setMaxSqm(e.target.value)}
-          />
+              {showFilters && (
+                <div
+                  className="bg-white border shadow p-3 rounded"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 8,
+                    width: 320,
+                    zIndex: 6500,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h6 className="mb-2">Filters</h6>
 
-          <div className="d-flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    className="form-control mb-2"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  />
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Min Price"
+                    className="form-control mb-2"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Max Price"
+                    className="form-control mb-2"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Min Square meters"
+                    className="form-control mb-2"
+                    value={minSqm}
+                    onChange={(e) => setMinSqm(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Max Square meters"
+                    className="form-control mb-3"
+                    value={maxSqm}
+                    onChange={(e) => setMaxSqm(e.target.value)}
+                  />
+
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-primary w-100" onClick={handleFilter}>
+                      Apply
+                    </button>
+                    <button className="btn btn-outline-secondary w-100" onClick={handleClearFilters}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 🔵 New Search Button */}
             <button
-              className="btn btn-primary w-100"
-              onClick={() => { handleFilter(); setShowFilters(false); }}
+              type="submit"
+              className="btn"
+              style={{
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: 14,
+                padding: '0 20px',
+                borderRadius: 0,
+              }}
             >
-              Apply
-            </button>
-            <button
-              className="btn btn-outline-secondary w-100"
-              onClick={() => { handleClearFilters(); setShowFilters(false); }}
-            >
-              Clear
+              Go
             </button>
           </div>
-        </div>
-      )}
+        </form>
+      </div>
 
       {/* CONTENT: list (left) + sticky map (right) */}
       <div className="container-fluid py-4">
@@ -701,71 +709,14 @@ function Dashboard() {
                   ))}
                 </div>
 
-                {/* Pagination */}
                 <div className="mt-2">
-                  <nav className="mt-3">
-                    <ul className="pagination justify-content-center">
-                      <li className={`page-item ${page <= 1 ? 'disabled' : ''}`}>
-                        <button className="page-link" onClick={goPrev}>Prev</button>
-                      </li>
-
-                      {(() => {
-                        const windowSize = 5;
-                        const start = Math.max(1, page - Math.floor(windowSize / 2));
-                        const end = Math.min(totalPages, start + windowSize - 1);
-                        const buttons = [];
-                        if (start > 1) {
-                          buttons.push(
-                            <li key="first" className="page-item">
-                              <button className="page-link" onClick={() => goPage(1)}>1</button>
-                            </li>
-                          );
-                          if (start > 2) {
-                            buttons.push(
-                              <li key="ellipsis-left" className="page-item disabled">
-                                <span className="page-link">…</span>
-                              </li>
-                            );
-                          }
-                        }
-                        for (let p = start; p <= end; p++) {
-                          buttons.push(
-                            <li key={p} className={`page-item ${p === page ? 'active' : ''}`}>
-                              <button className="page-link" onClick={() => goPage(p)}>{p}</button>
-                            </li>
-                          );
-                        }
-                        if (end < totalPages) {
-                          if (end < totalPages - 1) {
-                            buttons.push(
-                              <li key="ellipsis-right" className="page-item disabled">
-                                <span className="page-link">…</span>
-                              </li>
-                            );
-                          }
-                          buttons.push(
-                            <li key="last" className="page-item">
-                              <button className="page-link" onClick={() => goPage(totalPages)}>{totalPages}</button>
-                            </li>
-                          );
-                        }
-                        return buttons;
-                      })()}
-
-                      <li className={`page-item ${page >= totalPages ? 'disabled' : ''}`}>
-                        <button className="page-link" onClick={goNext}>Next</button>
-                      </li>
-                    </ul>
-                    <p className="text-center text-muted small mb-0">
-                      Page {page} of {totalPages}
-                    </p>
-                  </nav>
+                  {renderPager()}
                 </div>
               </>
             )}
           </div>
 
-          {/* RIGHT: Sticky Map — δείχνει ΟΛΑ τα properties */}
+          {/* RIGHT: Sticky Map */}
           <div className="col-lg-5">
             <div className="position-sticky" style={{ top: 88 }}>
               <div className="card border-0 shadow-sm" style={{ height: mapContainerHeight }}>
