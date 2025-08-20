@@ -80,8 +80,21 @@ function Home() {
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Homie</h5>
+          <h5
+          style={{
+            fontFamily: "'Poppins','Fredoka',sans-serif",
+            fontWeight: 600,
+            textTransform: "lowercase",
+            background: "linear-gradient(90deg,#2563eb,#9333ea)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent"
+          }}
+        >
+          homie
+        </h5>
+
         </div>
+
 
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link to="/login" className="btn btn-outline-primary">
@@ -96,9 +109,27 @@ function Home() {
       {/* Hero */}
       <section className="text-center py-5 d-flex flex-column justify-content-center align-items-center">
         <div className="container">
-          <h1>
-            <span className="text-black"> Homie</span>
-          </h1>
+          <h1
+          className="mb-2"
+          style={{
+            fontFamily: "'Poppins','Fredoka',sans-serif",
+            fontSize: "3rem",
+            fontWeight: 600,
+            textTransform: "lowercase",
+            letterSpacing: "0.5px"
+          }}
+        >
+          <span
+            style={{
+              background: "linear-gradient(90deg, #2563eb, #9333ea)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}
+          >
+            homie
+          </span>
+        </h1>
+
           <p className="lead mb-0">Find a house, make it your home in a click.</p>
         </div>
       </section>

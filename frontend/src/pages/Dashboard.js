@@ -85,7 +85,8 @@ function Dashboard() {
   // refs
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
-  const filterButtonRef = useRef(null);          // για το anchored panel
+  const filterButtonRef = useRef(null); // κουμπί φίλτρων
+  const filterPanelRef = useRef(null);  // panel φίλτρων
   const leftColRef = useRef(null);
   const [mapContainerHeight, setMapContainerHeight] = useState(520);
 
@@ -107,6 +108,7 @@ function Dashboard() {
 
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
 
+  // κρατά μόνο ψηφία και επιστρέφει Number ή undefined
   const toNum = (v) => {
     const s = String(v ?? '').replace(/\D+/g, '');
     if (!s) return undefined;
@@ -173,8 +175,10 @@ function Dashboard() {
 
       setAllProperties(items);
 
+      // client-side pagination
       const total = items.length;
       const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
+
       const currentPage = overrides.page ?? page;
       const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
       const start = (safePage - 1) * limit;
@@ -243,6 +247,7 @@ function Dashboard() {
       .catch(() => setHasAppointments(false));
   }, [user, token, fetchAllProperties, fetchNotifications]);
 
+  // Όταν αλλάξει page → client-side σελιδοποίηση
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -252,20 +257,24 @@ function Dashboard() {
     setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
   }, [page, limit, allProperties]);
 
+  // notifications polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
 
-  // close popovers on outside click + Esc
+  // close popovers on outside click + Esc (notifications, profile, filters)
   useEffect(() => {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
       const outsideProfile = profileMenuRef.current && !profileMenuRef.current.contains(e.target);
+      const outsideFilters =
+        (!filterButtonRef.current || !filterButtonRef.current.contains(e.target)) &&
+        (!filterPanelRef.current || !filterPanelRef.current.contains(e.target));
       if (outsideNotifications) setShowNotifications(false);
       if (outsideProfile) setShowProfileMenu(false);
-      // Μην κλείνουμε το filters εδώ – είναι anchored στο search bar.
+      if (outsideFilters) setShowFilters(false);
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -324,6 +333,22 @@ function Dashboard() {
     }
   };
 
+  const handleNotificationClick = (note) => {
+    if (!note) return;
+    if (note.type === 'appointment') {
+      setSelectedAppointmentId(note.referenceId);
+    } else if (
+      note.type === 'interest' ||
+      note.type === 'interest_accepted' ||
+      note.type === 'interest_rejected'
+    ) {
+      setSelectedInterestId(note.referenceId);
+    } else if (note.referenceId) {
+      navigate(`/property/${note.referenceId}`);
+    }
+    setShowNotifications(false);
+  };
+
   const handleSearch = () => {
     setPage(1);
     fetchAllProperties({ q: searchTerm, page: 1 });
@@ -334,6 +359,7 @@ function Dashboard() {
     fetchAllProperties({
       q: searchTerm || locationFilter,
       page: 1,
+      // min/max values parse στο fetchAllProperties μέσω toNum
     });
     setShowFilters(false);
   };
@@ -434,7 +460,7 @@ function Dashboard() {
           <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
 
-          {/* Notifications first */}
+          {/* Notifications */}
           <div ref={dropdownRef} className="position-relative">
             <button
               className="btn btn-link text-decoration-none text-dark p-0 position-relative"
@@ -450,6 +476,41 @@ function Dashboard() {
                 </span>
               )}
             </button>
+            {showNotifications && (
+              <div
+                className="position-absolute end-0 mt-2 bg-white border rounded shadow"
+                style={{ width: 320, zIndex: 6500 }}
+              >
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {notifications.length === 0 ? (
+                    <div className="p-3 text-center text-muted">No notifications.</div>
+                  ) : (
+                    <ul className="list-group list-group-flush mb-0">
+                      {notifications.map((note) => (
+                        <li
+                          key={note._id}
+                          className="list-group-item list-group-item-action d-flex gap-2"
+                          style={{ cursor: 'pointer', background: note.read ? '#fff' : '#f8fafc' }}
+                          onClick={() => handleNotificationClick(note)}
+                        >
+                          <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
+                          <span className="small flex-grow-1">{titleForNote(note)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="border-top text-center">
+                  <Link
+                    to="/notifications"
+                    className="d-block py-2 small"
+                    onClick={() => setShowNotifications(false)}
+                  >
+                    View all
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Profile Dropdown */}
@@ -493,7 +554,42 @@ function Dashboard() {
         </div>
       </nav>
 
-      {/* 🌟 Central Top Search Bar */}
+      {/* Logo box above search */}
+      <div className="container mt-4 mb-2">
+        <div className="d-flex justify-content-center">
+          <div
+            className="px-5 py-3 rounded-4 shadow-sm"
+            style={{
+              background: "linear-gradient(135deg, #f9fafb, #f1f5f9)",
+              border: "1px solid #e5e7eb"
+            }}
+          >
+            <h1
+              className="mb-1 d-flex align-items-center gap-2"
+              style={{
+                fontFamily: "'Poppins','Fredoka',sans-serif",
+                fontSize: "2.6rem",
+                fontWeight: 600,
+                letterSpacing: "0.5px",
+                textTransform: "lowercase",
+                background: "linear-gradient(90deg, #2563eb, #9333ea)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent"
+              }}
+            >
+              <span role="img" aria-label="home">🏠</span> homie
+            </h1>
+          </div>
+        </div>
+        <p
+          className="text-center text-muted"
+          style={{ fontSize: "0.95rem", marginBottom: 0 }}
+        >
+          Find your perfect place
+        </p>
+      </div>
+
+      {/* Central Top Search Bar */}
       <div className="container" style={{ marginTop: 35 }}>
         <form
           onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
@@ -541,6 +637,7 @@ function Dashboard() {
 
               {showFilters && (
                 <div
+                  ref={filterPanelRef}
                   className="bg-white border shadow p-3 rounded"
                   style={{
                     position: 'absolute',
@@ -601,10 +698,10 @@ function Dashboard() {
                   />
 
                   <div className="d-flex gap-2">
-                    <button className="btn btn-primary w-100" onClick={handleFilter}>
+                    <button type="button" className="btn btn-primary w-100" onClick={handleFilter}>
                       Apply
                     </button>
-                    <button className="btn btn-outline-secondary w-100" onClick={handleClearFilters}>
+                    <button type="button" className="btn btn-outline-secondary w-100" onClick={handleClearFilters}>
                       Clear
                     </button>
                   </div>
@@ -612,7 +709,7 @@ function Dashboard() {
               )}
             </div>
 
-            {/* 🔵 New Search Button */}
+            {/* 🔵 Search Button */}
             <button
               type="submit"
               className="btn"
