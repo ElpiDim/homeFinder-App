@@ -41,7 +41,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     // basic guards
     if (!tenantId || !propertyId) {
       setSubmitting(false);
-      setError("Λείπουν tenantId ή propertyId.");
+      setError("missing tenantId or propertyId.");
       return;
     }
 
@@ -58,7 +58,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
 
     if (cleaned.length === 0) {
       setSubmitting(false);
-      setError("Πρόσθεσε τουλάχιστον μία μελλοντική ημερομηνία/ώρα.");
+      setError("Add at least one time/date");
       return;
     }
 
@@ -91,7 +91,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
           {error && <div className="alert alert-danger mb-3">{error}</div>}
 
           <p className="small text-muted">
-            Πρόσθεσε 1+ διαθέσιμες ώρες για να επιλέξει ο ενοικιαστής.
+            add 1+ available dates for client to choose from.
           </p>
 
           {slots.map((slot, i) => (

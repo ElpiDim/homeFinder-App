@@ -1,99 +1,199 @@
 const mongoose = require("mongoose");
 
 const propertySchema = new mongoose.Schema({
-    ownerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User", 
-        required: true
-    },
+  ownerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
 
-    title:{
-        type: String,
-        required: true,
-        trim: true 
-    }, 
-    price: {
-        type: Number, 
-        required: true
-    }, 
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
 
-    type:{
-        type :String, 
-        enum: ["rent", "sale"], 
-        required: true
-    }, 
+  description: {
+    type: String,
+    trim: true
+  },
 
-    location:{ 
-        type: String, 
-        required: true
-    }, 
+  price: {
+    type: Number,
+    required: true
+  },
 
-    floor: {
-        type: Number 
-    },
+  type: {
+    type: String,
+    enum: ["rent", "sale"],
+    required: true
+  },
 
-    squareMeters:{
-        type: Number
-    },
+  location: {
+    type: String,
+    required: true
+  },
 
-    surface: {
-        type: Number
-    },
+  address: {
+    type: String,
+    trim: true
+  },
 
-    onTopFloor: {
-        type: Boolean,
-        default: false
-    },
+  floor: {
+    type: Number
+  },
 
-    levels: {
-        type: Number,
-        default: 1
-    },
+  squareMeters: {
+    type: Number
+  },
 
-    bedrooms: {
-        type: Number,
-        default: 0
-    },
+  surface: {
+    type: Number
+  },
 
-    bathrooms: {
-        type: Number,
-        default: 0
-    },
+  plotSize: {
+    type: Number // ειδικά για μονοκατοικίες/οικόπεδα
+  },
 
-    wc: {
-        type: Number,
-        default: 0
-    },
+  yearBuilt: {
+    type: Number
+  },
 
-    kitchens: {
-        type: Number,
-        default: 0
-    },
+  condition: {
+    type: String,
+    enum: ["new", "renovated", "good", "needs renovation"],
+    default: "good"
+  },
 
-    livingRooms: {
-        type: Number,
-        default: 0
-    },
+  onTopFloor: {
+    type: Boolean,
+    default: false
+  },
 
-    features: [{
-        type: String
-    }],
+  levels: {
+    type: Number,
+    default: 1
+  },
 
-    status:{ 
-        type : String, 
-        enum: ["available","rented", "sold"], 
-        default: "available"
-    }, 
-    images:[{
-        type: String, 
-        default: null
-    }],
-    latitude:{type:Number},
-    longitude:{type:Number}, 
-    createdAt:{ 
-        type: Date, 
-        default: Date.now
-    }
+  bedrooms: {
+    type: Number,
+    default: 0
+  },
+
+  bathrooms: {
+    type: Number,
+    default: 0
+  },
+
+  wc: {
+    type: Number,
+    default: 0
+  },
+
+  kitchens: {
+    type: Number,
+    default: 0
+  },
+
+  livingRooms: {
+    type: Number,
+    default: 0
+  },
+
+  parkingSpaces: {
+    type: Number,
+    default: 0
+  },
+
+  hasElevator: {
+    type: Boolean,
+    default: false
+  },
+
+  hasStorage: {
+    type: Boolean,
+    default: false
+  },
+
+  furnished: {
+    type: Boolean,
+    default: false
+  },
+
+  heating: {
+    type: String,
+    enum: ["none", "central", "autonomous", "gas", "ac", "other"],
+    default: "none"
+  },
+
+  energyClass: {
+    type: String,
+    enum: ["A+", "A", "B", "C", "D", "E", "F", "G"],
+    default: "C"
+  },
+
+  orientation: {
+    type: String,
+    enum: ["north", "south", "east", "west", "north-east", "north-west", "south-east", "south-west"]
+  },
+
+  petsAllowed: {
+    type: Boolean,
+    default: false
+  },
+
+  smokingAllowed: {
+    type: Boolean,
+    default: false
+  },
+
+  monthlyMaintenanceFee: {
+    type: Number,
+    default: 0
+  },
+
+  view: {
+    type: String,
+    enum: ["sea", "mountain", "city", "park", "none"],
+    default: "none"
+  },
+
+  insulation: {
+    type: Boolean,
+    default: false
+  },
+
+  features: [{
+    type: String
+  }],
+
+  status: {
+    type: String,
+    enum: ["available", "rented", "sold"],
+    default: "available"
+  },
+
+  images: [{
+    type: String,
+    default: null
+  }],
+
+  floorPlanImage: {
+    type: String
+  },
+
+  latitude: { type: Number },
+  longitude: { type: Number },
+
+  ownerNotes: {
+    type: String,
+    trim: true
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 module.exports = mongoose.model("Property", propertySchema);

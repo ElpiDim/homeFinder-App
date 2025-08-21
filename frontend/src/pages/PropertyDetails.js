@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Badge } from 'react-bootstrap';
 import GoogleMapView from '../components/GoogleMapView';
 
 function PropertyDetails() {
@@ -37,6 +37,16 @@ function PropertyDetails() {
     return `${baseUrl}${path}`;
   };
 
+  // default prefilled message for "I'm Interested"
+  const getDefaultInterestMsg = () => {
+    const name = user?.name ? `Hi, I'm ${user.name}` : 'Hi';
+    const title = property?.title ? ` “${property.title}”` : '';
+    const area = property?.address || property?.location || '';
+    const where = area ? ` (${area})` : '';
+    return `${name}. I'm interested in your property${title}${where}.
+Could we schedule a viewing? Thanks!`;
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -57,7 +67,7 @@ function PropertyDetails() {
         const res = await api.get('/favorites', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const fav = res.data.find((f) => f.propertyId?._id === propertyId);
+        const fav = res.data.find((f) => (f.propertyId?._id || f.propertyId) === propertyId);
         if (mounted) setIsFavorite(!!fav);
       } catch (err) {
         console.error('Error fetching favorites:', err);
@@ -154,7 +164,7 @@ function PropertyDetails() {
 
   const isOwner =
     user?.role === 'owner' &&
-    (user?.id === property?.ownerId?._id || user?.id === property?.ownerId);
+    (user?.id === (property?.ownerId?._id || property?.ownerId));
 
   const imgs = property.images || [];
   const hasCoords =
@@ -167,9 +177,28 @@ function PropertyDetails() {
     ? { lat: Number(property.latitude), lng: Number(property.longitude) }
     : { lat: 37.9838, lng: 23.7275 }; // Athens fallback
 
+  // helpers for UI
+  const money = (n) =>
+    typeof n === 'number' && !Number.isNaN(n)
+      ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : n ?? '—';
+
+  const boolTick = (v) => (v ? 'Yes' : 'No');
+
+  const areaForPpsm = Number(property.squareMeters || property.surface || 0);
+  const pricePerSqm =
+    areaForPpsm > 0 && property.price != null
+      ? Math.round(Number(property.price) / areaForPpsm)
+      : null;
+
+  const featureChips = (arr) =>
+    (arr || []).map((f, i) => (
+      <span key={i} className="badge bg-light text-dark border me-2 mb-2">{f}</span>
+    ));
+
   return (
     <div style={pageGradient} className="py-5">
-      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
+      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '1000px' }}>
         <Button
           variant="outline-secondary"
           className="rounded-pill px-3 mb-3"
@@ -178,8 +207,62 @@ function PropertyDetails() {
           ← Back to search
         </Button>
 
+        {/* Header row: Title + Badges + Favorite / Interest */}
+        <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
+          <div>
+            <h3 className="fw-bold mb-1">{property.title}</h3>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <Badge bg={property.type === 'rent' ? 'info' : 'primary'}>{property.type}</Badge>
+              <Badge bg={
+                property.status === 'available' ? 'success' :
+                property.status === 'sold' ? 'secondary' : 'warning'
+              }>
+                {property.status}
+              </Badge>
+              {property.energyClass && <Badge bg="dark">Energy {property.energyClass}</Badge>}
+              {property.yearBuilt ? <Badge bg="light" text="dark">Year {property.yearBuilt}</Badge> : null}
+            </div>
+            <div className="text-muted mt-2">
+              <span>📍 {property.address || property.location}</span>
+            </div>
+          </div>
+
+          <div className="d-flex flex-column gap-2">
+            <Button
+              variant={isFavorite ? 'warning' : 'outline-warning'}
+              className="rounded-pill px-4"
+              onClick={handleFavorite}
+            >
+              {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
+            </Button>
+            {!isOwner && user?.role === 'client' && (
+              <Button
+                variant="primary"
+                className="rounded-pill px-4"
+                onClick={() => {
+                  setInterestMessage((prev) =>
+                    prev && prev.trim().length > 0 ? prev : getDefaultInterestMsg()
+                  );
+                  setShowInterestModal(true);
+                }}
+              >
+                👋 I'm Interested
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Price block */}
+        <div className="mt-3 p-3 rounded-3 border bg-light d-flex align-items-center justify-content-between flex-wrap">
+          <div className="fs-4 fw-bold">€ {money(property.price)}</div>
+          <div className="text-muted">
+            {property.squareMeters ? `${property.squareMeters} m²` : property.surface ? `${property.surface} m²` : '—'}
+            {pricePerSqm ? <> · <strong>€{money(pricePerSqm)}/m²</strong></> : null}
+          </div>
+        </div>
+
         {/* Main image */}
-        <div className="position-relative">
+        <div className="position-relative mt-3">
           <img
             src={
               imgs[currentImageIndex]
@@ -244,40 +327,16 @@ function PropertyDetails() {
           </div>
         )}
 
-        <div className="d-flex justify-content-between flex-wrap">
-          <div>
-            <h3 className="fw-bold">{property.title}</h3>
-            <p className="text-muted">
-              {property.bedrooms} beds · {property.bathrooms} baths · {property.squareMeters || 0} m²
-            </p>
-            <p><strong>Location:</strong> {property.location}</p>
-            <p><strong>Type:</strong> {property.type}</p>
-            <p><strong>Price:</strong> €{property.price}</p>
-          </div>
+        {/* Description */}
+        {property.description && (
+          <>
+            <h5 className="fw-bold">Description</h5>
+            <p className="mt-2">{property.description}</p>
+            <hr />
+          </>
+        )}
 
-          <div className="d-flex flex-column gap-2">
-            <Button
-              variant={isFavorite ? 'warning' : 'outline-warning'}
-              className="rounded-pill px-4"
-              onClick={handleFavorite}
-            >
-              {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
-            </Button>
-            {!isOwner && user?.role === 'client' && (
-              <Button
-                variant="primary"
-                className="rounded-pill px-4"
-                onClick={() => setShowInterestModal(true)}
-              >
-                👋 I'm Interested
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <hr />
-
-        {/* Always render the map (fallback center). Marker only if coords exist. */}
+        {/* Map */}
         <div className="mb-4">
           <h5 className="fw-bold">Location on Map</h5>
           <GoogleMapView
@@ -295,30 +354,79 @@ function PropertyDetails() {
           )}
         </div>
 
+        {/* Facts & Features */}
         <hr />
-        <h5 className="fw-bold">Facts and features</h5>
-        <div className="row row-cols-2">
-          <div className="col"><strong>Floor:</strong> {property.floor}</div>
-          <div className="col"><strong>Top Floor:</strong> {property.onTopFloor ? 'Yes' : 'No'}</div>
-          <div className="col"><strong>Levels:</strong> {property.levels}</div>
-          <div className="col"><strong>Surface:</strong> {property.surface} m²</div>
-          <div className="col"><strong>WC:</strong> {property.wc}</div>
-          <div className="col"><strong>Kitchens:</strong> {property.kitchens}</div>
-          <div className="col"><strong>Living Rooms:</strong> {property.livingRooms}</div>
+        <h5 className="fw-bold">Facts & features</h5>
+
+        <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
+          <div className="col"><strong>Type:</strong> {property.type}</div>
+          <div className="col"><strong>Status:</strong> {property.status}</div>
+          <div className="col"><strong>Floor:</strong> {property.floor ?? '—'}</div>
+          <div className="col"><strong>Top Floor:</strong> {boolTick(property.onTopFloor)}</div>
+          <div className="col"><strong>Levels:</strong> {property.levels ?? '—'}</div>
+          <div className="col"><strong>Square Meters:</strong> {property.squareMeters ?? property.surface ?? '—'} m²</div>
+          <div className="col"><strong>Bedrooms:</strong> {property.bedrooms ?? 0}</div>
+          <div className="col"><strong>Bathrooms:</strong> {property.bathrooms ?? 0}</div>
+          <div className="col"><strong>WC:</strong> {property.wc ?? 0}</div>
+          <div className="col"><strong>Kitchens:</strong> {property.kitchens ?? 0}</div>
+          <div className="col"><strong>Living Rooms:</strong> {property.livingRooms ?? 0}</div>
+          <div className="col"><strong>Parking Spaces:</strong> {property.parkingSpaces ?? 0}</div>
+          <div className="col"><strong>Monthly Fee:</strong> {property.monthlyMaintenanceFee != null ? `€${money(property.monthlyMaintenanceFee)}` : '—'}</div>
+          <div className="col"><strong>Year Built:</strong> {property.yearBuilt ?? '—'}</div>
+          <div className="col"><strong>Condition:</strong> {property.condition || '—'}</div>
+          <div className="col"><strong>Heating:</strong> {property.heating || '—'}</div>
+          <div className="col"><strong>Energy Class:</strong> {property.energyClass || '—'}</div>
+          <div className="col"><strong>Orientation:</strong> {property.orientation || '—'}</div>
+          <div className="col"><strong>View:</strong> {property.view || '—'}</div>
+          <div className="col"><strong>Plot Size:</strong> {property.plotSize ? `${property.plotSize} m²` : '—'}</div>
+          <div className="col"><strong>Furnished:</strong> {boolTick(property.furnished)}</div>
+          <div className="col"><strong>Pets Allowed:</strong> {boolTick(property.petsAllowed)}</div>
+          <div className="col"><strong>Smoking Allowed:</strong> {boolTick(property.smokingAllowed)}</div>
+          <div className="col"><strong>Elevator:</strong> {boolTick(property.hasElevator)}</div>
+          <div className="col"><strong>Storage:</strong> {boolTick(property.hasStorage)}</div>
+          <div className="col"><strong>Insulation:</strong> {boolTick(property.insulation)}</div>
         </div>
 
-        {property.features?.length > 0 && (
+        {/* Feature tags */}
+        {Array.isArray(property.features) && property.features.length > 0 && (
           <>
-            <hr />
-            <h6 className="fw-bold">Features</h6>
-            <ul>
-              {property.features.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ul>
+            <h6 className="fw-bold mt-3">Features</h6>
+            <div className="d-flex flex-wrap mt-1">
+              {featureChips(property.features)}
+            </div>
           </>
         )}
 
+        {/* Floor Plan */}
+        {property.floorPlanImage && (
+          <>
+            <hr />
+            <h5 className="fw-bold">Floor plan</h5>
+            <div className="mt-2">
+              <img
+                src={getImageUrl(property.floorPlanImage)}
+                alt="Floor plan"
+                style={{ width: '100%', maxHeight: 600, objectFit: 'contain', borderRadius: 8, border: '1px solid #eee' }}
+                onClick={() => window.open(getImageUrl(property.floorPlanImage), '_blank')}
+              />
+              <div className="small text-muted mt-1">
+                Click the image to open it full size.
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Owner Notes (private – only to owner) */}
+        {isOwner && property.ownerNotes && (
+          <>
+            <hr />
+            <div className="alert alert-secondary">
+              <strong>Owner Notes:</strong> {property.ownerNotes}
+            </div>
+          </>
+        )}
+
+        {/* Owner actions */}
         {isOwner && (
           <div className="mt-4 d-flex gap-2">
             <Button
@@ -381,6 +489,9 @@ function PropertyDetails() {
                 value={interestMessage}
                 onChange={(e) => setInterestMessage(e.target.value)}
               />
+              <Form.Text className="text-muted">
+                You can personalize this message before sending.
+              </Form.Text>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>

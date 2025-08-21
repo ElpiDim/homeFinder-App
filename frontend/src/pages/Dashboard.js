@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
-import filterIcon from '../assets/filters.jpg';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
+import PropertyCard from '../components/propertyCard';
 
 /* ---------- helpers (notifications) ---------- */
 const iconForType = (t) => {
@@ -58,10 +58,9 @@ function Dashboard() {
   const [limit] = useState(8);
   const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // (κρατιέται σε περίπτωση που ξαναβάλεις input)
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -70,7 +69,7 @@ function Dashboard() {
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // filters
+  // filters (υπάρχουν για μελλοντική χρήση, δεν προβάλλεται panel)
   const [locationFilter, setLocationFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -85,11 +84,6 @@ function Dashboard() {
   // refs
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
-  const filterButtonRef = useRef(null); // κουμπί φίλτρων
-  const filterPanelRef = useRef(null);  // panel φίλτρων
-  const leftColRef = useRef(null);
-
-  const [mapContainerHeight, setMapContainerHeight] = useState(520);
 
   const token = localStorage.getItem('token');
 
@@ -115,7 +109,6 @@ function Dashboard() {
 
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
 
-  // κρατά μόνο ψηφία και επιστρέφει Number ή undefined
   const toNum = (v) => {
     const s = String(v ?? '').replace(/\D+/g, '');
     if (!s) return undefined;
@@ -155,52 +148,65 @@ function Dashboard() {
     }
   };
 
-  // fetch all for map + client-side pagination for list
-  const fetchAllProperties = useCallback(async (overrides = {}) => {
-    try {
-      const minPriceParam = toNum(overrides.minPrice ?? minPrice);
-      const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
-      const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
-      const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
+  const fetchAllProperties = useCallback(
+    async (overrides = {}) => {
+      try {
+        const minPriceParam = toNum(overrides.minPrice ?? minPrice);
+        const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
+        const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
+        const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
-      const params = {
-        sort: 'relevance',
-        q: overrides.q ?? (searchTerm || locationFilter || ''),
-        type: overrides.type ?? (viewType || undefined),
-        minPrice: minPriceParam,
-        maxPrice: maxPriceParam,
-        minSqm: minSqmParam,
-        maxSqm: maxSqmParam,
-        lat: overrides.lat ?? (userLat ?? undefined),
-        lng: overrides.lng ?? (userLng ?? undefined),
-        page: 1,
-        limit: 9999,
-      };
+        const params = {
+          sort: 'relevance',
+          q: overrides.q ?? (searchTerm || locationFilter || ''),
+          type: overrides.type ?? (viewType || undefined),
+          minPrice: minPriceParam,
+          maxPrice: maxPriceParam,
+          minSqm: minSqmParam,
+          maxSqm: maxSqmParam,
+          lat: overrides.lat ?? (userLat ?? undefined),
+          lng: overrides.lng ?? (userLng ?? undefined),
+          page: 1,
+          limit: 9999,
+        };
 
-      const res = await api.get('/properties', { params });
-      const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        const res = await api.get('/properties', { params });
+        const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
 
-      setAllProperties(items);
+        setAllProperties(items);
 
-      // client-side pagination
-      const total = items.length;
-      const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
+        // client-side pagination
+        const total = items.length;
+        const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
 
-      const currentPage = overrides.page ?? page;
-      const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
-      const start = (safePage - 1) * limit;
-      const paginated = items.slice(start, start + limit);
+        const currentPage = overrides.page ?? 1;
+        const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
+        const start = (safePage - 1) * limit;
+        const paginated = items.slice(start, start + limit);
 
-      setPage(safePage);
-      setProperties(paginated);
-      setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
-    } catch (err) {
-      console.error('Error fetching properties:', err);
-      setAllProperties([]);
-      setProperties([]);
-      setMeta({ total: 0, totalPages: 1, limit, page: 1 });
-    }
-  }, [searchTerm, locationFilter, viewType, minPrice, maxPrice, minSqm, maxSqm, userLat, userLng, page, limit]);
+        setPage(safePage);
+        setProperties(paginated);
+        setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        setAllProperties([]);
+        setProperties([]);
+        setMeta({ total: 0, totalPages: 1, limit, page: 1 });
+      }
+    },
+    [
+      searchTerm,
+      locationFilter,
+      viewType,
+      minPrice,
+      maxPrice,
+      minSqm,
+      maxSqm,
+      userLat,
+      userLng,
+      limit,
+    ]
+  );
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -271,23 +277,18 @@ function Dashboard() {
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
 
-  // close popovers on outside click + Esc (notifications, profile, filters)
+  // close popovers on outside click + Esc (notifications, profile)
   useEffect(() => {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
       const outsideProfile = profileMenuRef.current && !profileMenuRef.current.contains(e.target);
-      const outsideFilters =
-        (!filterButtonRef.current || !filterButtonRef.current.contains(e.target)) &&
-        (!filterPanelRef.current || !filterPanelRef.current.contains(e.target));
       if (outsideNotifications) setShowNotifications(false);
       if (outsideProfile) setShowProfileMenu(false);
-      if (outsideFilters) setShowFilters(false);
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         setShowNotifications(false);
         setShowProfileMenu(false);
-        setShowFilters(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -297,24 +298,6 @@ function Dashboard() {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, []);
-
-  /* ---------- sync map height with list ---------- */
-  useEffect(() => {
-    const el = leftColRef.current;
-    if (!el) return;
-
-    const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
-    setH();
-
-    const ro = new ResizeObserver(setH);
-    ro.observe(el);
-    window.addEventListener('resize', setH);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', setH);
-    };
-  }, [properties, page, limit, totalPages]);
 
   /* ---------- handlers ---------- */
   const handleToggleNotifications = async () => {
@@ -361,36 +344,6 @@ function Dashboard() {
     fetchAllProperties({ q: searchTerm, page: 1 });
   };
 
-  const handleFilter = () => {
-    setPage(1);
-    fetchAllProperties({
-      q: searchTerm || locationFilter,
-      page: 1,
-    });
-    setShowFilters(false);
-  };
-
-  const handleClearFilters = () => {
-    setLocationFilter('');
-    setMinPrice('');
-    setMaxPrice('');
-    setMinSqm('');
-    setMaxSqm('');
-    setSearchTerm('');
-    setViewType('');
-    setPage(1);
-    fetchAllProperties({
-      q: '',
-      type: undefined,
-      minPrice: undefined,
-      maxPrice: undefined,
-      minSqm: undefined,
-      maxSqm: undefined,
-      page: 1
-    });
-    setShowFilters(false);
-  };
-
   // pagination helpers
   const canPrev = page > 1;
   const canNext = page < totalPages;
@@ -398,91 +351,74 @@ function Dashboard() {
   const goNext = () => { if (!canNext) return; setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goPage = (p) => { if (p === page) return; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-const renderPager = () => {
-  if (!properties || properties.length === 0) return null;
-  if (!(totalPages && totalPages > 1)) return null;
+  const renderPager = () => {
+    if (!properties || properties.length === 0) return null;
+    if (!(totalPages && totalPages > 1)) return null;
 
-  const windowSize = 5;
-  const start = Math.max(1, page - Math.floor(windowSize / 2));
-  const end = Math.min(totalPages, start + windowSize - 1);
+    const windowSize = 5;
+    const start = Math.max(1, page - Math.floor(windowSize / 2));
+    const end = Math.min(totalPages, start + windowSize - 1);
 
-  const pages = [];
-  for (let i = start; i <= end; i++) pages.push(i);
+    const pages = [];
+    for (let i = start; i <= end; i++) pages.push(i);
 
-  const Ellipsis = () => <span className="page-ellipsis">…</span>;
+    const Ellipsis = () => <span className="page-ellipsis">…</span>;
 
-  return (
-    <div className="mt-3">
-      <div className="d-flex justify-content-center align-items-center pagination-pills flex-wrap">
-        {/* Prev */}
-        <button
-          type="button"
-          className="btn page-btn"
-          onClick={goPrev}
-          disabled={!canPrev}
-        >
-          Prev
-        </button>
-
-        {/* First + leading ellipsis */}
-        {start > 1 && (
-          <>
-            <button
-              type="button"
-              className={`btn page-btn ${page === 1 ? 'page-btn-active' : ''}`}
-              onClick={() => goPage(1)}
-            >
-              1
-            </button>
-            {start > 2 && <Ellipsis />}
-          </>
-        )}
-
-        {/* Middle window */}
-        {pages.map((p) => (
-          <button
-            key={p}
-            type="button"
-            className={`btn page-btn ${p === page ? 'page-btn-active' : ''}`}
-            onClick={() => goPage(p)}
-          >
-            {p}
+    return (
+      <div className="mt-3">
+        <div className="d-flex justify-content-center align-items-center pagination-pills flex-wrap">
+          <button type="button" className="btn page-btn" onClick={goPrev} disabled={!canPrev}>
+            Prev
           </button>
-        ))}
 
-        {/* Trailing ellipsis + last */}
-        {end < totalPages && (
-          <>
-            {end < totalPages - 1 && <Ellipsis />}
+          {start > 1 && (
+            <>
+              <button
+                type="button"
+                className={`btn page-btn ${page === 1 ? 'page-btn-active' : ''}`}
+                onClick={() => goPage(1)}
+              >
+                1
+              </button>
+              {start > 2 && <Ellipsis />}
+            </>
+          )}
+
+          {pages.map((p) => (
             <button
+              key={p}
               type="button"
-              className={`btn page-btn ${page === totalPages ? 'page-btn-active' : ''}`}
-              onClick={() => goPage(totalPages)}
+              className={`btn page-btn ${p === page ? 'page-btn-active' : ''}`}
+              onClick={() => goPage(p)}
             >
-              {totalPages}
+              {p}
             </button>
-          </>
-        )}
+          ))}
 
-        {/* Next */}
-        <button
-          type="button"
-          className="btn page-btn"
-          onClick={goNext}
-          disabled={!canNext}
-        >
-          Next
-        </button>
+          {end < totalPages && (
+            <>
+              {end < totalPages - 1 && <Ellipsis />}
+              <button
+                type="button"
+                className={`btn page-btn ${page === totalPages ? 'page-btn-active' : ''}`}
+                onClick={() => goPage(totalPages)}
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          <button type="button" className="btn page-btn" onClick={goNext} disabled={!canNext}>
+            Next
+          </button>
+        </div>
+
+        <p className="text-center text-muted small mb-0 mt-2">
+          Page {page} of {totalPages}
+        </p>
       </div>
-
-      <p className="text-center text-muted small mb-0 mt-2">
-        Page {page} of {totalPages}
-      </p>
-    </div>
-  );
-};
-
-
+    );
+  };
 
   return (
     <div style={pageGradient}>
@@ -502,9 +438,8 @@ const renderPager = () => {
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
         </div>
-        
+
         <div className="ms-auto d-flex align-items-center gap-3">
-          {/* Add Property (μόνο για owners) */}
           {user?.role === 'owner' && (
             <Link
               to="/add-property"
@@ -578,7 +513,7 @@ const renderPager = () => {
             )}
           </div>
 
-          {/* Profile: owner => dropdown, user => simple link */}
+          {/* Profile */}
           {user?.role === 'owner' ? (
             <div ref={profileMenuRef} className="position-relative">
               <button
@@ -662,228 +597,41 @@ const renderPager = () => {
         </div>
       </nav>
 
-      {/* Logo box above search */}
-      <div className="container mt-4 mb-2">
-        <div className="d-flex justify-content-center">
-          <div
-            className="px-5 py-3 rounded-4 shadow-sm"
-            style={{
-              background: "linear-gradient(135deg, #f9fafb, #f1f5f9)",
-              border: "1px solid #e5e7eb"
-            }}
-          >
-            <h1
-              className="mb-1 d-flex align-items-center gap-2"
-              style={{
-                fontFamily: "'Poppins','Fredoka',sans-serif",
-                fontSize: "3rem",
-                fontWeight: 600,
-                letterSpacing: "0.5px",
-                textTransform: "lowercase",
-                background: "linear-gradient(90deg, #2563eb, #9333ea)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
-              }}
-            >
-              <span role="img" aria-label="home">🏠</span> homie
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      {/* Central Top Search Bar */}
-      <div className="container" style={{ marginTop: 35 }}>
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
-          className="d-flex justify-content-center"
-        >
-          <div
-            className="shadow-sm rounded-pill"
-            style={{
-              maxWidth: 860,
-              width: '100%',
-              display: 'grid',
-              gridTemplateColumns: '52px 1fr auto auto',
-              alignItems: 'center',
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              overflow: 'hidden',
-            }}
-          >
-            {/* 🔍 Icon bubble */}
-            <div className="d-flex align-items-center justify-content-center" style={{ height: 48 }}>
-              <span
-                className="d-inline-flex align-items-center justify-content-center rounded-circle"
-                style={{
-                  width: 36, height: 36, background: '#f3f4f6', border: '1px solid #e5e7eb'
-                }}
-                aria-hidden="true"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 21l-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </span>
-            </div>
-
-            {/* ✍️ Input */}
-            <input
-              type="text"
-              className="form-control border-0"
-              style={{ fontSize: 15, height: 48, boxShadow: 'none' }}
-              placeholder="Search by city, area or address…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              aria-label="Search by location"
-            />
-
-            {/* ⚙️ Filters pill */}
-            <div className="position-relative" style={{ paddingRight: 6 }}>
-              <button
-                type="button"
-                ref={filterButtonRef}
-                onClick={() => setShowFilters((v) => !v)}
-                className="btn btn-light d-inline-flex align-items-center justify-content-center rounded-pill"
-                style={{
-                  height: 36, width: 44, border: '1px solid #e5e7eb', boxShadow: '0 1px 0 rgba(0,0,0,.02)'
-                }}
-                title="Filters"
-                aria-label="Open filters"
-              >
-                <img src={filterIcon} alt="" style={{ width: 16 }} />
-              </button>
-
-              {showFilters && (
-                <div
-                  ref={filterPanelRef}
-                  className="bg-white border shadow p-3 rounded"
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    width: 320,
-                    zIndex: 6500,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h6 className="mb-2">Filters</h6>
-
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    className="form-control mb-2"
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                  />
-                  <div className="row g-2">
-                    <div className="col">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="Min Price"
-                        className="form-control"
-                        value={minPrice}
-                        onChange={(e) => setMinPrice(e.target.value)}
-                      />
-                    </div>
-                    <div className="col">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="Max Price"
-                        className="form-control"
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="row g-2 mt-2">
-                    <div className="col">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="Min m²"
-                        className="form-control"
-                        value={minSqm}
-                        onChange={(e) => setMinSqm(e.target.value)}
-                      />
-                    </div>
-                    <div className="col">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="Max m²"
-                        className="form-control"
-                        value={maxSqm}
-                        onChange={(e) => setMaxSqm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="d-flex gap-2 mt-3">
-                    <button type="button" className="btn btn-primary w-100 rounded-pill" onClick={handleFilter}>
-                      Apply
-                    </button>
-                    <button type="button" className="btn btn-outline-secondary w-100 rounded-pill" onClick={handleClearFilters}>
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 🔵 Go button */}
-            <button
-              type="submit"
-              className="btn rounded-pill"
-              style={{
-                marginRight: 6,
-                padding: '0 18px',
-                height: 36,
-                fontWeight: 600,
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: '#fff',
-                border: 'none'
-              }}
-            >
-              Go
-            </button>
-          </div>
-        </form>
-      </div>
-
       {/* CONTENT: list (left) + sticky map (right) */}
-      <div className="container-fluid py-4">
+      <div className="container-fluid pt-3">
         <div className="row g-4">
           {/* LEFT: Properties list */}
-          <div className="col-lg-7" ref={leftColRef}>
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <h4 className="fw-bold mb-0">Featured Properties</h4>
+          <div className="col-lg-7">
+           <div className="d-flex align-items-center gap-3 mb-3">
+            <h4 className="fw-bold mb-0">Featured Properties</h4>
 
               {/* Toggle: All / Sale / Rent */}
-              <div className="btn-group" role="group" aria-label="type toggle">
-                <button
-                  className={`btn ${viewType === '' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                  onClick={() => { setViewType(''); setPage(1); fetchAllProperties({ type: undefined, page: 1 }); }}
-                >
-                  All
-                </button>
-                <button
-                  className={`btn ${viewType === 'sale' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => { setViewType('sale'); setPage(1); fetchAllProperties({ type: 'sale', page: 1 }); }}
-                >
+              <div className="d-flex">
+                <div className="toggle-container">
+                  <div className="toggle-options">
+                    <button
+                      className={`toggle-btn ${viewType === '' ? 'active' : ''}`}
+                      onClick={() => { setViewType(''); setPage(1); fetchAllProperties({ type: undefined, page: 1 }); }}
+                    >
+                    All
+                  </button>
+                  <button
+                    className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}
+                    onClick={() => { setViewType('sale'); setPage(1); fetchAllProperties({ type: 'sale', page: 1 }); }}
+                  >
                   Sale
-                </button>
-                <button
-                  className={`btn ${viewType === 'rent' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => { setViewType('rent'); setPage(1); fetchAllProperties({ type: 'rent', page: 1 }); }}
-                >
+                  </button>
+                  <button
+                    className={`toggle-btn ${viewType === 'rent' ? 'active' : ''}`}
+                    onClick={() => { setViewType('rent'); setPage(1); fetchAllProperties({ type: 'rent', page: 1 }); }}
+                  >
                   Rent
-                </button>
+                  </button>
+                <div className={`slider ${viewType || 'all'}`}></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-
             {!Array.isArray(properties) || properties.length === 0 ? (
               <p className="text-muted">No properties found.</p>
             ) : (
@@ -891,36 +639,13 @@ const renderPager = () => {
                 <div className="row g-3">
                   {properties.map((prop) => (
                     <div className="col-sm-6" key={prop._id}>
-                      <div className="card h-100 shadow-sm">
-                        <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-                          <div
-                            className="ratio ratio-16x9 rounded-top"
-                            style={{
-                              backgroundImage: `url(${imgUrl(prop.images?.[0])})`,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                            }}
-                          />
-                          <div className="card-body">
-                            <h5 className="card-title">{prop.title}</h5>
-                            <p className="card-text text-muted mb-0">📍 {prop.location}</p>
-                            {prop.price != null && (
-                              <p className="card-text text-muted mb-0">
-                                💶 {Number(prop.price).toLocaleString()} €
-                              </p>
-                            )}
-                            {prop.type && <p className="card-text text-muted">🏷️ {prop.type}</p>}
-                          </div>
-                        </Link>
-                        <div className="card-footer text-end bg-white border-0">
-                          <button
-                            className="btn btn-sm btn-outline-warning rounded-pill"
-                            onClick={() => handleFavorite(prop._id)}
-                          >
-                            {favorites.includes(prop._id) ? '★' : '☆'}
-                          </button>
-                        </div>
-                      </div>
+                      <PropertyCard
+                        prop={prop}
+                        isFavorite={favorites.includes(prop._id)}
+                        onToggleFavorite={() => handleFavorite(prop._id)}
+                        imgUrl={imgUrl}
+                        onOpen={() => navigate(`/property/${prop._id}`)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -935,7 +660,7 @@ const renderPager = () => {
           {/* RIGHT: Sticky Map */}
           <div className="col-lg-5">
             <div className="position-sticky" style={{ top: 88 }}>
-              <div className="card border-0 shadow-sm" style={{ height: mapContainerHeight }}>
+              <div className="card border-0 shadow-sm" style={{ height: 'calc(100vh - 88px - 16px)' }}>
                 <div className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
                   <h5 className="mb-0 fw-bold">Map</h5>
                 </div>

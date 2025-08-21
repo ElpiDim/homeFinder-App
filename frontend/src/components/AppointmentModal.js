@@ -14,6 +14,8 @@ function AppointmentModal({ appointmentId, onClose }) {
     ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
     : { "Content-Type": "application/json" };
 
+  const isConfirmed = appointment?.status === 'confirmed' || Boolean(appointment?.selectedSlot);
+
   useEffect(() => {
     let alive = true;
     const fetchAppointment = async () => {
@@ -59,7 +61,7 @@ function AppointmentModal({ appointmentId, onClose }) {
     <Modal show onHide={() => onClose?.()} centered>
       <Modal.Header closeButton>
         <Modal.Title>
-          {appointment ? "Choose Appointment Slot" : "Loading Appointment..."}
+          {isConfirmed ? "Appointment Confirmed" : "Choose Appointment Slot"}
         </Modal.Title>
       </Modal.Header>
 
@@ -104,7 +106,7 @@ function AppointmentModal({ appointmentId, onClose }) {
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary" onClick={() => onClose?.()}>
+        <Button variant="secondary rounded-pill px-4" onClick={() => onClose?.()}>
           Cancel
         </Button>
         {appointment && appointment.status !== "confirmed" && (

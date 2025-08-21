@@ -1,42 +1,67 @@
-import React, { useEffect, useState } from 'react';
+// src/pages/Favorites.jsx
+import React, { useEffect, useMemo, useState } from 'react';
 import { getFavorites, removeFavorite } from '../services/favoritesService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Container, Button, Card, Row, Col } from 'react-bootstrap';
+import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
 
-function Favorites() {
+/* -------- helpers (images) -------- */
+const API_ORIGIN =
+  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
+function normalizeUploadPath(src) {
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  const clean = src.replace(/^\/+/, '');
+  const rel = clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+  return `${API_ORIGIN}${rel}`;
+}
+
+const currency = (n) =>
+  typeof n === 'number' ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n ?? '';
+
+export default function Favorites() {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState([]);
-  const token = localStorage.getItem('token');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const token = localStorage.getItem('token');
 
-  // Pastel gradient (same as other pages)
-  const pageGradient = {
-    minHeight: '100vh',
-    background:
-      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
-  };
+  const pageGradient = useMemo(
+    () => ({
+      minHeight: '100vh',
+      background:
+        'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+    }),
+    []
+  );
 
   useEffect(() => {
-    const fetchFavorites = async () => {
+    let mounted = true;
+    (async () => {
       try {
         const data = await getFavorites(token);
-        setFavorites(data);
-      } catch (error) {
-        console.error('Error fetching favorites:', error);
+        if (!mounted) return;
+        setFavorites(Array.isArray(data) ? data.filter((f) => f?.propertyId) : []);
+      } catch (e) {
+        console.error('Error fetching favorites:', e);
+      } finally {
+        if (mounted) setLoading(false);
       }
-    };
-    fetchFavorites();
+    })();
+    return () => { mounted = false; };
   }, [token]);
 
   const handleRemoveFavorite = async (propertyId) => {
+    const ok = window.confirm('Remove this property from your favorites?');
+    if (!ok) return;
     try {
       await removeFavorite(propertyId, token);
-      setFavorites((prev) =>
-        prev.filter((fav) => fav.propertyId && fav.propertyId._id !== propertyId)
-      );
-    } catch (error) {
-      console.error('Error removing favorite:', error);
+      setFavorites((prev) => prev.filter((f) => f.propertyId?._id !== propertyId));
+    } catch (e) {
+      console.error('Error removing favorite:', e);
+      alert('Failed to remove from favorites.');
     }
   };
 
@@ -44,61 +69,136 @@ function Favorites() {
     <div style={pageGradient}>
       <Container className="py-5">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h3 className="fw-bold mb-0">⭐ Your Favorite Properties</h3>
-          <Button variant="outline-secondary rounded-pill px-4" onClick={() => navigate('/dashboard')}>
-            ← Back to dashboard 
+          <div className="d-flex align-items-center gap-2">
+            <h3 className="fw-bold mb-0">Your Favorites</h3>
+            {!loading && (
+              <Badge bg="primary" pill>
+                {favorites.length}
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline-secondary"
+            className="rounded-pill px-4"
+            onClick={() => navigate('/dashboard')}
+          >
+            ← Back to dashboard
           </Button>
         </div>
 
-        {favorites.length === 0 ? (
-          <p className="text-muted">You haven’t added any favorites yet.</p>
-        ) : (
+        {/* Loading */}
+        {loading && (
+          <div className="text-center text-muted py-5">Loading your favorite properties…</div>
+        )}
+
+        {/* Empty */}
+        {!loading && favorites.length === 0 && (
+          <div className="text-center py-5">
+            <div
+              className="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+              style={{
+                width: 72,
+                height: 72,
+                background: '#eff6ff',
+                border: '1px solid #dbeafe',
+                fontSize: 28,
+              }}
+            >
+              ⭐
+            </div>
+            <h5 className="fw-semibold mb-1">No favorites yet</h5>
+            <p className="text-muted mb-3">Tap the star on any property to save it here.</p>
+            <Button
+              onClick={() => navigate('/dashboard')}
+              className="rounded-pill px-4"
+              style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', border: 'none' }}
+            >
+              Browse Properties
+            </Button>
+          </div>
+        )}
+
+        {/* Grid */}
+        {!loading && favorites.length > 0 && (
           <Row className="g-4">
-            {favorites
-              .filter((fav) => fav.propertyId)
-              .map((fav) => {
-                const prop = fav.propertyId;
-                return (
-                  <Col md={6} lg={4} key={prop._id}>
-                    <Card className="h-100 shadow-sm border-0">
-                      <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-                        <div
-                          style={{
-                            height: '200px',
-                            backgroundImage: `url(${prop.images?.[0] || 'https://via.placeholder.com/400x200?text=No+Image'})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderTopLeftRadius: '0.5rem',
-                            borderTopRightRadius: '0.5rem',
-                          }}
-                        />
-                        <Card.Body>
-                          <Card.Title>{prop.title}</Card.Title>
-                          <Card.Text className="text-muted mb-2">
-                            📍 {prop.location} <br />
-                            💶 {prop.price} € <br />
-                            🏷️ {prop.type}
-                          </Card.Text>
-                        </Card.Body>
+            {favorites.map((fav) => {
+              const p = fav.propertyId;
+              const img =
+                (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
+                'https://via.placeholder.com/600x360?text=No+Image';
+              return (
+                <Col md={6} lg={4} key={p._id}>
+                  <Card className="h-100 shadow-sm border-0">
+                    <Link
+                      to={`/property/${p._id}`}
+                      className="text-decoration-none text-dark"
+                      aria-label={`Open ${p.title}`}
+                    >
+                      <div
+                        className="ratio ratio-16x9 rounded-top"
+                        style={{
+                          backgroundImage: `url(${img})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
+                      />
+                      <Card.Body>
+                        <Card.Title className="mb-1">{p.title}</Card.Title>
+                        <div className="text-muted small">📍 {p.location}</div>
+
+                        <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                          {p.price != null && (
+                            <Badge bg="light" text="dark">
+                              💶 {currency(p.price)} €
+                            </Badge>
+                          )}
+                          {p.type && (
+                            <Badge
+                              bg="primary"
+                              title="Type"
+                              style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}
+                            >
+                              {p.type}
+                            </Badge>
+                          )}
+                          {(p.bedrooms ?? 0) > 0 && (
+                            <Badge bg="light" text="dark" title="Bedrooms">
+                              🛏 {p.bedrooms}
+                            </Badge>
+                          )}
+                          {(p.bathrooms ?? 0) > 0 && (
+                            <Badge bg="light" text="dark" title="Bathrooms">
+                              🛁 {p.bathrooms}
+                            </Badge>
+                          )}
+                        </div>
+                      </Card.Body>
+                    </Link>
+
+                    <Card.Footer className="bg-white border-0 d-flex justify-content-between">
+                      <Link
+                        to={`/property/${p._id}`}
+                        className="btn btn-sm btn-outline-primary rounded-pill"
+                      >
+                        View
                       </Link>
-                      <Card.Footer className="bg-white border-0 text-end">
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleRemoveFavorite(prop._id)}
-                        >
-                          Remove
-                        </Button>
-                      </Card.Footer>
-                    </Card>
-                  </Col>
-                );
-              })}
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="rounded-pill"
+                        onClick={() => handleRemoveFavorite(p._id)}
+                        title="Remove from favorites"
+                      >
+                        Remove
+                      </Button>
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              );
+            })}
           </Row>
         )}
       </Container>
     </div>
   );
 }
-
-export default Favorites;

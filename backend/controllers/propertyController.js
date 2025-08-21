@@ -5,13 +5,30 @@ const Notification = require("../models/notification");
 const Interest = require("../models/interests");
 
 /* ----------------------------- helpers ----------------------------- */
-const hasValue = (v) =>
-  v !== undefined && v !== null && `${v}`.trim() !== "";
-
+const hasValue = (v) => v !== undefined && v !== null && `${v}`.trim() !== "";
 const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
-
 const setIfProvided = (current, incoming, parser = (x) => x) =>
   hasValue(incoming) ? parser(incoming) : current;
+
+// read files from either upload.array('images') OR upload.fields([{name:'images'},{name:'floorPlanImage'}])
+const extractImagesFromReq = (req) => {
+  // array mode (images only)
+  if (Array.isArray(req.files) && req.files.length) {
+    return {
+      images: req.files.map((f) => `/uploads/${f.filename}`),
+      floorPlanImage: undefined,
+    };
+  }
+  // fields mode
+  if (req.files && typeof req.files === "object") {
+    const images = (req.files.images || []).map((f) => `/uploads/${f.filename}`);
+    const floorPlanImage = req.files.floorPlanImage?.[0]
+      ? `/uploads/${req.files.floorPlanImage[0].filename}`
+      : undefined;
+    return { images, floorPlanImage };
+  }
+  return { images: [], floorPlanImage: undefined };
+};
 
 /* --------------------------- CREATE PROPERTY --------------------------- */
 exports.createProperty = async (req, res) => {
@@ -22,52 +39,70 @@ exports.createProperty = async (req, res) => {
   }
 
   try {
-    const imagePaths = req.files?.map((f) => `/uploads/${f.filename}`) || [];
+    const { images, floorPlanImage } = extractImagesFromReq(req);
 
-    const {
-      title,
-      location,
-      price,
-      type,
-      floor,
-      squareMeters,
-      surface,
-      onTopFloor,
-      levels,
-      bedrooms,
-      bathrooms,
-      wc,
-      kitchens,
-      livingRooms,
-      features,
-      latitude,
-      longitude,
-    } = req.body;
+    const b = req.body;
 
     const newProperty = new Property({
-      title,
-      location,
-      price: toNum(price, parseFloat),
-      type,
-      floor: toNum(floor, parseInt),
-      squareMeters: toNum(squareMeters, parseInt),
-      surface: toNum(surface, parseInt),
-      onTopFloor:
-        onTopFloor === true ||
-        onTopFloor === "true" ||
-        onTopFloor === "yes" ||
-        onTopFloor === "1",
-      levels: toNum(levels, parseInt),
-      bedrooms: toNum(bedrooms, parseInt),
-      bathrooms: toNum(bathrooms, parseInt),
-      wc: toNum(wc, parseInt),
-      kitchens: toNum(kitchens, parseInt),
-      livingRooms: toNum(livingRooms, parseInt),
-      latitude: toNum(latitude, Number),
-      longitude: toNum(longitude, Number),
-      features: Array.isArray(features) ? features : features ? [features] : [],
+      /* required/basics */
       ownerId,
-      images: imagePaths,
+      title: b.title,
+      location: b.location,
+      price: toNum(b.price, parseFloat),
+      type: b.type, // 'rent' | 'sale'
+
+      /* optional core */
+      description: b.description,
+      address: b.address,
+      floor: toNum(b.floor, parseInt),
+      squareMeters: toNum(b.squareMeters, parseInt),
+      surface: toNum(b.surface, parseInt),
+      onTopFloor:
+        b.onTopFloor === true ||
+        b.onTopFloor === "true" ||
+        b.onTopFloor === "yes" ||
+        b.onTopFloor === "1",
+      levels: toNum(b.levels, parseInt),
+      bedrooms: toNum(b.bedrooms, parseInt),
+      bathrooms: toNum(b.bathrooms, parseInt),
+      wc: toNum(b.wc, parseInt),
+      kitchens: toNum(b.kitchens, parseInt),
+      livingRooms: toNum(b.livingRooms, parseInt),
+
+      /* extended attributes (αν υπάρχουν στο schema σου θα αποθηκευτούν) */
+      plotSize: toNum(b.plotSize, parseFloat),
+      yearBuilt: toNum(b.yearBuilt, parseInt),
+      condition: b.condition, // e.g. 'new', 'excellent', ...
+      hasElevator: b.hasElevator === "true" || b.hasElevator === true,
+      hasStorage: b.hasStorage === "true" || b.hasStorage === true,
+      furnished: b.furnished === "true" || b.furnished === true,
+      heating: b.heating, // e.g. 'natural_gas', 'heat_pump', ...
+      energyClass: b.energyClass, // A+..G
+      orientation: b.orientation, // N/E/S/W/SE,...
+      petsAllowed: b.petsAllowed === "true" || b.petsAllowed === true,
+      smokingAllowed: b.smokingAllowed === "true" || b.smokingAllowed === true,
+      parkingSpaces: toNum(b.parkingSpaces, parseInt),
+      monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
+      view: b.view, // 'sea','park',...
+      insulation: b.insulation === "true" || b.insulation === true,
+      ownerNotes: b.ownerNotes,
+
+      /* arrays */
+      features: Array.isArray(b["features[]"])
+        ? b["features[]"]
+        : Array.isArray(b.features)
+        ? b.features
+        : b.features
+        ? [b.features]
+        : [],
+
+      /* geo */
+      latitude: toNum(b.latitude, Number),
+      longitude: toNum(b.longitude, Number),
+
+      /* media */
+      images,
+      ...(floorPlanImage ? { floorPlanImage } : {}),
     });
 
     await newProperty.save();
@@ -82,15 +117,17 @@ exports.createProperty = async (req, res) => {
 exports.getAllProperties = async (req, res) => {
   try {
     const {
-      q,                    // text search in title/location
-      type,                 // property type
-      minPrice,
-      maxPrice,
-      minSqm,
-      maxSqm, 
+      q,                    // text in title/location
+      type,                 // rent|sale
+      minPrice, maxPrice,
+      minSqm, maxSqm,
+      minBedrooms, maxBedrooms,
+      minBathrooms, maxBathrooms,
+      yearFrom, yearTo,
+      furnished, petsAllowed, hasElevator, hasStorage,
+      energyClass, heating, orientation, view,
       sort = "relevance",   // relevance | newest | price_asc | price_desc | likes
-      lat,
-      lng,
+      lat, lng,
       page = 1,
       limit = 24,
     } = req.query;
@@ -99,99 +136,98 @@ exports.getAllProperties = async (req, res) => {
     const numericPage = Math.max(1, parseInt(page) || 1);
     const skip = (numericPage - 1) * numericLimit;
 
-    // βασικά φίλτρα
     const match = {};
-    if (q && `${q}`.trim()) {
+
+    // free text
+    if (hasValue(q)) {
       const rx = new RegExp(`${q}`.trim(), "i");
-      match.$or = [{ title: rx }, { location: rx }];
+      match.$or = [{ title: rx }, { location: rx }, { address: rx }];
     }
+
     if (type) match.type = type;
+
+    // price range
     if (hasValue(minPrice) || hasValue(maxPrice)) {
       match.price = {};
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
-      
-    // square meter filtering handled via separate $match with $expr to coerce strings
+
+    // bedrooms/bathrooms range
+    const numRange = (field, minV, maxV) => {
+      if (!hasValue(minV) && !hasValue(maxV)) return null;
+      const r = {};
+      if (hasValue(minV)) r.$gte = parseInt(minV);
+      if (hasValue(maxV)) r.$lte = parseInt(maxV);
+      return { [field]: r };
+    };
+    Object.assign(
+      match,
+      numRange("bedrooms", minBedrooms, maxBedrooms) || {},
+      numRange("bathrooms", minBathrooms, maxBathrooms) || {}
+    );
+
+    // year built
+    if (hasValue(yearFrom) || hasValue(yearTo)) {
+      match.yearBuilt = {};
+      if (hasValue(yearFrom)) match.yearBuilt.$gte = parseInt(yearFrom);
+      if (hasValue(yearTo)) match.yearBuilt.$lte = parseInt(yearTo);
+    }
+
+    // simple flags
+    const boolEq = (key, val) =>
+      hasValue(val)
+        ? { [key]: val === "true" || val === true || val === "1" }
+        : null;
+
+    Object.assign(
+      match,
+      boolEq("furnished", furnished) || {},
+      boolEq("petsAllowed", petsAllowed) || {},
+      boolEq("hasElevator", hasElevator) || {},
+      boolEq("hasStorage", hasStorage) || {}
+    );
+
+    // enums/text equals
+    if (hasValue(energyClass)) match.energyClass = energyClass;
+    if (hasValue(heating)) match.heating = heating;
+    if (hasValue(orientation)) match.orientation = orientation;
+    if (hasValue(view)) match.view = view;
+
+    // sqm filter via $expr to tolerate stringy data
     let sqmMatchStage = null;
     if (hasValue(minSqm) || hasValue(maxSqm)) {
       const min = hasValue(minSqm) ? parseInt(minSqm) : undefined;
       const max = hasValue(maxSqm) ? parseInt(maxSqm) : undefined;
-
       const sqrExpr = [];
       const surfExpr = [];
       if (min !== undefined) {
         sqrExpr.push({
-          $gte: [
-            {
-              $convert: {
-                input: "$squareMeters",
-                to: "double",
-                onError: null,
-                onNull: null,
-              },
-            },
-            min,
-          ],
+          $gte: [{ $toDouble: "$squareMeters" }, min],
         });
         surfExpr.push({
-          $gte: [
-            {
-              $convert: {
-                input: "$surface",
-                to: "double",
-                onError: null,
-                onNull: null,
-              },
-            },
-            min,
-          ],
+          $gte: [{ $toDouble: "$surface" }, min],
         });
       }
       if (max !== undefined) {
         sqrExpr.push({
-          $lte: [
-            {
-              $convert: {
-                input: "$squareMeters",
-                to: "double",
-                onError: null,
-                onNull: null,
-              },
-            },
-            max,
-          ],
+          $lte: [{ $toDouble: "$squareMeters" }, max],
         });
         surfExpr.push({
-          $lte: [
-            {
-              $convert: {
-                input: "$surface",
-                to: "double",
-                onError: null,
-                onNull: null,
-              },
-            },
-            max,
-          ],
+          $lte: [{ $toDouble: "$surface" }, max],
         });
       }
       sqmMatchStage = {
         $match: {
-          $or: [
-            { $expr: { $and: sqrExpr } },
-            { $expr: { $and: surfExpr } },
-          ],
+          $or: [{ $expr: { $and: sqrExpr } }, { $expr: { $and: surfExpr } }],
         },
       };
     }
-    
-    // coords (αν υπάρχουν)
+
+    // coords
     const hasCoords = hasValue(lat) && hasValue(lng);
     const userLat = hasCoords ? Number(lat) : null;
     const userLng = hasCoords ? Number(lng) : null;
-
-    // απόσταση ~ γρήγορη προσέγγιση (km) με ασφαλή μετατροπή τύπων
     const distanceExpr = hasCoords
       ? {
           $multiply: [
@@ -199,12 +235,7 @@ exports.getAllProperties = async (req, res) => {
             {
               $sqrt: {
                 $add: [
-                  {
-                    $pow: [
-                      { $subtract: [{ $toDouble: "$latitude" }, userLat] },
-                      2,
-                    ],
-                  },
+                  { $pow: [{ $subtract: [{ $toDouble: "$latitude" }, userLat] }, 2] },
                   {
                     $pow: [
                       {
@@ -224,10 +255,8 @@ exports.getAllProperties = async (req, res) => {
       : null;
 
     const pipeline = [
-      ...(sqmMatchStage? [sqmMatchStage]: []),
+      ...(sqmMatchStage ? [sqmMatchStage] : []),
       { $match: match },
-
-      // μετράμε favorites
       {
         $lookup: {
           from: "favorites",
@@ -237,12 +266,10 @@ exports.getAllProperties = async (req, res) => {
         },
       },
       { $addFields: { favoritesCount: { $size: "$favDocs" } } },
-
-      // αν έχουμε coords, πρόσθεσε distanceKm
       ...(hasCoords ? [{ $addFields: { distanceKm: distanceExpr } }] : []),
     ];
 
-    // ταξινόμηση
+    // sorting
     if (sort === "newest") {
       pipeline.push({ $sort: { createdAt: -1 } });
     } else if (sort === "price_asc") {
@@ -252,7 +279,6 @@ exports.getAllProperties = async (req, res) => {
     } else if (sort === "likes") {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     } else {
-      // ✅ strict “relevance”: distance → favorites → newest
       pipeline.push({
         $sort: hasCoords
           ? { distanceKm: 1, favoritesCount: -1, createdAt: -1 }
@@ -262,8 +288,6 @@ exports.getAllProperties = async (req, res) => {
 
     // pagination
     pipeline.push({ $skip: skip }, { $limit: numericLimit });
-
-    // καθαρισμός προσωρινών πεδίων
     pipeline.push({ $project: { favDocs: 0 } });
 
     const properties = await Property.aggregate(pipeline);
@@ -274,19 +298,15 @@ exports.getAllProperties = async (req, res) => {
   }
 };
 
-
 /* ------------------------- GET MY PROPS + STATS ------------------------ */
 exports.getMyProperties = async (req, res) => {
   try {
     if (req.user.role !== "owner") {
-      return res
-        .status(403)
-        .json({ message: "Only owners can view their properties" });
+      return res.status(403).json({ message: "Only owners can view their properties" });
     }
 
     const properties = await Property.find({ ownerId: req.user.userId });
 
-    // includeStats=true => favoritesCount / interestsCount (views proxy)
     if (req.query.includeStats) {
       const ids = properties.map((p) => p._id);
 
@@ -300,17 +320,13 @@ exports.getMyProperties = async (req, res) => {
         { $group: { _id: "$propertyId", count: { $sum: 1 } } },
       ]);
 
-      const favMap = new Map(
-        favoritesAgg.map((f) => [String(f._id), f.count])
-      );
-      const interestMap = new Map(
-        interestsAgg.map((i) => [String(i._id), i.count])
-      );
+      const favMap = new Map(favoritesAgg.map((f) => [String(f._id), f.count]));
+      const interestMap = new Map(interestsAgg.map((i) => [String(i._id), i.count]));
 
       const withStats = properties.map((p) => ({
         ...p.toObject(),
         favoritesCount: favMap.get(String(p._id)) || 0,
-        viewsCount: interestMap.get(String(p._id)) || 0, // or interestsCount
+        viewsCount: interestMap.get(String(p._id)) || 0,
       }));
 
       return res.json(withStats);
@@ -326,11 +342,8 @@ exports.getMyProperties = async (req, res) => {
 /* --------------------------- GET PROPERTY BY ID --------------------------- */
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.propertyId).populate(
-      "ownerId"
-    );
-    if (!property)
-      return res.status(404).json({ message: "Property not found" });
+    const property = await Property.findById(req.params.propertyId).populate("ownerId");
+    if (!property) return res.status(404).json({ message: "Property not found" });
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
@@ -342,93 +355,96 @@ exports.getPropertyById = async (req, res) => {
 exports.updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
-    if (!property) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-
-    if (property.ownerId.toString() !== req.user.userId) {
+    if (!property) return res.status(404).json({ message: "Property not found" });
+    if (String(property.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "User is unauthorized" });
     }
 
-    const {
-      title,
-      location,
-      price,
-      type,
-      floor,
-      squareMeters,
-      surface,
-      onTopFloor,
-      levels,
-      bedrooms,
-      bathrooms,
-      wc,
-      kitchens,
-      livingRooms,
-      status,
-      features,
-      latitude,
-      longitude,
-    } = req.body;
+    const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
+    const b = req.body;
 
-    // strings/values
-    property.title = title ?? property.title;
-    property.location = location ?? property.location;
-    property.type = type ?? property.type;
-    property.status = status ?? property.status;
+    // strings
+    property.title = b.title ?? property.title;
+    property.location = b.location ?? property.location;
+    property.type = b.type ?? property.type;
+    property.status = b.status ?? property.status;
+    property.description = b.description ?? property.description;
+    property.address = b.address ?? property.address;
+    property.condition = b.condition ?? property.condition;
+    property.heating = b.heating ?? property.heating;
+    property.energyClass = b.energyClass ?? property.energyClass;
+    property.orientation = b.orientation ?? property.orientation;
+    property.view = b.view ?? property.view;
+    property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
 
-    // numbers with guards
-    property.price = setIfProvided(property.price, price, parseFloat);
-    property.floor = setIfProvided(property.floor, floor, (v) => parseInt(v));
-    property.squareMeters = setIfProvided(
-      property.squareMeters,
-      squareMeters,
-      (v) => parseInt(v)
+    // numbers
+    property.price = setIfProvided(property.price, b.price, parseFloat);
+    property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
+    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) => parseInt(v));
+    property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));
+    property.levels = setIfProvided(property.levels, b.levels, (v) => parseInt(v));
+    property.bedrooms = setIfProvided(property.bedrooms, b.bedrooms, (v) => parseInt(v));
+    property.bathrooms = setIfProvided(property.bathrooms, b.bathrooms, (v) => parseInt(v));
+    property.wc = setIfProvided(property.wc, b.wc, (v) => parseInt(v));
+    property.kitchens = setIfProvided(property.kitchens, b.kitchens, (v) => parseInt(v));
+    property.livingRooms = setIfProvided(property.livingRooms, b.livingRooms, (v) => parseInt(v));
+    property.parkingSpaces = setIfProvided(property.parkingSpaces, b.parkingSpaces, (v) => parseInt(v));
+    property.monthlyMaintenanceFee = setIfProvided(
+      property.monthlyMaintenanceFee,
+      b.monthlyMaintenanceFee,
+      (v) => parseFloat(v)
     );
-    property.surface = setIfProvided(property.surface, surface, (v) =>
-      parseInt(v)
-    );
-    property.levels = setIfProvided(property.levels, levels, (v) =>
-      parseInt(v)
-    );
-    property.bedrooms = setIfProvided(property.bedrooms, bedrooms, (v) =>
-      parseInt(v)
-    );
-    property.bathrooms = setIfProvided(property.bathrooms, bathrooms, (v) =>
-      parseInt(v)
-    );
-    property.wc = setIfProvided(property.wc, wc, (v) => parseInt(v));
-    property.kitchens = setIfProvided(property.kitchens, kitchens, (v) =>
-      parseInt(v)
-    );
-    property.livingRooms = setIfProvided(
-      property.livingRooms,
-      livingRooms,
-      (v) => parseInt(v)
-    );
+    property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
+    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) => parseInt(v));
 
-    // geo (optional)
-    property.latitude = setIfProvided(property.latitude, latitude, Number);
-    property.longitude = setIfProvided(property.longitude, longitude, Number);
+    // geo
+    property.latitude = setIfProvided(property.latitude, b.latitude, Number);
+    property.longitude = setIfProvided(property.longitude, b.longitude, Number);
 
     // booleans
-    if (onTopFloor !== undefined) {
+    if (b.onTopFloor !== undefined) {
       property.onTopFloor =
-        onTopFloor === true ||
-        onTopFloor === "true" ||
-        onTopFloor === "yes" ||
-        onTopFloor === "1";
+        b.onTopFloor === true ||
+        b.onTopFloor === "true" ||
+        b.onTopFloor === "yes" ||
+        b.onTopFloor === "1";
+    }
+    if (b.hasElevator !== undefined) {
+      property.hasElevator = b.hasElevator === "true" || b.hasElevator === true;
+    }
+    if (b.hasStorage !== undefined) {
+      property.hasStorage = b.hasStorage === "true" || b.hasStorage === true;
+    }
+    if (b.furnished !== undefined) {
+      property.furnished = b.furnished === "true" || b.furnished === true;
+    }
+    if (b.petsAllowed !== undefined) {
+      property.petsAllowed = b.petsAllowed === "true" || b.petsAllowed === true;
+    }
+    if (b.smokingAllowed !== undefined) {
+      property.smokingAllowed = b.smokingAllowed === "true" || b.smokingAllowed === true;
+    }
+    if (b.insulation !== undefined) {
+      property.insulation = b.insulation === "true" || b.insulation === true;
     }
 
-    // features (array or single)
-    if (features !== undefined) {
-      property.features = Array.isArray(features) ? features : [features];
+    // features
+    if (b["features[]"] !== undefined || b.features !== undefined) {
+      property.features = Array.isArray(b["features[]"])
+        ? b["features[]"]
+        : Array.isArray(b.features)
+        ? b.features
+        : b.features
+        ? [b.features]
+        : [];
     }
 
     // images
-    if (req.files?.length) {
-      const newImagePaths = req.files.map((f) => `/uploads/${f.filename}`);
-      property.images = [...property.images, ...newImagePaths];
+    if (newImages.length) {
+      property.images = [...(property.images || []), ...newImages];
+    }
+    if (floorPlanImage) {
+      property.floorPlanImage = floorPlanImage;
     }
 
     await property.save();
@@ -443,10 +459,9 @@ exports.updateProperty = async (req, res) => {
 exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
-    if (!property)
-      return res.status(404).json({ message: "Property not found" });
+    if (!property) return res.status(404).json({ message: "Property not found" });
 
-    if (property.ownerId.toString() !== req.user.userId) {
+    if (String(property.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 

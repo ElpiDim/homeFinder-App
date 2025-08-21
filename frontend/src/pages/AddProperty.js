@@ -1,5 +1,5 @@
 // src/pages/AddProperty.js
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -14,11 +14,10 @@ const containerStyle = { width: "100%", height: "320px" };
 const LIBRARIES = ["places"];
 const LOADER_ID = "gmap";
 
-// ✅ CRA-friendly: παίρνουμε το key από REACT_APP_*
 function getMapsApiKey() {
   return (
     process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || // αν το έχεις επίσης
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     ""
   );
 }
@@ -26,13 +25,22 @@ function getMapsApiKey() {
 export default function AddProperty() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [images, setImages] = useState([]);
 
+  // --------- Images ----------
+  const [images, setImages] = useState([]);
+  const [floorPlanImage, setFloorPlanImage] = useState(null);
+
+  // --------- Form State ----------
   const [formData, setFormData] = useState({
+    // required / core
     title: "",
     location: "",
     price: "",
     type: "",
+
+    // basics
+    address: "",
+    description: "",
     floor: "",
     squareMeters: "",
     surface: "",
@@ -43,6 +51,26 @@ export default function AddProperty() {
     wc: 0,
     kitchens: 0,
     livingRooms: 0,
+
+    // extras
+    yearBuilt: "",
+    condition: "", // new|excellent|very_good|good|needs_renovation
+    heating: "",   // natural_gas|oil|electric|heat_pump|none
+    energyClass: "", // A+..G
+    orientation: "", // N|E|S|W|NE|SE|SW|NW
+    furnished: false,
+    petsAllowed: false,
+    smokingAllowed: false,
+    hasElevator: false,
+    hasStorage: false,
+    parkingSpaces: 0,
+    monthlyMaintenanceFee: "",
+    view: "", // sea|mountain|park|city|open
+    insulation: false,
+    plotSize: "",
+    ownerNotes: "",
+
+    // features (free-form tags)
     features: [],
   });
 
@@ -51,18 +79,15 @@ export default function AddProperty() {
   const { isLoaded } = useJsApiLoader(
     apiKey
       ? { id: LOADER_ID, googleMapsApiKey: apiKey, libraries: LIBRARIES }
-      : { id: LOADER_ID } // θα δείξουμε μήνυμα αν λείπει key
+      : { id: LOADER_ID }
   );
 
   const [map, setMap] = useState(null);
   const [latLng, setLatLng] = useState(null);
   const [center, setCenter] = useState({ lat: 37.9838, lng: 23.7275 }); // Αθήνα
 
-  // StandaloneSearchBox
   const searchBoxRef = useRef(null);
-  const onSearchLoad = (ref) => {
-    searchBoxRef.current = ref;
-  };
+  const onSearchLoad = (ref) => (searchBoxRef.current = ref);
   const onPlacesChanged = () => {
     if (!map || !searchBoxRef.current) return;
     const places = searchBoxRef.current.getPlaces();
@@ -78,10 +103,9 @@ export default function AddProperty() {
 
     const addr =
       place.formatted_address ?? place.vicinity ?? place.name ?? formData.location;
-    setFormData((prev) => ({ ...prev, location: addr }));
+    setFormData((prev) => ({ ...prev, location: addr, address: addr }));
   };
 
-  // reverse geocoding στο click
   const reverseGeocode = async (lat, lng) => {
     try {
       const geocoder = new window.google.maps.Geocoder();
@@ -90,6 +114,7 @@ export default function AddProperty() {
         setFormData((prev) => ({
           ...prev,
           location: results[0].formatted_address,
+          address: results[0].formatted_address,
         }));
       }
     } catch (e) {
@@ -118,8 +143,18 @@ export default function AddProperty() {
       return;
     }
 
-    if (type === "radio" && name === "onTopFloor") {
-      setFormData((prev) => ({ ...prev, onTopFloor: value === "yes" }));
+    // generic boolean toggles
+    const booleanKeys = [
+      "onTopFloor",
+      "furnished",
+      "petsAllowed",
+      "smokingAllowed",
+      "hasElevator",
+      "hasStorage",
+      "insulation",
+    ];
+    if (type === "checkbox" && booleanKeys.includes(name)) {
+      setFormData((prev) => ({ ...prev, [name]: checked }));
       return;
     }
 
@@ -138,16 +173,27 @@ export default function AddProperty() {
     }
 
     const data = new FormData();
+
+    // append primitives
     Object.entries(formData).forEach(([k, v]) => {
-      if (Array.isArray(v)) v.forEach((x) => data.append(k, x));
-      else data.append(k, v);
+      if (Array.isArray(v)) {
+        v.forEach((x) => data.append(k, x));
+      } else if (typeof v === "boolean") {
+        data.append(k, v ? "true" : "false");
+      } else if (v !== null && v !== undefined) {
+        data.append(k, v);
+      }
     });
 
+    // geo
     if (latLng) {
       data.append("latitude", String(latLng.lat));
       data.append("longitude", String(latLng.lng));
     }
+
+    // files
     images.forEach((img) => data.append("images", img));
+    if (floorPlanImage) data.append("floorPlanImage", floorPlanImage);
 
     try {
       const token = localStorage.getItem("token");
@@ -165,7 +211,9 @@ export default function AddProperty() {
     }
   };
 
+  // UI Options
   const roomControls = ["bedrooms", "bathrooms", "wc", "kitchens", "livingRooms"];
+
   const featureOptions = [
     "Parking spot",
     "Elevator",
@@ -184,7 +232,6 @@ export default function AddProperty() {
     "Solar water heating",
   ];
 
-  // Gradient
   const pageGradient = useMemo(
     () => ({
       minHeight: "100vh",
@@ -196,11 +243,12 @@ export default function AddProperty() {
 
   if (!user || user.role !== "owner") {
     return (
-      <p className="text-danger text-center mt-5">Only owners can add properties.</p>
+      <p className="text-danger text-center mt-5">
+        Only owners can add properties.
+      </p>
     );
   }
 
-  // Αν δεν υπάρχει API key, δείξε καθαρό μήνυμα
   const noKey = !apiKey;
 
   return (
@@ -212,70 +260,213 @@ export default function AddProperty() {
         <h4 className="fw-bold mb-4">Add Property</h4>
 
         <form onSubmit={handleSubmit}>
-          {/* Basic fields */}
-          {[
-            ["Title", "title"],
-            ["Location", "location"],
-            ["Price (€)", "price"],
-            ["Floor", "floor"],
-            ["Square Meters", "squareMeters"],
-            ["Property Surface (m²)", "surface"],
-            ["Levels", "levels"],
-          ].map(([label, name]) => (
-            <div className="mb-3" key={name}>
-              <label className="form-label">{label}</label>
-              <input
-                name={name}
-                type={["price", "levels"].includes(name) ? "number" : "text"}
-                className="form-control"
-                value={formData[name]}
-                onChange={handleChange}
-                required={["title", "location", "price"].includes(name)}
-              />
-            </div>
-          ))}
-
+          {/* BASIC */}
           <div className="mb-3">
-            <label className="form-label">Type</label>
-            <select
-              name="type"
+            <label className="form-label">Title</label>
+            <input
+              name="title"
               className="form-control"
+              value={formData.title}
               onChange={handleChange}
               required
-              value={formData.type}
-            >
-              <option value="">Select Type</option>
-              <option value="sale">For Sale</option>
-              <option value="rent">For Rent</option>
-            </select>
+            />
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Is on Top Floor?</label>
-            <div>
-              <label className="me-3">
-                <input
-                  type="radio"
-                  name="onTopFloor"
-                  value="yes"
-                  onChange={handleChange}
-                  checked={formData.onTopFloor === true}
-                />{" "}
-                Yes
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="onTopFloor"
-                  value="no"
-                  onChange={handleChange}
-                  checked={formData.onTopFloor === false}
-                />{" "}
-                No
-              </label>
+            <label className="form-label">Location (displayed)</label>
+            <input
+              name="location"
+              className="form-control"
+              value={formData.location}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Address (optional)</label>
+            <input
+              name="address"
+              className="form-control"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder="Street, number, area"
+            />
+          </div>
+
+          <div className="row g-3">
+            <div className="col-sm-6">
+              <label className="form-label">Price (€)</label>
+              <input
+                name="price"
+                type="number"
+                className="form-control"
+                value={formData.price}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="col-sm-6">
+              <label className="form-label">Type</label>
+              <select
+                name="type"
+                className="form-control"
+                onChange={handleChange}
+                required
+                value={formData.type}
+              >
+                <option value="">Select Type</option>
+                <option value="sale">For Sale</option>
+                <option value="rent">For Rent</option>
+              </select>
             </div>
           </div>
 
+          {/* DESCRIPTION */}
+          <div className="mb-3 mt-3">
+            <label className="form-label">Description</label>
+            <textarea
+              name="description"
+              rows={3}
+              className="form-control"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="A few highlights about the property..."
+            />
+          </div>
+
+          {/* BASIC METRICS */}
+          <div className="row g-3">
+            <div className="col-sm-4">
+              <label className="form-label">Floor</label>
+              <input
+                name="floor"
+                type="number"
+                className="form-control"
+                value={formData.floor}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Square Meters</label>
+              <input
+                name="squareMeters"
+                type="number"
+                className="form-control"
+                value={formData.squareMeters}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Property Surface (m²)</label>
+              <input
+                name="surface"
+                type="number"
+                className="form-control"
+                value={formData.surface}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="row g-3 mt-1">
+            <div className="col-sm-4">
+              <label className="form-label">Levels</label>
+              <input
+                name="levels"
+                type="number"
+                className="form-control"
+                value={formData.levels}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Plot Size (m²)</label>
+              <input
+                name="plotSize"
+                type="number"
+                className="form-control"
+                value={formData.plotSize}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Year Built</label>
+              <input
+                name="yearBuilt"
+                type="number"
+                className="form-control"
+                value={formData.yearBuilt}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          {/* FLAGS */}
+          <div className="row g-3 mt-2">
+            <div className="col-sm-3">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="onTopFloor"
+                  id="onTopFloor"
+                  checked={formData.onTopFloor}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="onTopFloor">
+                  On Top Floor
+                </label>
+              </div>
+            </div>
+            <div className="col-sm-3">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="hasElevator"
+                  id="hasElevator"
+                  checked={formData.hasElevator}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="hasElevator">
+                  Elevator
+                </label>
+              </div>
+            </div>
+            <div className="col-sm-3">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="hasStorage"
+                  id="hasStorage"
+                  checked={formData.hasStorage}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="hasStorage">
+                  Storage
+                </label>
+              </div>
+            </div>
+            <div className="col-sm-3">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="insulation"
+                  id="insulation"
+                  checked={formData.insulation}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="insulation">
+                  Insulation
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* ROOMS */}
           <h5 className="mt-4">Rooms</h5>
           {roomControls.map((room) => (
             <div key={room} className="mb-2">
@@ -292,6 +483,187 @@ export default function AddProperty() {
             </div>
           ))}
 
+          {/* EXTRAS */}
+          <hr className="my-3" />
+          <h5 className="fw-bold">Extras</h5>
+
+          <div className="row g-3">
+            <div className="col-sm-4">
+              <label className="form-label">Heating</label>
+              <select
+                name="heating"
+                className="form-control"
+                value={formData.heating}
+                onChange={handleChange}
+              >
+                <option value="">—</option>
+                <option value="natural_gas">Natural Gas</option>
+                <option value="oil">Oil</option>
+                <option value="electric">Electric</option>
+                <option value="heat_pump">Heat Pump</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Energy Class</label>
+              <select
+                name="energyClass"
+                className="form-control"
+                value={formData.energyClass}
+                onChange={handleChange}
+              >
+                <option value="">—</option>
+                <option value="A+">A+</option>
+                <option value="A">A</option>
+                <option value="B+">B+</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="G">G</option>
+              </select>
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Orientation</label>
+              <select
+                name="orientation"
+                className="form-control"
+                value={formData.orientation}
+                onChange={handleChange}
+              >
+                <option value="">—</option>
+                <option value="N">N</option>
+                <option value="NE">NE</option>
+                <option value="E">E</option>
+                <option value="SE">SE</option>
+                <option value="S">S</option>
+                <option value="SW">SW</option>
+                <option value="W">W</option>
+                <option value="NW">NW</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="row g-3 mt-1">
+            <div className="col-sm-4">
+              <label className="form-label">Condition</label>
+              <select
+                name="condition"
+                className="form-control"
+                value={formData.condition}
+                onChange={handleChange}
+              >
+                <option value="">—</option>
+                <option value="new">New</option>
+                <option value="excellent">Excellent</option>
+                <option value="very_good">Very Good</option>
+                <option value="good">Good</option>
+                <option value="needs_renovation">Needs Renovation</option>
+              </select>
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">View</label>
+              <select
+                name="view"
+                className="form-control"
+                value={formData.view}
+                onChange={handleChange}
+              >
+                <option value="">—</option>
+                <option value="sea">Sea</option>
+                <option value="mountain">Mountain</option>
+                <option value="park">Park</option>
+                <option value="city">City</option>
+                <option value="open">Open</option>
+              </select>
+            </div>
+            <div className="col-sm-4">
+              <label className="form-label">Parking Spaces</label>
+              <input
+                name="parkingSpaces"
+                type="number"
+                className="form-control"
+                value={formData.parkingSpaces}
+                onChange={handleChange}
+                min={0}
+              />
+            </div>
+          </div>
+
+          <div className="row g-3 mt-1">
+            <div className="col-sm-4">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="furnished"
+                  id="furnished"
+                  checked={formData.furnished}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="furnished">
+                  Furnished
+                </label>
+              </div>
+            </div>
+            <div className="col-sm-4">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="petsAllowed"
+                  id="petsAllowed"
+                  checked={formData.petsAllowed}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="petsAllowed">
+                  Pets Allowed
+                </label>
+              </div>
+            </div>
+            <div className="col-sm-4">
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  name="smokingAllowed"
+                  id="smokingAllowed"
+                  checked={formData.smokingAllowed}
+                  onChange={handleChange}
+                />
+                <label className="form-check-label" htmlFor="smokingAllowed">
+                  Smoking Allowed
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="row g-3 mt-1">
+            <div className="col-sm-6">
+              <label className="form-label">Monthly Maintenance Fee (€)</label>
+              <input
+                name="monthlyMaintenanceFee"
+                type="number"
+                className="form-control"
+                value={formData.monthlyMaintenanceFee}
+                onChange={handleChange}
+                min={0}
+              />
+            </div>
+            <div className="col-sm-6">
+              <label className="form-label">Owner Notes (private)</label>
+              <input
+                name="ownerNotes"
+                className="form-control"
+                value={formData.ownerNotes}
+                onChange={handleChange}
+                placeholder="Internal notes (not visible to tenants)"
+              />
+            </div>
+          </div>
+
+          {/* FEATURE TAGS */}
           <h5 className="mt-4">Features</h5>
           <div className="d-flex flex-wrap gap-3">
             {featureOptions.map((feature) => (
@@ -316,7 +688,7 @@ export default function AddProperty() {
           <hr className="my-4" />
           <h5 className="fw-bold">Property location</h5>
 
-          {noKey && (
+          {!apiKey && (
             <div className="alert alert-warning my-2" role="alert">
               Google Maps API key is missing. Πρόσθεσε στο <code>frontend/.env</code>:
               <br />
@@ -329,10 +701,7 @@ export default function AddProperty() {
           <label className="form-label mt-2">Search address</label>
           <div className="mb-2" style={{ maxWidth: 560 }}>
             {isLoaded && apiKey ? (
-              <StandaloneSearchBox
-                onLoad={onSearchLoad}
-                onPlacesChanged={onPlacesChanged}
-              >
+              <StandaloneSearchBox onLoad={onSearchLoad} onPlacesChanged={onPlacesChanged}>
                 <input
                   type="text"
                   placeholder="Street, number, area"
@@ -375,32 +744,25 @@ export default function AddProperty() {
               </GoogleMap>
             ) : (
               <div className="d-flex align-items-center justify-content-center h-100">
-                {noKey ? "Google Maps disabled (missing API key)" : "Loading map…"}
+                {!apiKey ? "Google Maps disabled (missing API key)" : "Loading map…"}
               </div>
             )}
           </div>
 
           <div className="row g-2 mt-2" style={{ maxWidth: 560 }}>
             <div className="col">
-              <input
-                className="form-control"
-                value={latLng?.lat || ""}
-                readOnly
-                placeholder="Latitude"
-              />
+              <input className="form-control" value={latLng?.lat || ""} readOnly placeholder="Latitude" />
             </div>
             <div className="col">
-              <input
-                className="form-control"
-                value={latLng?.lng || ""}
-                readOnly
-                placeholder="Longitude"
-              />
+              <input className="form-control" value={latLng?.lng || ""} readOnly placeholder="Longitude" />
             </div>
           </div>
 
-          {/* Images */}
-          <div className="mb-4 mt-4">
+          {/* IMAGES */}
+          <hr className="my-4" />
+          <h5 className="fw-bold">Media</h5>
+
+          <div className="mb-3">
             <label className="form-label">Upload Images</label>
             <input
               type="file"
@@ -410,8 +772,21 @@ export default function AddProperty() {
               onChange={(e) => setImages([...e.target.files])}
               className="form-control"
             />
+            <div className="form-text">You can upload multiple photos.</div>
           </div>
 
+          <div className="mb-4">
+            <label className="form-label">Floor Plan (optional)</label>
+            <input
+              type="file"
+              name="floorPlanImage"
+              accept="image/*,application/pdf"
+              onChange={(e) => setFloorPlanImage(e.target.files?.[0] || null)}
+              className="form-control"
+            />
+          </div>
+
+          {/* ACTIONS */}
           <div className="d-flex justify-content-between">
             <button
               type="button"
@@ -420,14 +795,10 @@ export default function AddProperty() {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="btn btn-primary rounded-pill px-4"
-            >
+            <button type="submit" className="btn btn-primary rounded-pill px-4">
               Submit
             </button>
           </div>
-
         </form>
       </div>
     </div>
