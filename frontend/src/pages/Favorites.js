@@ -45,8 +45,8 @@ function Favorites() {
       <Container className="py-5">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h3 className="fw-bold mb-0">⭐ Your Favorite Properties</h3>
-          <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
-            ← Back to Dashboard
+          <Button variant="outline-secondary rounded-pill px-4" onClick={() => navigate('/dashboard')}>
+            ← Back to dashboard 
           </Button>
         </div>
 

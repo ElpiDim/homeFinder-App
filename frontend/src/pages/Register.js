@@ -17,7 +17,7 @@ function Register() {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
-  // Same vibrant gradient used on Login
+  // ίδιο vibrant gradient με Login
   const pageGradient = {
     minHeight: '100vh',
     background:
@@ -42,7 +42,7 @@ function Register() {
 
   return (
     <div style={pageGradient}>
-      {/* Navbar (translucent over the gradient) */}
+      {/* Navbar (translucent) */}
       <nav
         className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
         style={{
@@ -55,19 +55,36 @@ function Register() {
           <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Homie</h5>
+          <h5
+            className="mb-0 fw-bold"
+            style={{
+              fontFamily: "'Poppins','Fredoka',sans-serif",
+              textTransform: 'lowercase',
+              background: 'linear-gradient(90deg,#2563eb,#9333ea)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            homie
+          </h5>
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">
-          <Link to="/" className="btn btn-outline-primary">Back to Home</Link>
+          <Link
+            to="/"
+            className="btn btn-outline-secondary rounded-pill px-3"
+            style={{ fontWeight: 600 }}
+          >
+            Back to Home
+          </Link>
         </div>
       </nav>
 
       {/* Register Card */}
       <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-        <div className="card shadow p-4" style={{ maxWidth: '600px', width: '100%' }}>
+        <div className="card shadow p-4" style={{ maxWidth: '640px', width: '100%' }}>
           <h4 className="fw-bold mb-3">Create a new account</h4>
-          {message && <div className="alert alert-info">{message}</div>}
+          {message && <div className="alert alert-info rounded-pill">{message}</div>}
 
           <form onSubmit={handleRegister}>
             <div className="row">
@@ -114,19 +131,37 @@ function Register() {
                 <input type="text" className="form-control" name="occupation" onChange={handleChange} />
               </div>
               <div className="mb-3 col-md-6">
-                <label className="form-label">Salary (€)</label>
+                <label className="form-label">Salary/year (€)</label>
                 <input type="number" className="form-control" name="salary" onChange={handleChange} />
               </div>
             </div>
 
             <div className="d-grid">
-              <button type="submit" className="btn btn-primary">Register</button>
+              <button
+                type="submit"
+                className="btn rounded-pill"
+                style={{
+                  fontWeight: 700,
+                  height: 44,
+                  background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+                  color: '#fff',
+                  border: 'none',
+                }}
+              >
+                Register
+              </button>
             </div>
           </form>
 
           <div className="mt-3 text-center">
             <span className="text-muted">Already have an account? </span>
-            <Link to="/login">Login</Link>
+            <Link
+              to="/login"
+              className="btn btn-link rounded-pill px-2 py-1"
+              style={{ textDecoration: 'none', fontWeight: 600 }}
+            >
+              Login
+            </Link>
           </div>
         </div>
       </div>

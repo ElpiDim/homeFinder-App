@@ -1,3 +1,4 @@
+// src/pages/PropertyDetails.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -170,8 +171,8 @@ function PropertyDetails() {
     <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
         <Button
-          variant="link"
-          className="text-decoration-none px-0 mb-3"
+          variant="outline-secondary"
+          className="rounded-pill px-3 mb-3"
           onClick={() => navigate('/dashboard')}
         >
           ← Back to search
@@ -198,16 +199,14 @@ function PropertyDetails() {
 
           {imgs.length > 1 && (
             <div className="d-flex justify-content-between mb-3">
-              <Button
-                variant="light"
+              <Button variant="light" className="rounded-pill px-3"
                 onClick={() =>
                   setCurrentImageIndex((prev) => (prev === 0 ? imgs.length - 1 : prev - 1))
                 }
               >
                 ◀
               </Button>
-              <Button
-                variant="light"
+              <Button variant="light" className="rounded-pill px-3"
                 onClick={() =>
                   setCurrentImageIndex((prev) => (prev === imgs.length - 1 ? 0 : prev + 1))
                 }
@@ -236,7 +235,7 @@ function PropertyDetails() {
                     width: 96,
                     height: 64,
                     objectFit: 'cover',
-                    borderRadius: 6,
+                    borderRadius: 8,
                     outline: i === currentImageIndex ? '2px solid #0d6efd' : '1px solid #e5e7eb',
                   }}
                 />
@@ -257,11 +256,19 @@ function PropertyDetails() {
           </div>
 
           <div className="d-flex flex-column gap-2">
-            <Button variant={isFavorite ? 'warning' : 'outline-warning'} onClick={handleFavorite}>
+            <Button
+              variant={isFavorite ? 'warning' : 'outline-warning'}
+              className="rounded-pill px-4"
+              onClick={handleFavorite}
+            >
               {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
             </Button>
             {!isOwner && user?.role === 'client' && (
-              <Button variant="primary" onClick={() => setShowInterestModal(true)}>
+              <Button
+                variant="primary"
+                className="rounded-pill px-4"
+                onClick={() => setShowInterestModal(true)}
+              >
                 👋 I'm Interested
               </Button>
             )}
@@ -277,7 +284,7 @@ function PropertyDetails() {
             properties={hasCoords ? [property] : []}
             height="300px"
             useClustering={false}
-            showSearch={false}   // make sure your GoogleMapView respects this
+            showSearch={false}
             defaultCenter={mapCenter}
             zoom={hasCoords ? 14 : 11}
           />
@@ -314,10 +321,18 @@ function PropertyDetails() {
 
         {isOwner && (
           <div className="mt-4 d-flex gap-2">
-            <Button variant="primary" onClick={() => navigate(`/edit-property/${propertyId}`)}>
+            <Button
+              variant="primary"
+              className="rounded-pill px-4"
+              onClick={() => navigate(`/edit-property/${propertyId}`)}
+            >
               Edit
             </Button>
-            <Button variant="danger" onClick={handleDelete}>
+            <Button
+              variant="danger"
+              className="rounded-pill px-4"
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </div>
@@ -327,7 +342,9 @@ function PropertyDetails() {
       {/* Gallery Modal */}
       <Modal show={showGallery} onHide={closeGallery} centered size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Gallery ({property.images?.length ? galleryIndex + 1 : 0}/{property.images?.length || 0})</Modal.Title>
+          <Modal.Title>
+            Gallery ({property.images?.length ? galleryIndex + 1 : 0}/{property.images?.length || 0})
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
           <img
@@ -342,8 +359,8 @@ function PropertyDetails() {
         </Modal.Body>
         {property.images?.length > 1 && (
           <Modal.Footer className="d-flex justify-content-between">
-            <Button variant="light" onClick={prevImage}>◀ Prev</Button>
-            <Button variant="light" onClick={nextImage}>Next ▶</Button>
+            <Button variant="light" className="rounded-pill px-4" onClick={prevImage}>◀ Prev</Button>
+            <Button variant="light" className="rounded-pill px-4" onClick={nextImage}>Next ▶</Button>
           </Modal.Footer>
         )}
       </Modal>
@@ -367,8 +384,17 @@ function PropertyDetails() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowInterestModal(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">Send Interest</Button>
+            <Button
+              variant="outline-secondary"
+              className="rounded-pill px-4"
+              onClick={() => setShowInterestModal(false)}
+              type="button"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="rounded-pill px-4">
+              Send Interest
+            </Button>
           </Modal.Footer>
         </Form>
       </Modal>

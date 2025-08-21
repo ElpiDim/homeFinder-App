@@ -53,10 +53,14 @@ function Appointments() {
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '600px' }}>
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="fw-bold mb-0">Appointments</h4>
-          <button className="btn btn-outline-secondary" onClick={() => navigate('/dashboard')}>
+          <button
+            className="btn btn-outline-secondary rounded-pill px-3 py-2"
+            onClick={() => navigate('/dashboard')}
+          >
             ← Back
           </button>
         </div>
+
 
         {error && <div className="alert alert-danger">{error}</div>}
 
@@ -87,22 +91,23 @@ function Appointments() {
 
                   <div className="d-flex flex-column align-items-end gap-2">
                     {appt.propertyId?._id && (
-                      <Link
-                        to={`/property/${appt.propertyId._id}`}
-                        className="btn btn-sm btn-outline-primary"
-                      >
-                        View property
-                      </Link>
-                    )}
+                    <Link
+                      to={`/property/${appt.propertyId._id}`}
+                      className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1"
+                    >
+                      View property
+                    </Link>
+                  )}
 
-                    {user?.role === 'tenant' && appt.status !== 'confirmed' && (
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => setSelectedAppointmentId(appt._id)} // ✅ σωστή setter
-                      >
-                        Choose time
-                      </button>
-                    )}
+                  {user?.role === 'tenant' && appt.status !== 'confirmed' && (
+                    <button
+                      className="btn btn-sm btn-primary rounded-pill px-3 py-1"
+                      onClick={() => setSelectedAppointmentId(appt._id)}
+                    >
+                      Choose time
+                    </button>
+                  )}
+
                   </div>
                 </div>
               </li>

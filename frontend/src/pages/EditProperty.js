@@ -388,12 +388,16 @@ function EditProperty() {
           <div className="d-flex justify-content-between mt-4">
             <button
               type="button"
-              className="btn btn-outline-secondary"
+              className="btn btn-outline-secondary rounded-pill px-4"
               onClick={() => navigate(-1)}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">Update Property</button>
+
+            <button type="submit"
+              className="btn btn-primary rounded-pill px-4">
+                Update Property
+            </button>
           </div>
         </form>
       </div>

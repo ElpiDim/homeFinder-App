@@ -415,15 +415,19 @@ export default function AddProperty() {
           <div className="d-flex justify-content-between">
             <button
               type="button"
-              className="btn btn-outline-secondary"
+              className="btn btn-outline-secondary rounded-pill px-4"
               onClick={() => navigate(-1)}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Set location & Submit
+            <button
+              type="submit"
+              className="btn btn-primary rounded-pill px-4"
+            >
+              Submit
             </button>
           </div>
+
         </form>
       </div>
     </div>

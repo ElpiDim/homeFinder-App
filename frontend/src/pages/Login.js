@@ -50,7 +50,7 @@ function Login() {
           <h5 className="mb-0 fw-bold">Homie</h5>
         </div>
         <div className="ms-auto d-flex align-items-center gap-3">
-          <Link to="/" className="btn btn-outline-primary">Back to Home</Link>
+          <Link to="/" className="btn btn-outline-secondary rounded-pill px-4">Back to Home</Link>
         </div>
       </nav>
 

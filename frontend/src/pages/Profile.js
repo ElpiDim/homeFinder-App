@@ -1,3 +1,4 @@
+// src/pages/Profile.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +7,6 @@ function Profile() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Page gradient (as requested)
   const pageGradient = {
     minHeight: '100vh',
     background:
@@ -21,7 +21,6 @@ function Profile() {
     );
   }
 
-  // ✅ If there's an avatar, show it — otherwise, fallback
   const profilePicture = user.profilePicture || '/default-avatar.jpg';
 
   const joinedDate = user.createdAt
@@ -33,8 +32,41 @@ function Profile() {
 
   return (
     <div style={pageGradient}>
+      {/* Top bar με back πάνω-αριστερά */}
+      <nav
+        className="px-3 px-sm-4 py-3 shadow-sm"
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 5000,
+        }}
+      >
+        <button
+          type="button"
+          className="btn rounded-pill fw-semibold"
+          style={{
+            background: '#fff',
+            color: '#111827',
+            border: '1px solid #e5e7eb',
+            transition: 'all .25s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#e5e7eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#fff';
+          }}
+          onClick={() => navigate('/dashboard')}
+        >
+          ← Back to dashboard
+        </button>
+      </nav>
+
       <div
-        className="container-fluid py-5"
+        className="container py-5"
         style={{ fontFamily: 'Manrope, "Noto Sans", sans-serif' }}
       >
         <div className="row justify-content-center">
@@ -82,15 +114,9 @@ function Profile() {
               <input className="form-control" value={user.salary || ''} disabled />
             </div>
 
-            <div className="d-flex justify-content-between">
+            <div className="d-flex justify-content-end">
               <button
-                className="btn btn-outline-secondary"
-                onClick={() => navigate('/dashboard')}
-              >
-                ← Back
-              </button>
-              <button
-                className="btn btn-primary"
+                className="btn btn-primary rounded-pill px-4"
                 onClick={() => navigate('/edit-profile')}
               >
                 Edit Profile

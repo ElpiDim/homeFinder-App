@@ -75,7 +75,7 @@ export default function MyProperties() {
       <div className="container py-5">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h4 className="fw-bold mb-0">My Properties</h4>
-          <Link to="/add-property" className="btn btn-primary">+ Add Property</Link>
+          <Link to="/add-property" className="btn btn-primary rounded-pill px-4">+ Add Property</Link>
         </div>
 
         {loading ? (
@@ -131,7 +131,7 @@ export default function MyProperties() {
           </div>
         )}
 
-        <Button variant="outline-secondary" className="mt-3" onClick={() => navigate('/dashboard')}>
+        <Button variant="outline-secondary rounded-pill px-4" className="mt-3" onClick={() => navigate('/dashboard')}>
           ← Back to Dashboard
         </Button>
       </div>

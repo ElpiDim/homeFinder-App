@@ -1,4 +1,6 @@
+// src/pages/Properties.jsx
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api';
 
 function Properties() {
@@ -24,20 +26,56 @@ function Properties() {
     fetchData();
   }, []);
 
+  const imgUrl = (src) =>
+    src
+      ? src.startsWith('http')
+        ? src
+        : `http://localhost:5000${src}`
+      : 'https://via.placeholder.com/400x200?text=No+Image';
+
   return (
     <div style={pageGradient}>
-      <div className="container mt-4">
-        <h2>Available Properties</h2>
+      <div className="container py-5">
+        <h2 className="fw-bold mb-4">Available Properties</h2>
+
         {properties.length === 0 ? (
-          <p>No properties found.</p>
+          <p className="text-muted">No properties found.</p>
         ) : (
-          <ul>
+          <div className="row g-4">
             {properties.map((prop) => (
-              <li key={prop._id}>
-                <strong>{prop.title}</strong> - {prop.location} - €{prop.price}
-              </li>
+              <div className="col-md-4" key={prop._id}>
+                <div className="card border-0 shadow-sm h-100">
+                  <div
+                    className="rounded-top"
+                    style={{
+                      backgroundImage: `url(${imgUrl(prop.images?.[0])})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      height: '200px',
+                    }}
+                  />
+                  <div className="card-body d-flex flex-column">
+                    <h5 className="card-title fw-semibold">{prop.title}</h5>
+                    <p className="text-muted mb-1">📍 {prop.location}</p>
+                    <p className="text-muted mb-1">
+                      💶 {Number(prop.price).toLocaleString()} €
+                    </p>
+                    {prop.type && (
+                      <p className="text-muted mb-3">🏷️ {prop.type}</p>
+                    )}
+                    <div className="mt-auto">
+                      <Link
+                        to={`/property/${prop._id}`}
+                        className="btn btn-primary rounded-pill px-4"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

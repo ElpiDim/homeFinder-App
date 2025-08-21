@@ -88,11 +88,16 @@ function Dashboard() {
   const filterButtonRef = useRef(null); // κουμπί φίλτρων
   const filterPanelRef = useRef(null);  // panel φίλτρων
   const leftColRef = useRef(null);
-  const stickyWrapRef = useRef(null);
 
   const [mapContainerHeight, setMapContainerHeight] = useState(520);
 
   const token = localStorage.getItem('token');
+
+  const profileImg = user?.profilePicture
+    ? user.profilePicture.startsWith('http')
+      ? user.profilePicture
+      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
+    : '/default-avatar.jpg';
 
   /* ---------- utils ---------- */
   const pageGradient = useMemo(() => ({
@@ -249,7 +254,7 @@ function Dashboard() {
       .catch(() => setHasAppointments(false));
   }, [user, token, fetchAllProperties, fetchNotifications]);
 
-  // Όταν αλλάξει page → client-side σελιδοποίηση
+  // client-side σελιδοποίηση όταν αλλάζει η σελίδα
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -294,22 +299,22 @@ function Dashboard() {
   }, []);
 
   /* ---------- sync map height with list ---------- */
-useEffect(() => {
-  const el = leftColRef.current;
-  if (!el) return;
+  useEffect(() => {
+    const el = leftColRef.current;
+    if (!el) return;
 
-  const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
-  setH();
+    const setH = () => setMapContainerHeight(Math.max(el.scrollHeight, 460));
+    setH();
 
-  const ro = new ResizeObserver(setH);
-  ro.observe(el);
-  window.addEventListener('resize', setH);
+    const ro = new ResizeObserver(setH);
+    ro.observe(el);
+    window.addEventListener('resize', setH);
 
-  return () => {
-    ro.disconnect();
-    window.removeEventListener('resize', setH);
-  };
-}, [properties, page, limit, totalPages]);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', setH);
+    };
+  }, [properties, page, limit, totalPages]);
 
   /* ---------- handlers ---------- */
   const handleToggleNotifications = async () => {
@@ -361,7 +366,6 @@ useEffect(() => {
     fetchAllProperties({
       q: searchTerm || locationFilter,
       page: 1,
-      // min/max values parse στο fetchAllProperties μέσω toNum
     });
     setShowFilters(false);
   };
@@ -394,50 +398,91 @@ useEffect(() => {
   const goNext = () => { if (!canNext) return; setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goPage = (p) => { if (p === page) return; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  const renderPager = () => {
-    if (!properties || properties.length === 0) return null;
-    if (totalPages && totalPages > 1) {
-      const windowSize = 5;
-      const start = Math.max(1, page - Math.floor(windowSize / 2));
-      const end = Math.min(totalPages, start + windowSize - 1);
-      const pages = [];
-      for (let i = start; i <= end; i++) pages.push(i);
+const renderPager = () => {
+  if (!properties || properties.length === 0) return null;
+  if (!(totalPages && totalPages > 1)) return null;
 
-      return (
-        <nav className="mt-3">
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${!canPrev ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={goPrev}>Prev</button>
-            </li>
-            {start > 1 && (
-              <>
-                <li className="page-item"><button className="page-link" onClick={() => goPage(1)}>1</button></li>
-                {start > 2 && <li className="page-item disabled"><span className="page-link">…</span></li>}
-              </>
-            )}
-            {pages.map((p) => (
-              <li key={p} className={`page-item ${p === page ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => goPage(p)}>{p}</button>
-              </li>
-            ))}
-            {end < totalPages && (
-              <>
-                {end < totalPages - 1 && <li className="page-item disabled"><span className="page-link">…</span></li>}
-                <li className="page-item"><button className="page-link" onClick={() => goPage(totalPages)}>{totalPages}</button></li>
-              </>
-            )}
-            <li className={`page-item ${!canNext ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={goNext}>Next</button>
-            </li>
-          </ul>
-          <p className="text-center text-muted small mb-0">
-            Page {page} of {totalPages}
-          </p>
-        </nav>
-      );
-    }
-    return null;
-  };
+  const windowSize = 5;
+  const start = Math.max(1, page - Math.floor(windowSize / 2));
+  const end = Math.min(totalPages, start + windowSize - 1);
+
+  const pages = [];
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  const Ellipsis = () => <span className="page-ellipsis">…</span>;
+
+  return (
+    <div className="mt-3">
+      <div className="d-flex justify-content-center align-items-center pagination-pills flex-wrap">
+        {/* Prev */}
+        <button
+          type="button"
+          className="btn page-btn"
+          onClick={goPrev}
+          disabled={!canPrev}
+        >
+          Prev
+        </button>
+
+        {/* First + leading ellipsis */}
+        {start > 1 && (
+          <>
+            <button
+              type="button"
+              className={`btn page-btn ${page === 1 ? 'page-btn-active' : ''}`}
+              onClick={() => goPage(1)}
+            >
+              1
+            </button>
+            {start > 2 && <Ellipsis />}
+          </>
+        )}
+
+        {/* Middle window */}
+        {pages.map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={`btn page-btn ${p === page ? 'page-btn-active' : ''}`}
+            onClick={() => goPage(p)}
+          >
+            {p}
+          </button>
+        ))}
+
+        {/* Trailing ellipsis + last */}
+        {end < totalPages && (
+          <>
+            {end < totalPages - 1 && <Ellipsis />}
+            <button
+              type="button"
+              className={`btn page-btn ${page === totalPages ? 'page-btn-active' : ''}`}
+              onClick={() => goPage(totalPages)}
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        {/* Next */}
+        <button
+          type="button"
+          className="btn page-btn"
+          onClick={goNext}
+          disabled={!canNext}
+        >
+          Next
+        </button>
+      </div>
+
+      <p className="text-center text-muted small mb-0 mt-2">
+        Page {page} of {totalPages}
+      </p>
+    </div>
+  );
+};
+
+
 
   return (
     <div style={pageGradient}>
@@ -457,8 +502,26 @@ useEffect(() => {
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
         </div>
-
+        
         <div className="ms-auto d-flex align-items-center gap-3">
+          {/* Add Property (μόνο για owners) */}
+          {user?.role === 'owner' && (
+            <Link
+              to="/add-property"
+              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+              style={{
+                background: "linear-gradient(135deg,#2563eb,#9333ea)",
+                color: "#fff",
+                fontWeight: 600,
+                border: "none"
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Add Property
+            </Link>
+          )}
           <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
 
@@ -515,28 +578,50 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Profile Dropdown */}
-          <div ref={profileMenuRef} className="position-relative">
-            <button
-              type="button"
-              className="btn btn-outline-dark dropdown-toggle"
-              onClick={() => setShowProfileMenu((v) => !v)}
-            >
-              Profile
-            </button>
-            {showProfileMenu && (
-              <div
-                className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                style={{ minWidth: 200, zIndex: 6500 }}
+          {/* Profile: owner => dropdown, user => simple link */}
+          {user?.role === 'owner' ? (
+            <div ref={profileMenuRef} className="position-relative">
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(v => !v)}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#2563eb,#9333ea)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
+                className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+                aria-haspopup="true"
+                aria-expanded={showProfileMenu ? 'true' : 'false'}
+                style={{
+                  background: '#fff',
+                  color: '#111827',
+                  border: '1px solid #e5e7eb',
+                  fontWeight: 500,
+                  transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
+                }}
               >
-                <button
-                  type="button"
-                  className="dropdown-item w-100 text-start"
-                  onClick={() => { setShowProfileMenu(false); navigate('/profile'); }}
+                <img
+                  src={profileImg}
+                  alt="Profile"
+                  className="rounded-circle"
+                  style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
+                />
+                <span className="small">{user?.name || 'Profile'}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="ms-1" viewBox="0 0 16 16">
+                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
+
+              {showProfileMenu && (
+                <div
+                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
+                  style={{ minWidth: 220, zIndex: 6500 }}
+                  role="menu"
                 >
-                  Profile
-                </button>
-                {user?.role === 'owner' && (
+                  <button
+                    type="button"
+                    className="dropdown-item w-100 text-start"
+                    onClick={() => { setShowProfileMenu(false); navigate('/profile'); }}
+                  >
+                    Profile
+                  </button>
                   <button
                     type="button"
                     className="dropdown-item w-100 text-start"
@@ -544,13 +629,34 @@ useEffect(() => {
                   >
                     My Properties
                   </button>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/profile"
+              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#2563eb,#9333ea)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
+              style={{
+                background: '#fff',
+                color: '#111827',
+                border: '1px solid #e5e7eb',
+                fontWeight: 500,
+                transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
+              }}
+            >
+              <img
+                src={profileImg}
+                alt="Profile"
+                className="rounded-circle"
+                style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
+              />
+              <span className="small">{user?.name || 'Profile'}</span>
+            </Link>
+          )}
 
-          {/* Logout last */}
-          <button className="btn btn-outline-danger" onClick={handleLogout}>
+          <button className="btn btn-outline-danger rounded-pill px-3" onClick={handleLogout}>
             Logout
           </button>
         </div>
@@ -570,7 +676,7 @@ useEffect(() => {
               className="mb-1 d-flex align-items-center gap-2"
               style={{
                 fontFamily: "'Poppins','Fredoka',sans-serif",
-                fontSize: "2.6rem",
+                fontSize: "3rem",
                 fontWeight: 600,
                 letterSpacing: "0.5px",
                 textTransform: "lowercase",
@@ -584,7 +690,7 @@ useEffect(() => {
           </div>
         </div>
       </div>
-      
+
       {/* Central Top Search Bar */}
       <div className="container" style={{ marginTop: 35 }}>
         <form
@@ -592,43 +698,60 @@ useEffect(() => {
           className="d-flex justify-content-center"
         >
           <div
-            className="input-group shadow-sm"
+            className="shadow-sm rounded-pill"
             style={{
-              maxWidth: 760,
+              maxWidth: 860,
               width: '100%',
-              borderRadius: 50,
-              overflow: 'visible',
+              display: 'grid',
+              gridTemplateColumns: '52px 1fr auto auto',
+              alignItems: 'center',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              overflow: 'hidden',
             }}
           >
-            {/* 🔍 Icon */}
-            <span className="input-group-text bg-white border-0 px-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M21 21l-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </span>
+            {/* 🔍 Icon bubble */}
+            <div className="d-flex align-items-center justify-content-center" style={{ height: 48 }}>
+              <span
+                className="d-inline-flex align-items-center justify-content-center rounded-circle"
+                style={{
+                  width: 36, height: 36, background: '#f3f4f6', border: '1px solid #e5e7eb'
+                }}
+                aria-hidden="true"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 21l-4.2-4.2M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </span>
+            </div>
 
-            {/* 🔎 Input */}
+            {/* ✍️ Input */}
             <input
               type="text"
               className="form-control border-0"
-              style={{ fontSize: 15, paddingTop: 10, paddingBottom: 10 }}
+              style={{ fontSize: 15, height: 48, boxShadow: 'none' }}
               placeholder="Search by city, area or address…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              aria-label="Search by location"
             />
 
-            {/* ⚙️ Filters (anchored panel) */}
-            <div className="position-relative">
+            {/* ⚙️ Filters pill */}
+            <div className="position-relative" style={{ paddingRight: 6 }}>
               <button
                 type="button"
                 ref={filterButtonRef}
-                className="btn btn-light border-start px-3"
                 onClick={() => setShowFilters((v) => !v)}
+                className="btn btn-light d-inline-flex align-items-center justify-content-center rounded-pill"
+                style={{
+                  height: 36, width: 44, border: '1px solid #e5e7eb', boxShadow: '0 1px 0 rgba(0,0,0,.02)'
+                }}
                 title="Filters"
+                aria-label="Open filters"
               >
-                <img src={filterIcon} alt="Filters" style={{ width: 16 }} />
+                <img src={filterIcon} alt="" style={{ width: 16 }} />
               </button>
 
               {showFilters && (
@@ -637,9 +760,8 @@ useEffect(() => {
                   className="bg-white border shadow p-3 rounded"
                   style={{
                     position: 'absolute',
-                    top: '100%',
+                    top: 'calc(100% + 8px)',
                     right: 0,
-                    marginTop: 8,
                     width: 320,
                     zIndex: 6500,
                   }}
@@ -654,50 +776,56 @@ useEffect(() => {
                     value={locationFilter}
                     onChange={(e) => setLocationFilter(e.target.value)}
                   />
+                  <div className="row g-2">
+                    <div className="col">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Min Price"
+                        className="form-control"
+                        value={minPrice}
+                        onChange={(e) => setMinPrice(e.target.value)}
+                      />
+                    </div>
+                    <div className="col">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Max Price"
+                        className="form-control"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="row g-2 mt-2">
+                    <div className="col">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Min m²"
+                        className="form-control"
+                        value={minSqm}
+                        onChange={(e) => setMinSqm(e.target.value)}
+                      />
+                    </div>
+                    <div className="col">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Max m²"
+                        className="form-control"
+                        value={maxSqm}
+                        onChange={(e) => setMaxSqm(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Min Price"
-                    className="form-control mb-2"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Max Price"
-                    className="form-control mb-2"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                  />
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Min Square meters"
-                    className="form-control mb-2"
-                    value={minSqm}
-                    onChange={(e) => setMinSqm(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="Max Square meters"
-                    className="form-control mb-3"
-                    value={maxSqm}
-                    onChange={(e) => setMaxSqm(e.target.value)}
-                  />
-
-                  <div className="d-flex gap-2">
-                    <button type="button" className="btn btn-primary w-100" onClick={handleFilter}>
+                  <div className="d-flex gap-2 mt-3">
+                    <button type="button" className="btn btn-primary w-100 rounded-pill" onClick={handleFilter}>
                       Apply
                     </button>
-                    <button type="button" className="btn btn-outline-secondary w-100" onClick={handleClearFilters}>
+                    <button type="button" className="btn btn-outline-secondary w-100 rounded-pill" onClick={handleClearFilters}>
                       Clear
                     </button>
                   </div>
@@ -705,17 +833,18 @@ useEffect(() => {
               )}
             </div>
 
-            {/* 🔵 Search Button */}
+            {/* 🔵 Go button */}
             <button
               type="submit"
-              className="btn"
+              className="btn rounded-pill"
               style={{
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: 'white',
+                marginRight: 6,
+                padding: '0 18px',
+                height: 36,
                 fontWeight: 600,
-                fontSize: 14,
-                padding: '0 20px',
-                borderRadius: 0,
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#fff',
+                border: 'none'
               }}
             >
               Go
@@ -726,12 +855,6 @@ useEffect(() => {
 
       {/* CONTENT: list (left) + sticky map (right) */}
       <div className="container-fluid py-4">
-        {user?.role === 'owner' && (
-          <div className="mb-3 text-end">
-            <Link to="/add-property" className="btn btn-outline-primary fw-semibold">Add Property</Link>
-          </div>
-        )}
-
         <div className="row g-4">
           {/* LEFT: Properties list */}
           <div className="col-lg-7" ref={leftColRef}>
@@ -791,7 +914,7 @@ useEffect(() => {
                         </Link>
                         <div className="card-footer text-end bg-white border-0">
                           <button
-                            className="btn btn-sm btn-outline-warning"
+                            className="btn btn-sm btn-outline-warning rounded-pill"
                             onClick={() => handleFavorite(prop._id)}
                           >
                             {favorites.includes(prop._id) ? '★' : '☆'}

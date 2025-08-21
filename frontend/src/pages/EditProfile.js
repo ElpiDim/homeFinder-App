@@ -217,20 +217,25 @@ function EditProfile() {
           <div className="d-flex justify-content-between">
             <button
               type="button"
-              className="btn btn-outline-secondary"
+              className="btn btn-outline-secondary rounded-pill px-4"
               onClick={() => navigate(-1)}
             >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
+
+            <button
+              type="submit"
+              className="btn btn-primary rounded-pill px-4"
+            >
               Save Changes
             </button>
           </div>
+
         </form>
 
         <button
           type="button"
-          className="btn btn-outline-danger w-100 mt-4"
+          className="btn btn-outline-danger w-100 mt-4 rounded-pill py-2"
           onClick={handleDeleteAccount}
         >
           🗑 Delete Account
