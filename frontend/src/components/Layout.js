@@ -41,7 +41,7 @@ function Layout({ children }) {
       style={{
         fontFamily: "'Poppins','Fredoka',sans-serif",
         textTransform: 'lowercase',
-        background: 'linear-gradient(90deg, #2563eb, #9333ea)',
+        background: 'linear-gradient(90deg, #ff0000, #ffeb3b)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}
@@ -88,7 +88,7 @@ function Layout({ children }) {
                     to="/add-property"
                     className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                     style={{
-                      background: 'linear-gradient(135deg,#2563eb,#9333ea)',
+                      background: 'linear-gradient(135deg,#ff0000,#ffeb3b)',
                       color: '#fff',
                       fontWeight: 600,
                       border: 'none'
@@ -123,7 +123,7 @@ function Layout({ children }) {
                         boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb, #9333ea)';
+                           e.currentTarget.style.background = 'linear-gradient(135deg, #ff0000, #ffeb3b)';
                         e.currentTarget.style.color = 'white';
                         e.currentTarget.style.border = 'none';
                       }}
@@ -185,7 +185,7 @@ function Layout({ children }) {
                       boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #2563eb, #9333ea)';
+                       e.currentTarget.style.background = 'linear-gradient(135deg, #ff0000, #ffeb3b)';
                       e.currentTarget.style.color = 'white';
                       e.currentTarget.style.border = 'none';
                     }}
@@ -221,7 +221,7 @@ function Layout({ children }) {
                   to="/register"
                   className="btn rounded-pill px-3"
                   style={{
-                    background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+                      background: 'linear-gradient(135deg, #ff0000, #ffeb3b)',
                     color: '#fff',
                     fontWeight: 600,
                     border: 'none'

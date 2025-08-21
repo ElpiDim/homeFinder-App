@@ -111,7 +111,7 @@ export default function Favorites() {
             <Button
               onClick={() => navigate('/dashboard')}
               className="rounded-pill px-4"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', border: 'none' }}
+              style={{ background: 'linear-gradient(135deg,#ff0000,#ffeb3b)', border: 'none' }}
             >
               Browse Properties
             </Button>
@@ -156,7 +156,7 @@ export default function Favorites() {
                             <Badge
                               bg="primary"
                               title="Type"
-                              style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}
+                              style={{ background: 'linear-gradient(135deg,#ff0000,#ffeb3b)' }}
                             >
                               {p.type}
                             </Badge>

@@ -21,7 +21,7 @@ function Register() {
   const pageGradient = {
     minHeight: '100vh',
     background:
-      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #06B6D4 0%, #3B82F6 40%, #8B5CF6 100%)',
+       'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #ff0000 0%, #ffeb3b 100%)',
     backgroundAttachment: 'fixed',
   };
 
@@ -60,7 +60,7 @@ function Register() {
             style={{
               fontFamily: "'Poppins','Fredoka',sans-serif",
               textTransform: 'lowercase',
-              background: 'linear-gradient(90deg,#2563eb,#9333ea)',
+               background: 'linear-gradient(90deg,#ff0000,#ffeb3b)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}
@@ -143,7 +143,7 @@ function Register() {
                 style={{
                   fontWeight: 700,
                   height: 44,
-                  background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+                  background: 'linear-gradient(135deg, #ff0000, #ffeb3b)',
                   color: '#fff',
                   border: 'none',
                 }}

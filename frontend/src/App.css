@@ -65,7 +65,7 @@
 .page-btn-icon { width: 36px; padding: 0; }
 
 .page-btn-active {
-  background: linear-gradient(135deg,#2563eb,#9333ea) !important;
+ background: linear-gradient(135deg,#ff0000,#ffeb3b) !important;
   color: #fff !important;
   border-color: transparent !important;
 }
@@ -110,7 +110,7 @@
   top: 4px;
   bottom: 4px;
   width: 33%;
-  background: linear-gradient(135deg,#2563eb,#9333ea);
+    background: linear-gradient(135deg,#ff0000,#ffeb3b);
   border-radius: 9999px;
   transition: transform 0.3s ease;
   z-index: 1;

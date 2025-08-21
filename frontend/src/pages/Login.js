@@ -1,7 +1,9 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../services/authService';
+import Logo from '../components/Logo';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -10,11 +12,11 @@ function Login() {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
-  // Same vibrant gradient used on Login
+  // ίδιο vibrant gradient με Register
   const pageGradient = {
     minHeight: '100vh',
     background:
-      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #06B6D4 0%, #3B82F6 40%, #8B5CF6 100%)',
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #ff0000 0%, #ffeb3b 100%)',
     backgroundAttachment: 'fixed',
   };
 
@@ -34,23 +36,23 @@ function Login() {
 
   return (
     <div style={pageGradient}>
-      {/* Navbar (translucent over the gradient) */}
+      {/* Navbar (compact + glass) */}
       <nav
-        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
-        style={{
-          background: 'rgba(255,255,255,0.72)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-        }}
+        className="navbar navbar-expand-lg px-3 compact-nav shadow-sm glass-bg"
+        style={{ position: 'sticky', top: 0, zIndex: 5000 }}
       >
         <div className="d-flex align-items-center gap-2">
-          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48" aria-hidden="true">
             <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
           </svg>
-          <h5 className="mb-0 fw-bold">Homie</h5>
+        {/* Brand logo (λευκό με σκιές) */}
+          <Logo as="h5" className="mb-0 logo-white" />
         </div>
+
         <div className="ms-auto d-flex align-items-center gap-3">
-          <Link to="/" className="btn btn-outline-secondary rounded-pill px-4">Back to Home</Link>
+          <Link to="/" className="btn btn-brand-outline rounded-pill px-3 fw-semibold">
+            Back to Home
+          </Link>
         </div>
       </nav>
 
@@ -58,7 +60,7 @@ function Login() {
       <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
         <div className="card shadow p-4" style={{ maxWidth: '500px', width: '100%' }}>
           <h4 className="fw-bold mb-3">Sign in to your account</h4>
-          {message && <div className="alert alert-info">{message}</div>}
+          {message && <div className="alert alert-info rounded-pill">{message}</div>}
 
           <form onSubmit={handleLogin}>
             <div className="mb-3">
@@ -86,13 +88,17 @@ function Login() {
             </div>
 
             <div className="d-grid">
-              <button type="submit" className="btn btn-primary">Login</button>
+              <button type="submit" className="btn btn-brand rounded-pill" style={{ height: 44, fontWeight: 700 }}>
+                Login
+              </button>
             </div>
           </form>
 
           <div className="mt-3 text-center">
             <span className="text-muted">Don’t have an account? </span>
-            <Link to="/register">Register</Link>
+            <Link to="/register" className="btn btn-link rounded-pill px-2 py-1" style={{ textDecoration: 'none', fontWeight: 600 }}>
+              Register
+            </Link>
           </div>
         </div>
       </div>
