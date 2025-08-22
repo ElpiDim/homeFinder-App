@@ -12,13 +12,12 @@ function Login() {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
-  // ίδιο vibrant gradient με Register
-  const pageGradient = {
-    minHeight: '100vh',
-    background:
-      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #ff0000 0%, #ffeb3b 100%)',
-    backgroundAttachment: 'fixed',
-  };
+    const pageGradient = {
+      minHeight: '100vh',
+      background:
+        'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
+      backgroundAttachment: 'fixed',
+    };
 
   const handleLogin = async (e) => {
     e.preventDefault();

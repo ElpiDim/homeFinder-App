@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../api';
 import { useNavigate, Link } from 'react-router-dom';
+import Logo from "../components/Logo";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -17,11 +18,10 @@ function Register() {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
-  // ίδιο vibrant gradient με Login
   const pageGradient = {
     minHeight: '100vh',
     background:
-       'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #ff0000 0%, #ffeb3b 100%)',
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
     backgroundAttachment: 'fixed',
   };
 
@@ -51,24 +51,6 @@ function Register() {
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
-        <div className="d-flex align-items-center gap-2">
-          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
-            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
-          </svg>
-          <h5
-            className="mb-0 fw-bold"
-            style={{
-              fontFamily: "'Poppins','Fredoka',sans-serif",
-              textTransform: 'lowercase',
-               background: 'linear-gradient(90deg,#ff0000,#ffeb3b)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            homie
-          </h5>
-        </div>
-
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link
             to="/"
@@ -80,9 +62,16 @@ function Register() {
         </div>
       </nav>
 
-      {/* Register Card */}
-      <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-        <div className="card shadow p-4" style={{ maxWidth: '640px', width: '100%' }}>
+      {/* Register Card (με κενό κάτω από το navbar) */}
+      <div
+        className="container d-flex justify-content-center align-items-center"
+        style={{
+          minHeight: 'calc(100vh - 88px)',  // αφαιρεί περίπου το ύψος του navbar
+          paddingTop: 24,                    // “ανάσα” κάτω από τη μπάρα
+          paddingBottom: 24,
+        }}
+      >
+        <div className="card shadow p-4" style={{ maxWidth: '640px', width: '100%', borderRadius: '1rem' }}>
           <h4 className="fw-bold mb-3">Create a new account</h4>
           {message && <div className="alert alert-info rounded-pill">{message}</div>}
 
@@ -143,7 +132,7 @@ function Register() {
                 style={{
                   fontWeight: 700,
                   height: 44,
-                  background: 'linear-gradient(135deg, #ff0000, #ffeb3b)',
+                  background: 'linear-gradient(135deg, #006400, #90ee90)',
                   color: '#fff',
                   border: 'none',
                 }}

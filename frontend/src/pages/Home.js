@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
@@ -11,6 +11,14 @@ function Home() {
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
   const navigate = useNavigate();
+
+  /* ---------- pastel page background (same as Dashboard) ---------- */
+  const pageGradient = useMemo(() => ({
+    minHeight: "100vh",
+    background:
+      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
+       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+  }), []);
 
   /* ---------- images (origin-safe) ---------- */
   const API_ORIGIN =
@@ -55,8 +63,8 @@ function Home() {
             lat: userLat ?? undefined,
             lng: userLng ?? undefined,
             page: 1,
-            limit: 24
-          }
+            limit: 24,
+          },
         });
         const items = Array.isArray(res.data) ? res.data : res.data?.items ?? [];
         setProperties(items);
@@ -70,7 +78,7 @@ function Home() {
   const noop = () => {};
 
   return (
-    <div className="page-white">
+    <div style={pageGradient}>
       {/* Header (white, compact) */}
       <nav
         className="navbar navbar-expand-lg px-3 compact-nav shadow-sm bg-white border-bottom border-soft"
@@ -94,7 +102,7 @@ function Home() {
       </nav>
 
       {/* Hero (compact) */}
-      <section className="hero-compact text-center d-flex flex-column justify-content-center align-items-center bg-white">
+      <section className="hero-compact text-center d-flex flex-column justify-content-center align-items-center">
         <div className="container">
           {/* Μεγάλο gradient logo + σκιές */}
           <Logo className="logo-shadow" />

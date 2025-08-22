@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -13,11 +13,13 @@ function Appointments() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  const pageGradient = {
-    minHeight: '100vh',
+  const pageGradient = useMemo(() => ({
+    minHeight: "100vh",
     background:
-      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
-  };
+      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
+       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+  }), []);
+
 
   useEffect(() => {
     const fetchAppointments = async () => {

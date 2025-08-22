@@ -10,7 +10,7 @@ function Properties() {
   const pageGradient = {
     minHeight: '100vh',
     background:
-      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
+      'linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)',
   };
 
   useEffect(() => {

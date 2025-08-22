@@ -96,11 +96,14 @@ function Dashboard() {
     : '/default-avatar.jpg';
 
   /* ---------- utils ---------- */
-  const pageGradient = useMemo(() => ({
-    minHeight: '100vh',
-    background:
-      'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 22%, #fce7f3 50%, #ffe4e6 72%, #fff7ed 100%)',
-  }), []);
+// pastel, airy background
+const pageGradient = useMemo(() => ({
+  minHeight: '100vh',
+  background:
+    // soft radial highlight + very light green gradient
+    'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
+     linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+}), []);
 
   const imgUrl = (src) => {
     if (!src) return 'https://via.placeholder.com/400x225?text=No+Image';
@@ -447,7 +450,7 @@ function Dashboard() {
               to="/add-property"
               className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
               style={{
-                background: "linear-gradient(135deg,#ff0000,#ffeb3b)",
+                background: "linear-gradient(135deg,#006400,#90ee90)",
                 color: "#fff",
                 fontWeight: 600,
                 border: "none"
@@ -521,7 +524,7 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(v => !v)}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#ff0000,#ffeb3b)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
                 className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                 aria-haspopup="true"
@@ -581,7 +584,7 @@ function Dashboard() {
             <Link
               to="/profile"
               className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-               onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#ff0000,#ffeb3b)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+               onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
               style={{
                 background: '#fff',

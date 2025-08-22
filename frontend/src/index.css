@@ -6,12 +6,12 @@
    ================================ */
 
 :root {
-  --bs-primary: #ff0000;
-  --bs-primary-rgb: 255, 0, 0;
+  --bs-primary: #006400;
+  --bs-primary-rgb: 0, 100, 0;
 
   /* Brand palette */
-  --brand-start: #ff0000;
-  --brand-end:   #ffeb3b;
+  --brand-start: #006400;
+  --brand-end:   #90ee90;
   --brand-grad:  linear-gradient(135deg, var(--brand-start), var(--brand-end));
 
   /* UI tokens */
@@ -50,12 +50,12 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
   letter-spacing:.3px;
   text-transform:lowercase;
 
-  /* Smooth orange → yellow gradient */
+  /* Smooth dark → light green gradient */
   background: linear-gradient(135deg,
-              #ff4d00 0%,
-              #ff6a00 30%,
-              #ff9900 65%,
-              #ffd166 100%);
+              #006400 0%,
+              #228b22 30%,
+              #32cd32 65%,
+              #90ee90 100%);
   -webkit-background-clip:text;
   background-clip:text;
   -webkit-text-fill-color:transparent;
@@ -254,6 +254,7 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 }
 .search-group .search-input{ padding-left:0; }
 
+
 /* Λίγο μεγαλύτερο logo ειδικά για το navbar του Dashboard */
 .logo-in-nav .logo-word{
   font-size:24px;
@@ -265,3 +266,5 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 }
 @media (min-width: 992px){ .logo-in-nav .logo-word{ font-size:28px; } }
 @media (min-width: 1400px){ .logo-in-nav .logo-word{ font-size:30px; } }
+
+
