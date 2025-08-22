@@ -138,3 +138,79 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 .text-muted-2{ color:var(--muted); }
 .border-soft{ border:1px solid var(--border); }
 .card.rounded-4, .rounded-4{ border-radius:1rem; }
+
+/* Slim variant για την search bar */
+.search-pill.slim{
+  box-shadow:0 3px 10px rgba(0,0,0,.06);
+}
+.search-pill.slim .icon{
+  padding-left:12px;
+  padding-right:10px;
+}
+.search-pill.slim .search-input{
+  height:44px;                 /* πιο χαμηλή */
+}
+.search-pill.slim .btn-search{
+  height:36px;                 /* πιο χαμηλό κουμπί */
+  padding:0 14px;
+  margin:4px 4px 4px 6px;
+}
+
+/* Filters button: ίσιο αριστερά, στρογγυλό δεξιά */
+.btn-filters{
+  background:#fff;
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:0 9999px 9999px 0;   /* straight left, rounded right */
+  height:40px;
+  line-height:40px;
+  transition:all .25s ease;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.btn-filters:hover{
+  background:var(--brand-grad);
+  color:#fff;
+  border-color:transparent;
+}
+
+.search-group{
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  gap:0;                       /* κανένα κενό */
+}
+.search-pill{
+  width:100%;
+  border-radius:9999px;
+  background:#fff;
+  border:1px solid var(--border);
+  box-shadow:0 4px 14px rgba(0,0,0,.07);
+  overflow:hidden;
+  padding-right:6px;
+}
+.search-pill.slim{ box-shadow:0 3px 10px rgba(0,0,0,.06); }
+.search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
+.search-input{ border:none !important; box-shadow:none !important; height:44px; padding-left:0; }
+.btn-search{ border-radius:9999px !important; height:36px; padding:0 14px; margin:4px 4px 4px 6px; }
+
+/* κολλητή δεξιά πλευρά */
+.search-pill.stick-right{
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
+  padding-right:0;
+}
+.search-pill.stick-right .btn-search{ margin-right:0; }
+
+/* Filters: flat αριστερά, rounded δεξιά, χωρίς διπλό border */
+.btn-filters{
+  background:#fff; color:var(--text);
+  border:1px solid var(--border);
+  height:44px; line-height:44px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  transition:all .25s ease;
+}
+.btn-filters.stick{
+  border-left:none;                 /* αφαιρεί διπλό όριο επαφής */
+  border-radius:0 9999px 9999px 0;  /* flat L, rounded R */
+}
+.btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }

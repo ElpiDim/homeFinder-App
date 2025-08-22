@@ -63,7 +63,7 @@ function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
@@ -599,11 +599,122 @@ function Dashboard() {
 
       {/* CONTENT: list (left) + sticky map (right) */}
       <div className="container-fluid pt-3">
+        {/* INSERT: centered searchbar */}
+              {/* Centered searchbar row (slimmer + Filters on same line) */}
+        <div className="row">
+          <div className="col-12">
+            <div className="mx-auto mb-3" style={{ maxWidth: 920 }}>
+              <div className="search-group">
+                {/* Search – square, flat right to attach */}
+                <div className="search-rect stick-right d-flex align-items-center flex-grow-1">
+                  <span className="icon text-muted">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+
+                  <input
+                    type="text"
+                    className="form-control search-input"
+                    placeholder="Search by city, address, title…"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      className="btn btn-link text-muted clear-btn"
+                      onClick={() => { setSearchTerm(''); setPage(1); fetchAllProperties({ q:'', page:1 }); }}
+                    >
+                      Clear
+                    </button>
+                  )}
+
+                  <button className="btn btn-brand btn-search" onClick={handleSearch}>
+                    Search
+                  </button>
+                </div>
+
+                {/* Filters – flat left, rounded right, same height, attached */}
+                <button
+                  className="btn btn-filters stick px-4"
+                  type="button"
+                  onClick={() => setShowFilters(v => !v)}
+                >
+                  {showFilters ? 'Hide filters' : 'Filters'}
+                </button>
+              </div>
+            </div>
+
+
+
+            {showFilters && (
+              <div className="card border-0 shadow-sm p-3 mt-2 mx-auto" style={{ maxWidth: 920 }}>
+                <div className="row g-2">
+                  <div className="col-md-6 col-xl-4">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Location"
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 col-xl-4">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Min Price"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 col-xl-4">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Max Price"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 col-xl-4">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Min Sqm"
+                      value={minSqm}
+                      onChange={(e) => setMinSqm(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 col-xl-4">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Max Sqm"
+                      value={maxSqm}
+                      onChange={(e) => setMaxSqm(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6 col-xl-4 d-flex align-items-end">
+                    <button className="btn btn-brand w-100" onClick={handleSearch}>
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
         <div className="row g-4">
           {/* LEFT: Properties list */}
           <div className="col-lg-7">
-           <div className="d-flex align-items-center gap-3 mb-3">
-            <h4 className="fw-bold mb-0">Featured Properties</h4>
+            <div className="d-flex align-items-center gap-3 mb-3">
+              <h4 className="fw-bold mb-0">Featured Properties</h4>
 
               {/* Toggle: All / Sale / Rent */}
               <div className="d-flex">
@@ -611,27 +722,39 @@ function Dashboard() {
                   <div className="toggle-options">
                     <button
                       className={`toggle-btn ${viewType === '' ? 'active' : ''}`}
-                      onClick={() => { setViewType(''); setPage(1); fetchAllProperties({ type: undefined, page: 1 }); }}
+                         onClick={() => {
+                        setViewType('');
+                        setPage(1);
+                        fetchAllProperties({ type: undefined, page: 1 });
+                      }}
                     >
-                    All
-                  </button>
-                  <button
-                    className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}
-                    onClick={() => { setViewType('sale'); setPage(1); fetchAllProperties({ type: 'sale', page: 1 }); }}
-                  >
-                  Sale
-                  </button>
-                  <button
-                    className={`toggle-btn ${viewType === 'rent' ? 'active' : ''}`}
-                    onClick={() => { setViewType('rent'); setPage(1); fetchAllProperties({ type: 'rent', page: 1 }); }}
-                  >
-                  Rent
-                  </button>
-                <div className={`slider ${viewType || 'all'}`}></div>
-                    </div>
+                     All
+                    </button>
+                    <button
+                      className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}
+                      onClick={() => {
+                        setViewType('sale');
+                        setPage(1);
+                        fetchAllProperties({ type: 'sale', page: 1 });
+                      }}
+                    >
+                      Sale
+                    </button>
+                    <button
+                      className={`toggle-btn ${viewType === 'rent' ? 'active' : ''}`}
+                      onClick={() => {
+                        setViewType('rent');
+                        setPage(1);
+                        fetchAllProperties({ type: 'rent', page: 1 });
+                      }}
+                    >
+                      Rent
+                    </button>
+                    <div className={`slider ${viewType || 'all'}`}></div>
                   </div>
                 </div>
               </div>
+            </div>
             {!Array.isArray(properties) || properties.length === 0 ? (
               <p className="text-muted">No properties found.</p>
             ) : (
