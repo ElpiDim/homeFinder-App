@@ -1,15 +1,18 @@
 // src/pages/Home.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
 import Logo from "../components/Logo";
+import PropertyCard from "../components/propertyCard";
 
 function Home() {
   const [properties, setProperties] = useState([]);
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
+  const navigate = useNavigate();
 
+  /* ---------- images (origin-safe) ---------- */
   const API_ORIGIN =
     (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, "") : "") ||
     (typeof window !== "undefined" ? window.location.origin : "");
@@ -26,8 +29,9 @@ function Home() {
       ? src.startsWith("http")
         ? src
         : `${API_ORIGIN}${normalizeUploadPath(src)}`
-      : "https://via.placeholder.com/400x200?text=No+Image";
+      : "https://via.placeholder.com/400x225?text=No+Image";
 
+  /* ---------- geolocation (optional) ---------- */
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
@@ -40,6 +44,7 @@ function Home() {
     );
   }, []);
 
+  /* ---------- fetch featured ---------- */
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
@@ -62,17 +67,20 @@ function Home() {
     fetchFeatured();
   }, [userLat, userLng]);
 
+  const noop = () => {};
+
   return (
     <div className="page-white">
       {/* Header (white, compact) */}
       <nav
         className="navbar navbar-expand-lg px-3 compact-nav shadow-sm bg-white border-bottom border-soft"
         style={{ position: "sticky", top: 0, zIndex: 5000 }}
->
+      >
         <div className="d-flex align-items-center gap-2">
-          <span role="img" aria-label="home">🏠</span>
-          {/* Gradient logo (ΔΕΝ βάζουμε logo-white) */}
-          <Logo as="h5" className="mb-0" />
+          {/* ίδιο logo με το Dashboard (gradient + μικρό μέγεθος) */}
+          <Link to="/" className="text-decoration-none">
+            <Logo as="h5" className="mb-0 logo-in-nav" />
+          </Link>
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-2 gap-sm-3">
@@ -88,8 +96,8 @@ function Home() {
       {/* Hero (compact) */}
       <section className="hero-compact text-center d-flex flex-column justify-content-center align-items-center bg-white">
         <div className="container">
-          {/* Gradient logo στο hero */}
-          <Logo />
+          {/* Μεγάλο gradient logo + σκιές */}
+          <Logo className="logo-shadow" />
           <p className="lead mb-0">Find a house, make it your home in a click.</p>
         </div>
       </section>
@@ -105,44 +113,27 @@ function Home() {
         </div>
       </div>
 
-      {/* Featured Properties */}
+      {/* Featured Properties (ίδιες κάρτες με Dashboard) */}
       <div className="container pb-5">
         <h4 className="fw-bold mb-3">Featured Properties</h4>
-        <div className="row g-4">
-          {!Array.isArray(properties) || properties.length === 0 ? (
-            <p className="text-muted">No featured properties yet.</p>
-          ) : (
-            properties.map((prop) => (
-              <div className="col-md-4" key={prop._id}>
-                <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-                  <div className="card border-0 shadow-sm h-100 rounded-4">
-                    <div
-                      className="rounded-top"
-                      style={{
-                        backgroundImage: `url(${imgUrl(prop.images?.[0])})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        height: "200px",
-                        borderTopLeftRadius: "1rem",
-                        borderTopRightRadius: "1rem"
-                      }}
-                    />
-                    <div className="card-body">
-                      <h5 className="card-title">{prop.title}</h5>
-                      <p className="card-text text-muted mb-0">📍 {prop.location}</p>
-                      {prop.price != null && (
-                        <p className="card-text text-muted mb-0">
-                          💶 {Number(prop.price).toLocaleString()} €
-                        </p>
-                      )}
-                      {prop.type && <p className="card-text text-muted">🏷️ {prop.type}</p>}
-                    </div>
-                  </div>
-                </Link>
+
+        {!Array.isArray(properties) || properties.length === 0 ? (
+          <p className="text-muted">No featured properties yet.</p>
+        ) : (
+          <div className="row g-3">
+            {properties.map((prop) => (
+              <div className="col-sm-6 col-lg-4" key={prop._id}>
+                <PropertyCard
+                  prop={prop}
+                  isFavorite={false}
+                  onToggleFavorite={noop}
+                  imgUrl={imgUrl}
+                  onOpen={() => navigate(`/property/${prop._id}`)}
+                />
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

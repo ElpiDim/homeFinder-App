@@ -42,9 +42,6 @@ function Login() {
         style={{ position: 'sticky', top: 0, zIndex: 5000 }}
       >
         <div className="d-flex align-items-center gap-2">
-          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48" aria-hidden="true">
-            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
-          </svg>
         {/* Brand logo (λευκό με σκιές) */}
           <Logo as="h5" className="mb-0 logo-white" />
         </div>

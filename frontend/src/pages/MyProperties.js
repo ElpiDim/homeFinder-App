@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Button, Table, Badge, Spinner } from 'react-bootstrap';
+import { Button, Spinner, Row, Col, Card, Badge, Container } from 'react-bootstrap';
 
 export default function MyProperties() {
   const { user } = useAuth();
@@ -11,7 +11,6 @@ export default function MyProperties() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ίδιο pastel gradient
   const pageGradient = {
     minHeight: '100vh',
     background:
@@ -23,7 +22,6 @@ export default function MyProperties() {
       if (!user || user.role !== 'owner') return setLoading(false);
       try {
         const token = localStorage.getItem('token');
-        // Προτιμώ backend που επιστρέφει ήδη counts:
         const res = await api.get('/properties/mine?includeStats=1', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -37,22 +35,30 @@ export default function MyProperties() {
     load();
   }, [user]);
 
-    const handleDelete = async (id) => {
+  const imgUrl = (src) =>
+    src
+      ? src.startsWith('http')
+        ? src
+        : `http://localhost:5000${src}`
+      : 'https://via.placeholder.com/600x360?text=No+Image';
+
+  const handleDelete = async (id) => {
     if (!window.confirm('Delete this property?')) return;
     try {
       const token = localStorage.getItem('token');
       await api.delete(`/properties/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setItems(items.filter((p) => p._id !== id));
+      setItems((prev) => prev.filter((p) => p._id !== id));
     } catch (e) {
       console.error('Failed to delete property', e);
     }
   };
+
   if (!user) {
     return (
       <div style={pageGradient}>
-        <div className="container py-5">Loading…</div>
+        <Container className="py-5">Loading…</Container>
       </div>
     );
   }
@@ -60,22 +66,36 @@ export default function MyProperties() {
   if (user.role !== 'owner') {
     return (
       <div style={pageGradient}>
-        <div className="container py-5">
+        <Container className="py-5">
           <p className="text-danger">Only owners can view this page.</p>
           <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
             ← Back
           </Button>
-        </div>
+        </Container>
       </div>
     );
   }
 
   return (
     <div style={pageGradient}>
-      <div className="container py-5">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4 className="fw-bold mb-0">My Properties</h4>
-          <Link to="/add-property" className="btn btn-primary rounded-pill px-4">+ Add Property</Link>
+      <Container className="py-5">
+
+        {/* Top bar: Back (left) + Title (next) + Add (right) */}
+        <div className="d-flex align-items-center justify-content-between mb-4">
+          <div className="d-flex align-items-center gap-3">
+            <Button
+              variant="outline-secondary"
+              className="rounded-pill px-3"
+              onClick={() => navigate('/dashboard')}
+            >
+              ← Back to Dashboard
+            </Button>
+            <h3 className="fw-bold mb-0">My Properties</h3>
+          </div>
+
+          <Link to="/add-property" className="btn btn-primary rounded-pill px-4">
+            + Add Property
+          </Link>
         </div>
 
         {loading ? (
@@ -85,56 +105,67 @@ export default function MyProperties() {
         ) : items.length === 0 ? (
           <p className="text-muted">You have no properties yet.</p>
         ) : (
-          <div className="table-responsive">
-            <Table hover className="bg-white rounded shadow-sm">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Location</th>
-                  <th>Type</th>
-                  <th>Price (€)</th>
-                  <th>Status</th>
-                  <th>Favorites</th>
-                  <th>Views</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((p) => (
-                  <tr key={p._id}>
-                    <td className="fw-semibold">{p.title}</td>
-                    <td>{p.location}</td>
-                    <td>{p.type}</td>
-                    <td>{p.price}</td>
-                    <td>
-                      <Badge bg={p.status === 'available' ? 'success' : p.status === 'sold' ? 'secondary' : 'warning'} text="light">
-                        {p.status}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge bg="warning" text="dark">{p.favoritesCount ?? 0}</Badge>
-                    </td>
-                    <td>
-                      <Badge bg="info" text="dark">{p.viewsCount ?? 0}</Badge>
-                    </td>
-                    <td className="text-end">
-                      <div className="btn-group">
-                        <Link to={`/property/${p._id}`} className="btn btn-sm btn-outline-secondary">Open</Link>
-                        <Link to={`/edit-property/${p._id}`} className="btn btn-sm btn-primary">Edit</Link>
-                        <button onClick={() => handleDelete(p._id)} className="btn btn-sm btn-danger">Delete</button>
+          <Row className="g-4">
+            {items.map((p) => (
+              <Col md={6} lg={4} key={p._id}>
+                <Card className="h-100 shadow-sm border-0">
+                  <Link to={`/property/${p._id}`} className="text-decoration-none text-dark">
+                    <div
+                      className="ratio ratio-16x9 rounded-top"
+                      style={{
+                        backgroundImage: `url(${imgUrl(p.images?.[0])})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    />
+                    <Card.Body className="d-flex flex-column">
+                      <Card.Title className="fw-semibold mb-1">{p.title}</Card.Title>
+                      <div className="text-muted small mb-1">📍 {p.location}</div>
+                      <div className="text-muted small mb-1">
+                        💶 {Number(p.price).toLocaleString()} €
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+                      {p.type && <div className="text-muted small mb-3">🏷️ {p.type}</div>}
+                      <div className="mt-auto d-flex gap-2 flex-wrap">
+                        <Badge
+                          bg={
+                            p.status === 'available'
+                              ? 'success'
+                              : p.status === 'sold'
+                              ? 'secondary'
+                              : 'warning'
+                          }
+                          text="light"
+                        >
+                          {p.status}
+                        </Badge>
+                        <Badge bg="warning" text="dark">
+                          ⭐ {p.favoritesCount ?? 0}
+                        </Badge>
+                        <Badge bg="info" text="dark">
+                          👁 {p.viewsCount ?? 0}
+                        </Badge>
+                      </div>
+                    </Card.Body>
+                  </Link>
+                  <Card.Footer className="bg-white border-0 d-flex justify-content-between">
+                    <Link to={`/edit-property/${p._id}`} className="btn btn-sm btn-primary rounded-pill">
+                      Edit
+                    </Link>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      className="rounded-pill"
+                      onClick={() => handleDelete(p._id)}
+                    >
+                      Delete
+                    </Button>
+                  </Card.Footer>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         )}
-
-        <Button variant="outline-secondary rounded-pill px-4" className="mt-3" onClick={() => navigate('/dashboard')}>
-          ← Back to Dashboard
-        </Button>
-      </div>
+      </Container>
     </div>
   );
 }

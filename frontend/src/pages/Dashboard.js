@@ -7,6 +7,8 @@ import GoogleMapView from '../components/GoogleMapView';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
+import Logo from '../components/Logo'; 
+
 
 /* ---------- helpers (notifications) ---------- */
 const iconForType = (t) => {
@@ -434,9 +436,9 @@ function Dashboard() {
         }}
       >
         <div className="d-flex align-items-center gap-2">
-          <svg width="24" height="24" fill="currentColor" viewBox="0 0 48 48">
-            <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" />
-          </svg>
+          <Link to="/" className="text-decoration-none">
+            <Logo as="h5" className="mb-0 logo-in-nav" />
+          </Link>
         </div>
 
         <div className="ms-auto d-flex align-items-center gap-3">
@@ -550,20 +552,28 @@ function Dashboard() {
                   style={{ minWidth: 220, zIndex: 6500 }}
                   role="menu"
                 >
-                  <button
-                    type="button"
-                    className="dropdown-item w-100 text-start"
-                    onClick={() => { setShowProfileMenu(false); navigate('/profile'); }}
-                  >
-                    Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="dropdown-item w-100 text-start"
-                    onClick={() => { setShowProfileMenu(false); navigate('/my-properties'); }}
-                  >
-                    My Properties
-                  </button>
+                  <ul className="list-group list-group-flush mb-0">
+                    <li
+                      className="list-group-item list-group-item-action small"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/profile');
+                      }}
+                    >
+                      Profile
+                    </li>
+                    <li
+                      className="list-group-item list-group-item-action small"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/my-properties');
+                      }}
+                    >
+                      My Properties
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
@@ -644,7 +654,7 @@ function Dashboard() {
                   type="button"
                   onClick={() => setShowFilters(v => !v)}
                 >
-                  {showFilters ? 'Hide filters' : 'Filters'}
+                  {showFilters ? 'Filters' :'Filters'}
                 </button>
               </div>
             </div>

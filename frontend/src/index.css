@@ -1,9 +1,11 @@
+/* Baloo 2 για το καινούριο logo */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+
 /* ================================
    Global tokens & base styles
    ================================ */
 
 :root {
-  /* Bootstrap primary (solid) */
   --bs-primary: #ff0000;
   --bs-primary-rgb: 255, 0, 0;
 
@@ -13,7 +15,7 @@
   --brand-grad:  linear-gradient(135deg, var(--brand-start), var(--brand-end));
 
   /* UI tokens */
-  --ui-bg: rgba(255,255,255,.72); /* glassy navbar/card bg */
+  --ui-bg: rgba(255,255,255,.72);
   --text: #111827;
   --muted: #6b7280;
   --border: #e5e7eb;
@@ -35,34 +37,37 @@ body {
 code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace; }
 
 /* ================================
-   Brand Logo
+   Brand Logo  (Baloo 2)
    ================================ */
 
-/* Default: GRADIENT logo */
+/* Default logo: γεμάτο gradient, ΧΩΡΙΣ περίγραμμα */
 .logo-word{
-  display:inline-block;                 /* για Firefox/Edge */
-  font-family:'Lobster',cursive;        /* βάλε εδώ ό,τι font επέλεξες */
-  font-size:clamp(44px,7vw,96px);
+  display:inline-block;
+  font-family:'Baloo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight:800;
+  font-size:clamp(48px, 9vw, 120px);
   line-height:1;
+  letter-spacing:.3px;
   text-transform:lowercase;
 
-  /* Gradient fill */
-  background:var(--brand-grad);
+  /* Smooth orange → yellow gradient */
+  background: linear-gradient(135deg,
+              #ff4d00 0%,
+              #ff6a00 30%,
+              #ff9900 65%,
+              #ffd166 100%);
   -webkit-background-clip:text;
-  background-clip:text;                 /* non-WebKit */
+  background-clip:text;
   -webkit-text-fill-color:transparent;
-  color:transparent;                    /* Firefox fallback */
+  color:transparent;
 
-  /* Διακριτικό outline για ανάγνωση */
-  text-shadow:
-    .5px .5px 0 #111, -.5px .5px 0 #111,
-    .5px -.5px 0 #111, -.5px -.5px 0 #111,
-    0 4px 10px rgba(0,0,0,.18);
+  /* Διακριτικό βάθος μόνο */
+  text-shadow: 0 8px 24px rgba(0,0,0,.10);
 }
 
 .logo-wrap{ display:inline-block; padding:.2rem .6rem; border-radius:16px; }
 
-/* Variant: WHITE logo με σκιές (χρησιμοποίησέ το με wrapper .logo-white) */
+/* Λευκή εκδοχή (όπου τη χρειαστείς σε σκουρό φόντο) */
 .logo-white .logo-word{
   background:none !important;
   -webkit-background-clip:initial; background-clip:initial;
@@ -102,10 +107,8 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
    Layout & Utilities
    ================================ */
 
-/* Λευκό page background helper */
 .page-white{ min-height:100vh; background:#fff; }
 
-/* Προαιρετικό brand gradient background */
 .brand-page-bg{
   min-height:100vh;
   background:
@@ -114,7 +117,6 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
   background-attachment:fixed;
 }
 
-/* Glassy navbar/card */
 .glass-bg{
   background:var(--ui-bg);
   backdrop-filter:blur(8px);
@@ -125,60 +127,36 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 .compact-nav{ padding-block:.35rem !important; }
 .compact-nav .logo-word{
   font-size:22px;
-  text-shadow:
-    .5px .5px 0 #111, -.5px .5px 0 #111,
-    .5px -.5px 0 #111, -.5px -.5px 0 #111,
-    0 3px 8px rgba(0,0,0,.20);
+  text-shadow:0 4px 12px rgba(0,0,0,.12);
 }
 
-/* Compact hero (λιγότερο κάθετο κενό) */
+/* Compact hero */
 .hero-compact{ padding:24px 0 !important; }
 
-/* Misc */
 .text-muted-2{ color:var(--muted); }
 .border-soft{ border:1px solid var(--border); }
 .card.rounded-4, .rounded-4{ border-radius:1rem; }
 
 /* Slim variant για την search bar */
-.search-pill.slim{
-  box-shadow:0 3px 10px rgba(0,0,0,.06);
-}
-.search-pill.slim .icon{
-  padding-left:12px;
-  padding-right:10px;
-}
-.search-pill.slim .search-input{
-  height:44px;                 /* πιο χαμηλή */
-}
+.search-pill.slim{ box-shadow:0 3px 10px rgba(0,0,0,.06); }
+.search-pill.slim .icon{ padding-left:12px; padding-right:10px; }
+.search-pill.slim .search-input{ height:44px; }
 .search-pill.slim .btn-search{
-  height:36px;                 /* πιο χαμηλό κουμπί */
-  padding:0 14px;
-  margin:4px 4px 4px 6px;
+  height:36px; padding:0 14px; margin:4px 4px 4px 6px;
 }
 
 /* Filters button: ίσιο αριστερά, στρογγυλό δεξιά */
 .btn-filters{
-  background:#fff;
-  color:var(--text);
+  background:#fff; color:var(--text);
   border:1px solid var(--border);
-  border-radius:0 9999px 9999px 0;   /* straight left, rounded right */
-  height:40px;
-  line-height:40px;
+  border-radius:0 9999px 9999px 0;
+  height:40px; line-height:40px;
   transition:all .25s ease;
   box-shadow:0 2px 6px rgba(0,0,0,.06);
 }
-.btn-filters:hover{
-  background:var(--brand-grad);
-  color:#fff;
-  border-color:transparent;
-}
+.btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
 
-.search-group{
-  display:flex;
-  align-items:center;
-  flex-wrap:nowrap;
-  gap:0;                       /* κανένα κενό */
-}
+.search-group{ display:flex; align-items:center; flex-wrap:nowrap; gap:0; }
 .search-pill{
   width:100%;
   border-radius:9999px;
@@ -188,231 +166,102 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
   overflow:hidden;
   padding-right:6px;
 }
-.search-pill.slim{ box-shadow:0 3px 10px rgba(0,0,0,.06); }
 .search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
 .search-input{ border:none !important; box-shadow:none !important; height:44px; padding-left:0; }
-.btn-search{
-  border-radius:0 !important;
-  height:44px;
-  padding:0 14px;
-  margin:0 0 0 6px;
-}
+.btn-search{ border-radius:0 !important; height:44px; padding:0 14px; margin:0 0 0 6px; }
+
 /* κολλητή δεξιά πλευρά */
-.search-pill.stick-right{
-  border-top-right-radius:0;
-  border-bottom-right-radius:0;
-  padding-right:0;
-}
+.search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; padding-right:0; }
 .search-pill.stick-right .btn-search{ margin-right:0; }
 
 /* Filters: flat αριστερά, rounded δεξιά, χωρίς διπλό border */
-.btn-filters{
-  background:#fff; color:var(--text);
-  border:1px solid var(--border);
-  height:44px; line-height:44px;
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-  transition:all .25s ease;
-}
-.btn-filters.stick{
-  border-left:none;                 /* αφαιρεί διπλό όριο επαφής */
-  border-radius:0 9999px 9999px 0;  /* flat L, rounded R */
-  margin-left:0;
-}
+.btn-filters{ background:#fff; color:var(--text); border:1px solid var(--border); height:44px; line-height:44px; box-shadow:0 2px 6px rgba(0,0,0,.06); transition:all .25s ease; }
+.btn-filters.stick{ border-left:none; border-radius:0 9999px 9999px 0; margin-left:0; }
 .btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
 
 /* ίδιο ύψος για search & filters */
 :root { --search-h: 44px; }
 
 /* Η ομάδα χωρίς κενό, ίδια ευθυγράμμιση */
-.search-group{
-  display:flex;
-  align-items:stretch;
-  gap:0; /* κολλητά */
-}
+.search-group{ display:flex; align-items:stretch; gap:0; }
 
-/* ----- SEARCH (όπως το έχεις με .search-pill) ----- */
+/* ----- SEARCH ----- */
 .search-pill{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:24px;
-  box-shadow:0 4px 14px rgba(0,0,0,.07);
-  overflow:hidden;
-  padding-right:6px;
-  display:flex;
-  align-items:center;
+  background:#fff; border:1px solid var(--border);
+  border-radius:24px; box-shadow:0 4px 14px rgba(0,0,0,.07);
+  overflow:hidden; padding-right:6px; display:flex; align-items:center;
 }
-.search-pill.stick-right{
-  border-top-right-radius:0;
-  border-bottom-right-radius:0;
-  border-right:none;        /* για να “δέσει” με το Filters */
-}
-.search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
-.search-input{
-  height:var(--search-h);
-  border:none !important;
-  box-shadow:none !important;
-  padding-left:0;
-}
-.btn-search{
-  height:calc(var(--search-h) - 8px);
-  margin:4px 4px 4px 6px;
-  border-radius:20px !important;
-}
+.search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; border-right:none; }
+.search-input{ height:var(--search-h); border:none !important; box-shadow:none !important; padding-left:0; }
+.btn-search{ height:calc(var(--search-h) - 8px); margin:4px 4px 4px 6px; border-radius:20px !important; }
 
-/* ----- FILTERS (ίσια αριστερά, στρογγυλό δεξιά, κέντρο κειμένου) ----- */
+/* ----- FILTERS ----- */
 .btn-filters{
-  height:var(--search-h);
-  padding:0 18px;
-  display:flex;                 /* κέντρο κάθετα/οριζόντια */
-  align-items:center;
-  justify-content:center;
-  background:#fff;              /* πάντα λευκό */
-  color:var(--text);
-  border:1px solid var(--border);
-  border-left:none;             /* ενώνεται με το search */
-  border-radius:0 24px 24px 0;  /* flat αριστερά, rounded δεξιά */
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-  line-height:normal;           /* βοηθά το vertical centering */
+  height:var(--search-h); padding:0 18px; display:flex; align-items:center; justify-content:center;
+  background:#fff; color:var(--text); border:1px solid var(--border);
+  border-left:none; border-radius:0 24px 24px 0; box-shadow:0 2px 6px rgba(0,0,0,.06); line-height:normal;
+}
+.btn-filters:hover, .btn-filters:focus, .btn-filters:active{
+  background:#fff; color:var(--text); border-color:var(--border); box-shadow:0 2px 6px rgba(0,0,0,.06);
 }
 
-/* χωρίς hover/active εφέ (μένει λευκό) */
-.btn-filters:hover,
-.btn-filters:focus,
-.btn-filters:active{
-  background:#fff;
-  color:var(--text);
-  border-color:var(--border);
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-}
 /* --- Search button: square + flush with input --- */
 .search-group .btn-search{
-  height: 48px;
-  padding: 0 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px !important;              /* κάν’το 0 αν το θέλεις τελείως “κοφτό” */
-  border-top-left-radius: 0 !important;       /* να κολλάει στο input */
-  border-bottom-left-radius: 0 !important;
+  height: 48px; padding: 0 18px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px !important; border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;
 }
 
 /* --- Filters: flat left, rounded right, same height, no hover --- */
 .search-group .btn-filters{
-  height: 48px;
-  padding: 0 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;                     /* κέντρο κάθετα/οριζόντια */
-  background: #fff;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-top-left-radius: 0;                   /* ίσιο αριστερά */
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 24px;               /* στρογγυλό δεξιά */
-  border-bottom-right-radius: 24px;
+  height: 48px; padding: 0 18px; display: flex; align-items: center; justify-content: center;
+  background: #fff; color: var(--text); border: 1px solid var(--border);
+  border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 24px; border-bottom-right-radius: 24px;
   box-shadow: 0 6px 18px rgba(0,0,0,.08);
 }
-.search-group .btn-filters:hover,
-.search-group .btn-filters:focus{
-  background: #fff;                            /* χωρίς hover effects */
-  color: var(--text);
-  border-color: var(--border);
-}
+.search-group .btn-filters:hover, .search-group .btn-filters:focus{ background:#fff; color:var(--text); border-color:var(--border); }
 
-/* Για να ακουμπάνε κυριολεκτικά μεταξύ τους */
-.search-group{
-  display: flex;
-  gap: 0;                                      /* χωρίς κενό ανάμεσα σε input/search/filters */
-}
-.search-group .search-pill.stick-right{
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-/* ===== Glue Search + Filters, square Search, centered Filters ===== */
+/* Να ακουμπάνε κυριολεκτικά */
+.search-group{ display:flex; gap:0; }
+.search-group .search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; }
 
-.search-group{
-  display: flex;
-  align-items: stretch;
-  gap: 0;                               /* καθόλου κενό */
-}
-
-/* Wrapper του input */
+/* Glue Search + Filters */
+.search-group{ display:flex; align-items:stretch; gap:0; }
 .search-group .search-pill{
-  height: 48px;
-  border: 1px solid var(--border);
-  border-right: 0;                      /* να κολλάει στο Search */
-  border-radius: 8px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  box-shadow: 0 10px 24px rgba(17,24,39,.08);
+  height:48px; border:1px solid var(--border); border-right:0; border-radius:8px;
+  border-top-right-radius:0; border-bottom-right-radius:0; box-shadow:0 10px 24px rgba(17,24,39,.08);
 }
-.search-group .search-input{ height: 100%; border: 0; outline: 0; }
-.search-group .clear-btn{ height: 100%; }
-
-/* Search button: ΤΕΤΡΑΓΩΝΟ δεξιά, χωρίς seam/σκιά */
+.search-group .search-input{ height:100%; border:0; outline:0; }
+.search-group .clear-btn{ height:100%; }
 .search-group .btn-search{
-  height: 48px;
-  padding: 0 18px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 8px !important;        /* square look */
-  border-top-left-radius: 0 !important; /* κολλητό με input */
-  border-bottom-left-radius: 0 !important;
-  box-shadow: none;                     /* μην κάνει άκρη/γυαλάδα */
-  position: relative; z-index: 2;       /* να καλύπτει τυχόν ραφή */
+  height:48px; padding:0 18px; display:flex; align-items:center; justify-content:center;
+  border-radius:8px !important; border-top-left-radius:0 !important; border-bottom-left-radius:0 !important;
+  box-shadow:none; position:relative; z-index:2;
 }
-
-/* Filters: flat αριστερά, rounded δεξιά, κέντρο το κείμενο,
-   κολλημένο πάνω στο Search και ΛΕΥΚΟ χωρίς hover */
 .search-group .btn-filters{
-  height: 48px;
-  padding: 0 18px;
-  display: flex; align-items: center; justify-content: center;
-  background: #fff;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-left: 0;                       /* να κολλάει */
-  margin-left: -1px;                    /* σβήσε την ραφή των 2 borders */
-  border-top-left-radius: 0;            /* ίσιο αριστερά */
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 24px;        /* στρογγυλό δεξιά */
-  border-bottom-right-radius: 24px;
-  box-shadow: 0 10px 24px rgba(17,24,39,.08);
+  height:48px; padding:0 18px; display:flex; align-items:center; justify-content:center;
+  background:#fff; color:var(--text); border:1px solid var(--border); border-left:0; margin-left:-1px;
+  border-top-left-radius:0; border-bottom-left-radius:0; border-top-right-radius:24px; border-bottom-right-radius:24px;
+  box-shadow:0 10px 24px rgba(17,24,39,.08);
 }
-.search-group .btn-filters:hover,
-.search-group .btn-filters:focus{
-  background: #fff; color: var(--text); border-color: var(--border);
-}
-/* --- Circular chip για το εικονίδιο αριστερά --- */
-.search-group .search-pill{
-  /* στρογγυλεμένο αριστερό καπάκι, για πιο "κύκλο" look */
-  border-top-left-radius: 999px;
-  border-bottom-left-radius: 999px;
-}
+.search-group .btn-filters:hover, .search-group .btn-filters:focus{ background:#fff; color:var(--text); border-color:var(--border); }
 
-/* το ίδιο το chip του εικονιδίου */
+/* Circular chip αριστερά */
+.search-group .search-pill{ border-top-left-radius:999px; border-bottom-left-radius:999px; }
 .search-group .search-pill .icon{
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 9999px;               /* κύκλος */
-  background: #fff;                    /* λευκό chip */
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(17,24,39,.08);
-
-  margin-left: 8px;                    /* απόσταση από άκρη μπάρας */
-  margin-right: 10px;                  /* απόσταση από input */
-  color: #6b7280;                      /* χρώμα του icon */
+  width:36px; height:36px; flex:0 0 36px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:9999px; background:#fff; border:1px solid var(--border); box-shadow:0 4px 12px rgba(17,24,39,.08);
+  margin-left:8px; margin-right:10px; color:#6b7280;
 }
+.search-group .search-input{ padding-left:0; }
 
-.search-group .search-pill .icon svg{
-  display: block;
+/* Λίγο μεγαλύτερο logo ειδικά για το navbar του Dashboard */
+.logo-in-nav .logo-word{
+  font-size:24px;
+  line-height:1;
+  display:inline-block;
+  white-space:nowrap;
+  letter-spacing:.3px;
+  text-shadow:0 4px 12px rgba(0,0,0,.12);
 }
-
-/* προαιρετικά: το input να μην έχει extra padding αριστερά */
-.search-group .search-input{
-  padding-left: 0;
-}
+@media (min-width: 992px){ .logo-in-nav .logo-word{ font-size:28px; } }
+@media (min-width: 1400px){ .logo-in-nav .logo-word{ font-size:30px; } }
