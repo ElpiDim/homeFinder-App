@@ -191,8 +191,12 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 .search-pill.slim{ box-shadow:0 3px 10px rgba(0,0,0,.06); }
 .search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
 .search-input{ border:none !important; box-shadow:none !important; height:44px; padding-left:0; }
-.btn-search{ border-radius:9999px !important; height:36px; padding:0 14px; margin:4px 4px 4px 6px; }
-
+.btn-search{
+  border-radius:0 !important;
+  height:44px;
+  padding:0 14px;
+  margin:0 0 0 6px;
+}
 /* κολλητή δεξιά πλευρά */
 .search-pill.stick-right{
   border-top-right-radius:0;
@@ -212,5 +216,203 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 .btn-filters.stick{
   border-left:none;                 /* αφαιρεί διπλό όριο επαφής */
   border-radius:0 9999px 9999px 0;  /* flat L, rounded R */
+  margin-left:0;
 }
 .btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
+
+/* ίδιο ύψος για search & filters */
+:root { --search-h: 44px; }
+
+/* Η ομάδα χωρίς κενό, ίδια ευθυγράμμιση */
+.search-group{
+  display:flex;
+  align-items:stretch;
+  gap:0; /* κολλητά */
+}
+
+/* ----- SEARCH (όπως το έχεις με .search-pill) ----- */
+.search-pill{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:0 4px 14px rgba(0,0,0,.07);
+  overflow:hidden;
+  padding-right:6px;
+  display:flex;
+  align-items:center;
+}
+.search-pill.stick-right{
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
+  border-right:none;        /* για να “δέσει” με το Filters */
+}
+.search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
+.search-input{
+  height:var(--search-h);
+  border:none !important;
+  box-shadow:none !important;
+  padding-left:0;
+}
+.btn-search{
+  height:calc(var(--search-h) - 8px);
+  margin:4px 4px 4px 6px;
+  border-radius:20px !important;
+}
+
+/* ----- FILTERS (ίσια αριστερά, στρογγυλό δεξιά, κέντρο κειμένου) ----- */
+.btn-filters{
+  height:var(--search-h);
+  padding:0 18px;
+  display:flex;                 /* κέντρο κάθετα/οριζόντια */
+  align-items:center;
+  justify-content:center;
+  background:#fff;              /* πάντα λευκό */
+  color:var(--text);
+  border:1px solid var(--border);
+  border-left:none;             /* ενώνεται με το search */
+  border-radius:0 24px 24px 0;  /* flat αριστερά, rounded δεξιά */
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  line-height:normal;           /* βοηθά το vertical centering */
+}
+
+/* χωρίς hover/active εφέ (μένει λευκό) */
+.btn-filters:hover,
+.btn-filters:focus,
+.btn-filters:active{
+  background:#fff;
+  color:var(--text);
+  border-color:var(--border);
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+/* --- Search button: square + flush with input --- */
+.search-group .btn-search{
+  height: 48px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px !important;              /* κάν’το 0 αν το θέλεις τελείως “κοφτό” */
+  border-top-left-radius: 0 !important;       /* να κολλάει στο input */
+  border-bottom-left-radius: 0 !important;
+}
+
+/* --- Filters: flat left, rounded right, same height, no hover --- */
+.search-group .btn-filters{
+  height: 48px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;                     /* κέντρο κάθετα/οριζόντια */
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-top-left-radius: 0;                   /* ίσιο αριστερά */
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 24px;               /* στρογγυλό δεξιά */
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.search-group .btn-filters:hover,
+.search-group .btn-filters:focus{
+  background: #fff;                            /* χωρίς hover effects */
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Για να ακουμπάνε κυριολεκτικά μεταξύ τους */
+.search-group{
+  display: flex;
+  gap: 0;                                      /* χωρίς κενό ανάμεσα σε input/search/filters */
+}
+.search-group .search-pill.stick-right{
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* ===== Glue Search + Filters, square Search, centered Filters ===== */
+
+.search-group{
+  display: flex;
+  align-items: stretch;
+  gap: 0;                               /* καθόλου κενό */
+}
+
+/* Wrapper του input */
+.search-group .search-pill{
+  height: 48px;
+  border: 1px solid var(--border);
+  border-right: 0;                      /* να κολλάει στο Search */
+  border-radius: 8px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 10px 24px rgba(17,24,39,.08);
+}
+.search-group .search-input{ height: 100%; border: 0; outline: 0; }
+.search-group .clear-btn{ height: 100%; }
+
+/* Search button: ΤΕΤΡΑΓΩΝΟ δεξιά, χωρίς seam/σκιά */
+.search-group .btn-search{
+  height: 48px;
+  padding: 0 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px !important;        /* square look */
+  border-top-left-radius: 0 !important; /* κολλητό με input */
+  border-bottom-left-radius: 0 !important;
+  box-shadow: none;                     /* μην κάνει άκρη/γυαλάδα */
+  position: relative; z-index: 2;       /* να καλύπτει τυχόν ραφή */
+}
+
+/* Filters: flat αριστερά, rounded δεξιά, κέντρο το κείμενο,
+   κολλημένο πάνω στο Search και ΛΕΥΚΟ χωρίς hover */
+.search-group .btn-filters{
+  height: 48px;
+  padding: 0 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 0;                       /* να κολλάει */
+  margin-left: -1px;                    /* σβήσε την ραφή των 2 borders */
+  border-top-left-radius: 0;            /* ίσιο αριστερά */
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 24px;        /* στρογγυλό δεξιά */
+  border-bottom-right-radius: 24px;
+  box-shadow: 0 10px 24px rgba(17,24,39,.08);
+}
+.search-group .btn-filters:hover,
+.search-group .btn-filters:focus{
+  background: #fff; color: var(--text); border-color: var(--border);
+}
+/* --- Circular chip για το εικονίδιο αριστερά --- */
+.search-group .search-pill{
+  /* στρογγυλεμένο αριστερό καπάκι, για πιο "κύκλο" look */
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+
+/* το ίδιο το chip του εικονιδίου */
+.search-group .search-pill .icon{
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9999px;               /* κύκλος */
+  background: #fff;                    /* λευκό chip */
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(17,24,39,.08);
+
+  margin-left: 8px;                    /* απόσταση από άκρη μπάρας */
+  margin-right: 10px;                  /* απόσταση από input */
+  color: #6b7280;                      /* χρώμα του icon */
+}
+
+.search-group .search-pill .icon svg{
+  display: block;
+}
+
+/* προαιρετικά: το input να μην έχει extra padding αριστερά */
+.search-group .search-input{
+  padding-left: 0;
+}

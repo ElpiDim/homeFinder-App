@@ -605,8 +605,8 @@ function Dashboard() {
           <div className="col-12">
             <div className="mx-auto mb-3" style={{ maxWidth: 920 }}>
               <div className="search-group">
-                {/* Search – square, flat right to attach */}
-                <div className="search-rect stick-right d-flex align-items-center flex-grow-1">
+                 {/* Search – rounded, flat right to attach */}
+                <div className="search-pill stick-right d-flex align-items-center flex-grow-1">
                   <span className="icon text-muted">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
