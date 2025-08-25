@@ -69,7 +69,8 @@ export default function AddProperty() {
     insulation: false,
     plotSize: "",
     ownerNotes: "",
-
+    minTenantSalary: "",
+    allowedOccupations: "",
     // features (free-form tags)
     features: [],
   });
@@ -176,7 +177,13 @@ export default function AddProperty() {
 
     // append primitives
     Object.entries(formData).forEach(([k, v]) => {
-      if (Array.isArray(v)) {
+       if (k === "allowedOccupations") {
+        String(v)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((x) => data.append("allowedOccupations[]", x));
+      } else if (Array.isArray(v)) {
         v.forEach((x) => data.append(k, x));
       } else if (typeof v === "boolean") {
         data.append(k, v ? "true" : "false");
@@ -662,7 +669,30 @@ export default function AddProperty() {
               />
             </div>
           </div>
-
+      <h5 className="mt-4">Tenant Requirements</h5>
+          <div className="row g-3">
+            <div className="col-sm-6">
+              <label className="form-label">Minimum Tenant Salary (€)</label>
+              <input
+                name="minTenantSalary"
+                type="number"
+                className="form-control"
+                value={formData.minTenantSalary}
+                onChange={handleChange}
+                min={0}
+              />
+            </div>
+            <div className="col-sm-6">
+              <label className="form-label">Allowed Occupations (comma separated)</label>
+              <input
+                name="allowedOccupations"
+                className="form-control"
+                value={formData.allowedOccupations}
+                onChange={handleChange}
+                placeholder="e.g. Engineer, Teacher"
+              />
+            </div>
+          </div>
           {/* FEATURE TAGS */}
           <h5 className="mt-4">Features</h5>
           <div className="d-flex flex-wrap gap-3">

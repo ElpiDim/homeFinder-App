@@ -189,7 +189,15 @@ const propertySchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-
+  // Tenant requirements
+  tenantRequirements:{
+  minTenantSalary: { type: Number },
+  allowedOccupations: [{ type: String }],
+  minAge: {type: Number}, 
+  maxOccupants: {type: Number},
+  petsAllowed:{type: Boolean}, 
+  smokingAllowed:{type:Boolean}, 
+  },
   createdAt: {
     type: Date,
     default: Date.now

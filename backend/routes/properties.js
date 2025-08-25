@@ -1,27 +1,29 @@
 const express = require("express");
 const router = express.Router();
+
 const verifyToken = require("../middlewares/authMiddleware");
-const {uploadImages} = require("../middlewares/uploadMiddleware");
+const optionalAuth = require("../middlewares/authOptional"); // 👈
+const { uploadImages } = require("../middlewares/uploadMiddleware");
+
 const propertyController = require("../controllers/propertyController");
-const Property = require("../models/property");
 
+// GET /properties  -> public + eligibility αν υπάρχει client JWT
+router.get("/", optionalAuth, propertyController.getAllProperties);
 
+// GET /properties/mine -> μόνο owners
+router.get("/mine", verifyToken, propertyController.getMyProperties);
 
-
-router.get("/", propertyController.getAllProperties);
-
-router.get("/mine",verifyToken, propertyController.getMyProperties);
-
+// POST /properties -> μόνο owners
 router.post("/", verifyToken, uploadImages, propertyController.createProperty);
 
-//get by id 
-router.get("/:propertyId", propertyController.getPropertyById);
+// GET /properties/:propertyId -> public
+// (προαιρετικά μπορείς να κάνεις eligibility guard μέσα στον controller)
+router.get("/:propertyId", optionalAuth, propertyController.getPropertyById);
 
-//delete pproperty 
-router.delete('/:propertyId', verifyToken, propertyController.deleteProperty);
+// DELETE /properties/:propertyId -> μόνο owners (του συγκεκριμένου property)
+router.delete("/:propertyId", verifyToken, propertyController.deleteProperty);
 
-//edit property 
-router.put('/:propertyId', verifyToken, uploadImages, propertyController.updateProperty);
+// PUT /properties/:propertyId -> μόνο owners (του συγκεκριμένου property)
+router.put("/:propertyId", verifyToken, uploadImages, propertyController.updateProperty);
 
-
-module.exports = router; 
+module.exports = router;

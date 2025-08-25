@@ -3,12 +3,21 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const Interest = require("../models/interests");
+const User = require("../models/user");
 
 /* ----------------------------- helpers ----------------------------- */
 const hasValue = (v) => v !== undefined && v !== null && `${v}`.trim() !== "";
 const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
 const setIfProvided = (current, incoming, parser = (x) => x) =>
   hasValue(incoming) ? parser(incoming) : current;
+
+const arrFrom = (v) =>
+  Array.isArray(v) ? v : hasValue(v) ? [v] : [];
+
+const truthy = (v) =>
+  v === true || v === "true" || v === "yes" || v === "1";
+
+const maybeEnum = (val) => (hasValue(val) ? val : undefined);
 
 // read files from either upload.array('images') OR upload.fields([{name:'images'},{name:'floorPlanImage'}])
 const extractImagesFromReq = (req) => {
@@ -40,7 +49,6 @@ exports.createProperty = async (req, res) => {
 
   try {
     const { images, floorPlanImage } = extractImagesFromReq(req);
-
     const b = req.body;
 
     const newProperty = new Property({
@@ -57,11 +65,7 @@ exports.createProperty = async (req, res) => {
       floor: toNum(b.floor, parseInt),
       squareMeters: toNum(b.squareMeters, parseInt),
       surface: toNum(b.surface, parseInt),
-      onTopFloor:
-        b.onTopFloor === true ||
-        b.onTopFloor === "true" ||
-        b.onTopFloor === "yes" ||
-        b.onTopFloor === "1",
+      onTopFloor: truthy(b.onTopFloor),
       levels: toNum(b.levels, parseInt),
       bedrooms: toNum(b.bedrooms, parseInt),
       bathrooms: toNum(b.bathrooms, parseInt),
@@ -69,32 +73,54 @@ exports.createProperty = async (req, res) => {
       kitchens: toNum(b.kitchens, parseInt),
       livingRooms: toNum(b.livingRooms, parseInt),
 
-      /* extended attributes (αν υπάρχουν στο schema σου θα αποθηκευτούν) */
+      /* extended attributes */
       plotSize: toNum(b.plotSize, parseFloat),
       yearBuilt: toNum(b.yearBuilt, parseInt),
-      condition: b.condition, // e.g. 'new', 'excellent', ...
-      hasElevator: b.hasElevator === "true" || b.hasElevator === true,
-      hasStorage: b.hasStorage === "true" || b.hasStorage === true,
-      furnished: b.furnished === "true" || b.furnished === true,
-      heating: b.heating, // e.g. 'natural_gas', 'heat_pump', ...
-      energyClass: b.energyClass, // A+..G
-      orientation: b.orientation, // N/E/S/W/SE,...
-      petsAllowed: b.petsAllowed === "true" || b.petsAllowed === true,
-      smokingAllowed: b.smokingAllowed === "true" || b.smokingAllowed === true,
+      condition: maybeEnum(b.condition),
+      hasElevator: truthy(b.hasElevator),
+      hasStorage: truthy(b.hasStorage),
+      furnished: truthy(b.furnished),
+      heating: maybeEnum(b.heating),
+      energyClass: maybeEnum(b.energyClass),
+      orientation: maybeEnum(b.orientation),
+      petsAllowed: truthy(b.petsAllowed),
+      smokingAllowed: truthy(b.smokingAllowed),
       parkingSpaces: toNum(b.parkingSpaces, parseInt),
       monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
-      view: b.view, // 'sea','park',...
-      insulation: b.insulation === "true" || b.insulation === true,
+      view: maybeEnum(b.view),
+      insulation: truthy(b.insulation),
       ownerNotes: b.ownerNotes,
 
+      // ✅ nested tenant requirements (αν λείπουν, δεν αποθηκεύονται)
+      tenantRequirements: {
+        minTenantSalary: toNum(
+          b.minTenantSalary ?? b["tenantRequirements.minTenantSalary"],
+          parseFloat
+        ),
+        minAge: toNum(
+          b.minAge ?? b["tenantRequirements.minAge"],
+          parseInt
+        ),
+        maxOccupants: toNum(
+          b.maxOccupants ?? b["tenantRequirements.maxOccupants"],
+          parseInt
+        ),
+        petsAllowed: hasValue(b.petsAllowedReq ?? b["tenantRequirements.petsAllowed"])
+          ? truthy(b.petsAllowedReq ?? b["tenantRequirements.petsAllowed"])
+          : undefined,
+        smokingAllowed: hasValue(b.smokingAllowedReq ?? b["tenantRequirements.smokingAllowed"])
+          ? truthy(b.smokingAllowedReq ?? b["tenantRequirements.smokingAllowed"])
+          : undefined,
+        allowedOccupations: arrFrom(
+          b["allowedOccupations[]"] ??
+          b.allowedOccupations ??
+          b["tenantRequirements.allowedOccupations[]"] ??
+          b["tenantRequirements.allowedOccupations"]
+        ),
+      },
+
       /* arrays */
-      features: Array.isArray(b["features[]"])
-        ? b["features[]"]
-        : Array.isArray(b.features)
-        ? b.features
-        : b.features
-        ? [b.features]
-        : [],
+      features: arrFrom(b["features[]"] ?? b.features),
 
       /* geo */
       latitude: toNum(b.latitude, Number),
@@ -188,11 +214,88 @@ exports.getAllProperties = async (req, res) => {
       boolEq("hasStorage", hasStorage) || {}
     );
 
-    // enums/text equals
-    if (hasValue(energyClass)) match.energyClass = energyClass;
-    if (hasValue(heating)) match.heating = heating;
-    if (hasValue(orientation)) match.orientation = orientation;
-    if (hasValue(view)) match.view = view;
+    // enums/text equals (προστασία από κενές τιμές)
+    if (hasValue(energyClass)) match.energyClass = maybeEnum(energyClass);
+    if (hasValue(heating)) match.heating = maybeEnum(heating);
+    if (hasValue(orientation)) match.orientation = maybeEnum(orientation);
+    if (hasValue(view)) match.view = maybeEnum(view);
+
+    // ✅ filter properties based on tenant profile (client = tenant)
+    if (req.user?.role === "client") {
+      const currentUser = await User.findById(req.user.userId).select(
+        "salary occupation age householdSize hasPets smoker"
+      );
+
+      if (currentUser) {
+        const salary = currentUser.salary ?? 0;
+        const occ = currentUser.occupation;
+        const age = currentUser.age;
+        const hh = currentUser.householdSize ?? 1;
+        const hasPetsProfile = !!currentUser.hasPets;
+        const smokerProfile = !!currentUser.smoker;
+
+        match.$and = [
+          ...(match.$and || []),
+
+          // min salary
+          {
+            $or: [
+              { "tenantRequirements.minTenantSalary": { $exists: false } },
+              { "tenantRequirements.minTenantSalary": { $lte: salary } },
+            ],
+          },
+
+          // allowed occupations
+          {
+            $or: [
+              { "tenantRequirements.allowedOccupations": { $exists: false } },
+              { "tenantRequirements.allowedOccupations": { $size: 0 } },
+              { "tenantRequirements.allowedOccupations": occ },
+            ],
+          },
+
+          // minAge
+          ...(hasValue(age)
+            ? [{
+                $or: [
+                  { "tenantRequirements.minAge": { $exists: false } },
+                  { "tenantRequirements.minAge": { $lte: age } },
+                ],
+              }]
+            : []),
+
+          // maxOccupants
+          ...(hasValue(hh)
+            ? [{
+                $or: [
+                  { "tenantRequirements.maxOccupants": { $exists: false } },
+                  { "tenantRequirements.maxOccupants": { $gte: hh } },
+                ],
+              }]
+            : []),
+
+          // petsAllowed requirement
+          ...(hasPetsProfile
+            ? [{
+                $or: [
+                  { "tenantRequirements.petsAllowed": { $exists: false } },
+                  { "tenantRequirements.petsAllowed": true },
+                ],
+              }]
+            : []),
+
+          // smokingAllowed requirement
+          ...(smokerProfile
+            ? [{
+                $or: [
+                  { "tenantRequirements.smokingAllowed": { $exists: false } },
+                  { "tenantRequirements.smokingAllowed": true },
+                ],
+              }]
+            : []),
+        ];
+      }
+    }
 
     // sqm filter via $expr to tolerate stringy data
     let sqmMatchStage = null;
@@ -344,6 +447,11 @@ exports.getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId).populate("ownerId");
     if (!property) return res.status(404).json({ message: "Property not found" });
+
+    // Optional: αν ο ρόλος είναι tenant, μπορείς εδώ να ξανακάνεις eligibility check
+    // για απευθείας access σε /properties/:id (ασφάλεια).
+    // Αν δεν είναι eligible, γύρνα 403.
+
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
@@ -363,19 +471,21 @@ exports.updateProperty = async (req, res) => {
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // strings
-    property.title = b.title ?? property.title;
-    property.location = b.location ?? property.location;
-    property.type = b.type ?? property.type;
-    property.status = b.status ?? property.status;
-    property.description = b.description ?? property.description;
-    property.address = b.address ?? property.address;
-    property.condition = b.condition ?? property.condition;
-    property.heating = b.heating ?? property.heating;
-    property.energyClass = b.energyClass ?? property.energyClass;
-    property.orientation = b.orientation ?? property.orientation;
-    property.view = b.view ?? property.view;
-    property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
+    // strings (μην γράφεις undefined στα enum — απλά αγνόησε αν είναι κενό)
+    if (b.title !== undefined) property.title = b.title ?? property.title;
+    if (b.location !== undefined) property.location = b.location ?? property.location;
+    if (b.type !== undefined) property.type = b.type ?? property.type;
+    if (b.status !== undefined) property.status = b.status ?? property.status;
+    if (b.description !== undefined) property.description = b.description ?? property.description;
+    if (b.address !== undefined) property.address = b.address ?? property.address;
+
+    if (b.condition !== undefined && hasValue(b.condition)) property.condition = b.condition;
+    if (b.heating !== undefined && hasValue(b.heating)) property.heating = b.heating;
+    if (b.energyClass !== undefined && hasValue(b.energyClass)) property.energyClass = b.energyClass;
+    if (b.orientation !== undefined && hasValue(b.orientation)) property.orientation = b.orientation;
+    if (b.view !== undefined && hasValue(b.view)) property.view = b.view;
+
+    if (b.ownerNotes !== undefined) property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
 
     // numbers
     property.price = setIfProvided(property.price, b.price, parseFloat);
@@ -402,42 +512,62 @@ exports.updateProperty = async (req, res) => {
     property.longitude = setIfProvided(property.longitude, b.longitude, Number);
 
     // booleans
-    if (b.onTopFloor !== undefined) {
-      property.onTopFloor =
-        b.onTopFloor === true ||
-        b.onTopFloor === "true" ||
-        b.onTopFloor === "yes" ||
-        b.onTopFloor === "1";
-    }
-    if (b.hasElevator !== undefined) {
-      property.hasElevator = b.hasElevator === "true" || b.hasElevator === true;
-    }
-    if (b.hasStorage !== undefined) {
-      property.hasStorage = b.hasStorage === "true" || b.hasStorage === true;
-    }
-    if (b.furnished !== undefined) {
-      property.furnished = b.furnished === "true" || b.furnished === true;
-    }
-    if (b.petsAllowed !== undefined) {
-      property.petsAllowed = b.petsAllowed === "true" || b.petsAllowed === true;
-    }
-    if (b.smokingAllowed !== undefined) {
-      property.smokingAllowed = b.smokingAllowed === "true" || b.smokingAllowed === true;
-    }
-    if (b.insulation !== undefined) {
-      property.insulation = b.insulation === "true" || b.insulation === true;
+    if (b.onTopFloor !== undefined) property.onTopFloor = truthy(b.onTopFloor);
+    if (b.hasElevator !== undefined) property.hasElevator = truthy(b.hasElevator);
+    if (b.hasStorage !== undefined) property.hasStorage = truthy(b.hasStorage);
+    if (b.furnished !== undefined) property.furnished = truthy(b.furnished);
+    if (b.petsAllowed !== undefined) property.petsAllowed = truthy(b.petsAllowed);
+    if (b.smokingAllowed !== undefined) property.smokingAllowed = truthy(b.smokingAllowed);
+    if (b.insulation !== undefined) property.insulation = truthy(b.insulation);
+
+    // arrays
+    if (b["features[]"] !== undefined || b.features !== undefined) {
+      property.features = arrFrom(b["features[]"] ?? b.features);
     }
 
-    // features
-    if (b["features[]"] !== undefined || b.features !== undefined) {
-      property.features = Array.isArray(b["features[]"])
-        ? b["features[]"]
-        : Array.isArray(b.features)
-        ? b.features
-        : b.features
-        ? [b.features]
-        : [];
+    // --- tenantRequirements ---
+    const tr = property.tenantRequirements || {};
+
+    if (b.minTenantSalary !== undefined || b["tenantRequirements.minTenantSalary"] !== undefined) {
+      const v = toNum(b.minTenantSalary ?? b["tenantRequirements.minTenantSalary"], parseFloat);
+      if (v !== undefined) tr.minTenantSalary = v;
     }
+
+    if (b.minAge !== undefined || b["tenantRequirements.minAge"] !== undefined) {
+      const v = toNum(b.minAge ?? b["tenantRequirements.minAge"], parseInt);
+      if (v !== undefined) tr.minAge = v;
+    }
+
+    if (b.maxOccupants !== undefined || b["tenantRequirements.maxOccupants"] !== undefined) {
+      const v = toNum(b.maxOccupants ?? b["tenantRequirements.maxOccupants"], parseInt);
+      if (v !== undefined) tr.maxOccupants = v;
+    }
+
+    if (b.petsAllowedReq !== undefined || b["tenantRequirements.petsAllowed"] !== undefined) {
+      const v = b.petsAllowedReq ?? b["tenantRequirements.petsAllowed"];
+      tr.petsAllowed = truthy(v);
+    }
+
+    if (b.smokingAllowedReq !== undefined || b["tenantRequirements.smokingAllowed"] !== undefined) {
+      const v = b.smokingAllowedReq ?? b["tenantRequirements.smokingAllowed"];
+      tr.smokingAllowed = truthy(v);
+    }
+
+    if (
+      b["allowedOccupations[]"] !== undefined ||
+      b.allowedOccupations !== undefined ||
+      b["tenantRequirements.allowedOccupations[]"] !== undefined ||
+      b["tenantRequirements.allowedOccupations"] !== undefined
+    ) {
+      tr.allowedOccupations = arrFrom(
+        b["allowedOccupations[]"] ??
+        b.allowedOccupations ??
+        b["tenantRequirements.allowedOccupations[]"] ??
+        b["tenantRequirements.allowedOccupations"]
+      );
+    }
+
+    property.tenantRequirements = tr;
 
     // images
     if (newImages.length) {

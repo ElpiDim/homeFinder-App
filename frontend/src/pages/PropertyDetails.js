@@ -385,6 +385,8 @@ Could we schedule a viewing? Thanks!`;
           <div className="col"><strong>Elevator:</strong> {boolTick(property.hasElevator)}</div>
           <div className="col"><strong>Storage:</strong> {boolTick(property.hasStorage)}</div>
           <div className="col"><strong>Insulation:</strong> {boolTick(property.insulation)}</div>
+        <div className="col"><strong>Min Tenant Salary:</strong> {property.minTenantSalary != null ? `€${money(property.minTenantSalary)}` : '—'}</div>
+          <div className="col"><strong>Allowed Occupations:</strong> {property.allowedOccupations?.length ? property.allowedOccupations.join(', ') : '—'}</div>
         </div>
 
         {/* Feature tags */}

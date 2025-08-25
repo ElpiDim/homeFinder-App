@@ -92,7 +92,8 @@ function EditProperty() {
     insulation: false,
     plotSize: '',
     ownerNotes: '',
-
+    minTenantSalary: '',
+    allowedOccupations: '',
     // tags
     features: [],
   });
@@ -192,6 +193,10 @@ function EditProperty() {
           insulation: !!p.insulation,
           plotSize: p.plotSize ?? '',
           ownerNotes: p.ownerNotes || '',
+           minTenantSalary: p.minTenantSalary ?? '',
+          allowedOccupations: Array.isArray(p.allowedOccupations)
+            ? p.allowedOccupations.join(', ')
+            : '',
 
           features: Array.isArray(p.features) ? p.features : [],
         });
@@ -289,11 +294,18 @@ function EditProperty() {
       insulation: formData.insulation ? 'true' : 'false',
       plotSize: parseOrUndefined(formData.plotSize),
       ownerNotes: formData.ownerNotes,
+      minTenantSalary: parseOrUndefined(formData.minTenantSalary, prseFloat),
     };
 
     Object.entries(cleaned).forEach(([k, v]) => {
       if (v !== undefined && v !== null) data.append(k, v);
     });
+      String(formData.allowedOccupations)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((o) => data.append('allowedOccupations[]', o));
+
 
     // features
     (formData.features || []).forEach(f => data.append('features', f));
@@ -611,7 +623,30 @@ function EditProperty() {
               <input name="ownerNotes" className="form-control" value={formData.ownerNotes} onChange={handleChange} placeholder="Internal notes (not visible to tenants)" />
             </div>
           </div>
-
+ <h5 className="mt-4">Tenant Requirements</h5>
+          <div className="row g-3">
+            <div className="col-sm-6">
+              <label className="form-label">Minimum Tenant Salary (€)</label>
+              <input
+                name="minTenantSalary"
+                type="number"
+                className="form-control"
+                value={formData.minTenantSalary}
+                onChange={handleChange}
+                min={0}
+              />
+            </div>
+            <div className="col-sm-6">
+              <label className="form-label">Allowed Occupations (comma separated)</label>
+              <input
+                name="allowedOccupations"
+                className="form-control"
+                value={formData.allowedOccupations}
+                onChange={handleChange}
+                placeholder="e.g. Engineer, Teacher"
+              />
+            </div>
+          </div>
           {/* FEATURE TAGS */}
           <h5 className="mt-4">Features</h5>
           <div className="d-flex flex-wrap gap-3">
