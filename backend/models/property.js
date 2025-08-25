@@ -134,7 +134,7 @@ const propertySchema = new mongoose.Schema({
 
   orientation: {
     type: String,
-    enum: ["north", "south", "east", "west", "north-east", "north-west", "south-east", "south-west"]
+    enum: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"],
   },
 
   petsAllowed: {

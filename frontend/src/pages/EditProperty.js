@@ -294,7 +294,7 @@ function EditProperty() {
       insulation: formData.insulation ? 'true' : 'false',
       plotSize: parseOrUndefined(formData.plotSize),
       ownerNotes: formData.ownerNotes,
-      minTenantSalary: parseOrUndefined(formData.minTenantSalary, prseFloat),
+      minTenantSalary: parseOrUndefined(formData.minTenantSalary, parseFloat),
     };
 
     Object.entries(cleaned).forEach(([k, v]) => {
