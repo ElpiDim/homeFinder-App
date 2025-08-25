@@ -1,7 +1,10 @@
+const fs = require('fs');
 const multer = require('multer');
 const path = require('path');
 
 // Πού θα αποθηκεύονται οι εικόνες
+
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/'); // φάκελος όπου θα μπαίνουν οι εικόνες
