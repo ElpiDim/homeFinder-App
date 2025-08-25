@@ -34,28 +34,7 @@ const userSchema = new mongoose.Schema(
     occupation: String,
     salary: Number,
     profilePicture: String,
-    workLocation: String, 
-    familyStatus: String,
-    householdWorkers: String, 
-    pets: Boolean, 
-    smoker: Boolean,
 
-    preferences:{ 
-      location: String, 
-      squareMeters: Number, 
-      floor: Number, 
-      rentMin: Number, 
-      rentMax: Number,
-      yearBuilt: Number, 
-      yearRenovated: Number, 
-      bedrooms: Number,
-      furnished: Boolean, 
-      parking:Boolean, 
-      heating:{
-        type: String, 
-        enum: ["autonomous", "central","aircondition","fireplace","none"],
-      },
-    },
     // ✅ Email verification flags
     emailVerified: {
       type: Boolean,
