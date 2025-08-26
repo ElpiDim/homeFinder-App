@@ -1,16 +1,13 @@
-import axios from "axios";
+import axios from 'axios';
 
 const http = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "/api", 
-  // αν δεν έχεις REACT_APP_API_URL στο .env, θα μιλάει στο ίδιο domain (/api)
+  // point to your backend origin
+  baseURL: process.env.REACT_APP_API_BASE || 'http://localhost:5000',
 });
 
-// Αν υπάρχει token στο localStorage, το στέλνουμε
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 

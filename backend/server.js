@@ -8,6 +8,11 @@ require("dotenv").config();
 
 const app = express();
 
+app.use((req, _res, next) => {
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
+
 /* ---------- Middleware ---------- */
 app.use(cors());
 app.use(express.json());

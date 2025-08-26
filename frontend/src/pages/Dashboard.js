@@ -768,9 +768,7 @@ const pageGradient = useMemo(() => ({
                 </div>
               </div>
             </div>
-            {!Array.isArray(properties) || properties.length === 0 ? (
-              <p className="text-muted">No properties found.</p>
-            ) : (
+            {Array.isArray(properties) && properties.length > 0 && (
               <>
                 <div className="row g-3">
                   {properties.map((prop) => (
