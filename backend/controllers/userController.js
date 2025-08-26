@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 // register new user 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone, address, occupation, salary } = req.body;
+    const { name, email, password, role } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email already used" });
 
@@ -14,11 +14,7 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
-      phone,
-      address,
-      occupation,
-      salary,
+      ...(role &&{role}),
     });
 
     await newUser.save();
@@ -64,6 +60,12 @@ exports.loginUser = async (req, res) => {
         address: user.address,
         occupation: user.occupation,
         salary: user.salary,
+        age: user.age,
+        householdSize: user.householdSize,
+        hasFamily: user.hasFamily,
+        hasPets: user.hasPets,
+        smoker: user.smoker,
+        isWillingToHaveRoommate : user.isWillingToHaveRoommate,
         profilePicture: fullProfilePicture,
         createdAt: user.createdAt,
       },
@@ -97,6 +99,12 @@ exports.getUserProfile = async (req, res) => {
       address: user.address,
       occupation: user.occupation,
       salary: user.salary,
+      age: user.age,
+      householdSize: user.householdSize,
+      hasFamily: user.hasFamily,
+      hasPets: user.hasPets,
+      smoker: user.smoker,
+      isWillingToHaveRoommate: user.isWillingToHaveRoommate,
       profilePicture: fullProfilePicture,
       createdAt: user.createdAt,
     });
@@ -159,6 +167,7 @@ exports.updateCurrentUser = async (req, res) => {
     "smoker",
     "occupation",
     "salary",
+    "isWillingToHaveRoommate", 
   ];
 
   const updateData = {};

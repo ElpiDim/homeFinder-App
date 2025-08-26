@@ -38,8 +38,11 @@ const userSchema = new mongoose.Schema(
     salary: { type: Number, min: 0 },        // μηνιαίο ή ετήσιο όπως το ορίζεις στο app
     age: { type: Number, min: 0 },
     householdSize: { type: Number, min: 1, default: 1 }, // αριθμός ατόμων που θα μείνουν
+    
+    hasFamily:{type: Boolean, default:false },
     hasPets: { type: Boolean, default: false },
     smoker: { type: Boolean, default: false },
+    isWillingToHaveRoommate: { type: Boolean, default: false },
 
     profilePicture: String,
 

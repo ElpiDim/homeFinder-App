@@ -11,10 +11,9 @@ router.post('/register', async (req, res) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   try {
-    const { name, email, password, role, phone, address, occupation, salary } = req.body;
-
+    const { name, email, password, role } = req.body;
     // Έλεγχος για κενά
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password) {
       return res.status(400).json({ message: "please fill all required fields" });
     }
 
@@ -42,11 +41,7 @@ router.post('/register', async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
-      phone,
-      address,
-      occupation,
-      salary,
+      ...User(role &&{role}),
     });
 
     await newUser.save();
@@ -102,6 +97,12 @@ router.post("/login", async (req, res) => {
         address: user.address,
         occupation: user.occupation,
         salary: user.salary,
+        age: user.age,
+        householdSize: user.householdSize,
+        hasFamily: user.hasFamily,
+        hasPets: user.hasPets,
+        smoker: user.smoker,
+        isWillingToHaveRoommate: user.isWillingToHaveRoommate,
         profilePicture,
       }
     });

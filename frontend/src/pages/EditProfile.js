@@ -13,6 +13,7 @@ function EditProfile() {
     smoker: false,
     occupation: '',
     salary: '',
+    isWillingToHaveRoommate: false,
   });
 
   
@@ -30,6 +31,7 @@ function EditProfile() {
           smoker: data.smoker || false,
           occupation: data.occupation || '',
           salary: data.salary || '',
+          isWillingToHaveRoommate: data.isWillingToHaveRoommate || false,
         });
         setUser(data);
       } catch (err) {
@@ -81,6 +83,10 @@ function EditProfile() {
         <div className="form-check mb-3">
           <input type="checkbox" name="smoker" className="form-check-input" checked={formData.smoker} onChange={handleChange} />
           <label className="form-check-label">Smoker</label>
+        </div>
+        <div className="form-check mb-3">
+          <input type="checkbox" name="isWillingToHaveRoommate" className="form-check-input" checked={formData.isWillingToHaveRoommate} onChange={handleChange} />
+          <label className="form-check-label">Willing to have roommate</label>
         </div>
         <div className="mb-3">
           <label className="form-label">Occupation</label>
