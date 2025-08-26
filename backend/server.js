@@ -29,6 +29,7 @@ const notificationRoutes = require("./routes/notifications");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/users",userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/messages", messageRoutes);

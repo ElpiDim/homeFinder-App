@@ -1,23 +1,13 @@
-import api from '../api';
+import http from '../api/http';
 
-const API_BASE = '/user';
+const API_BASE = '/users';
 
-export const getUserProfile = async()=>{
-    const token = localStorage.getItem('token');
-    const res = await api.get(`${API_BASE}/profile`, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
+export const getCurrentUser = async () => {
+    const res = await http.get(`${API_BASE}/me`);
     return res.data;
 };
 
-export const updateUserProfile = async(updatedData)=>{
-    const token = localStorage.getItem('token');
-    const res = await api.put(`${API_BASE}/profile`, updatedData,{
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
+export const updateCurrentUser = async (updatedData) => {
+    const res = await http.put(`${API_BASE}/me`, updatedData);
     return res.data;
 };

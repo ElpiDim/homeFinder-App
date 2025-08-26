@@ -1,14 +1,14 @@
-import api from '../api';
+import http from '../api/http';
+
 
 const API = '/auth';
 export const loginUser  = async(credentials) => {
-const res = await api.post(`${API}/login`, credentials);
-
+const res = await http.post(`${API}/login`, credentials);
 return res.data;
 };
 
 export const registerUser = async(userData) => {
-    const res = await api.post(`${API}/register`, userData);
+    const res = await http.post(`${API}/register`, userData);
     return res.data;
 };
 

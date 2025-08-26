@@ -1,247 +1,98 @@
-import React, { useState, useEffect , useMemo} from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentUser, updateCurrentUser } from '../services/userService';
 
 function EditProfile() {
-  const { user, setUser } = useAuth();
-  const navigate = useNavigate();
+  const {setUser } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    address: '',
+     age: '',
+    householdSize: 1,
+    hasFamily: false,
+    hasPets: false,
+    smoker: false,
     occupation: '',
     salary: '',
   });
 
-  const [previewUrl, setPreviewUrl] = useState('/default-avatar.jpg');
+  
   const [message, setMessage] = useState('');
-  const [profilePicture, setProfilePicture] = useState('');
-
-  // Pastel gradient (same as the others)
-  const pageGradient = useMemo(() => ({
-    minHeight: "100vh",
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-  }), []);
 
   useEffect(() => {
-    if (!user) {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
+     const loadUser = async () => {
+      try {
+        const data = await getCurrentUser();
+        setFormData({
+          age: data.age || '',
+          householdSize: data.householdSize || 1,
+          hasFamily: data.hasFamily || false,
+          hasPets: data.hasPets || false,
+          smoker: data.smoker || false,
+          occupation: data.occupation || '',
+          salary: data.salary || '',
+        });
+        setUser(data);
+      } catch (err) {
+        console.error(err);
       }
-    } else {
-      setFormData({
-        name: user.name || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        occupation: user.occupation || '',
-        salary: user.salary || '',
-      });
-      if (user.profilePicture) {
-        setPreviewUrl(user.profilePicture);
-      }
-    }
-  }, [user, navigate]);
-
+   };
+    loadUser();
+  }, [setUser]);
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProfilePicture(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
+ const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
-
-    const formDataToSend = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      formDataToSend.append(key, value);
-    });
-    if (profilePicture) {
-      formDataToSend.append('profilePicture', profilePicture);
-    }
 
     try {
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formDataToSend,
-      });
-
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setMessage('Profile updated successfully!');
-
-        const mergedUser = { ...user, ...updatedUser.user };
-        if (mergedUser.profilePicture && !mergedUser.profilePicture.startsWith('http')) {
-          mergedUser.profilePicture = `http://localhost:5000${mergedUser.profilePicture}`;
-        }
-
-        setUser(mergedUser);
-        localStorage.setItem('user', JSON.stringify(mergedUser));
-        navigate('/profile');
-      } else {
-        const error = await response.json();
-        setMessage(error.message || 'Update failed');
-      }
+      const updated = await updateCurrentUser(formData);
+      setUser(updated);
+      setMessage('Profile updated successfully!');
     } catch (err) {
-      console.error('Update error:', err);
-      setMessage('Server error');
+    setMessage(err.response?.data?.message || 'Update failed');
     }
   };
 
-  const handleDeleteAccount = async () => {
-    const confirmDelete = window.confirm('Are you sure you want to delete your account? This cannot be undone.');
-    if (!confirmDelete) return;
 
-    try {
-      const response = await fetch('/api/user/profile', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('Failed to delete:', result.message);
-        alert(result.message || 'Failed to delete account');
-        return;
-      }
-
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
-      navigate('/');
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete account. Please try again.');
-    }
-  };
-
-  if (!user) {
-    return (
-      <div style={pageGradient}>
-        <div className="container mt-5">Loading profile...</div>
-      </div>
-    );
-  }
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '600px' }}>
-        <h4 className="fw-bold mb-4">Edit Profile</h4>
-        {message && <div className="alert alert-info">{message}</div>}
-
-        {/* Avatar upload */}
-        <div className="text-center mb-4">
-          <img
-            src={previewUrl}
-            alt="Avatar Preview"
-            className="rounded-circle shadow"
-            style={{ width: '120px', height: '120px', objectFit: 'cover' }}
-          />
-          <div className="mt-2">
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </div>
+        <div className="container mt-4">
+      <h3>Edit Profile</h3>
+      {message && <div className="alert alert-info">{message}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label className="form-label">Age</label>
+          <input type="number" name="age" className="form-control" value={formData.age} onChange={handleChange} />
+</div>
+   <div className="mb-3">
+          <label className="form-label">Household Size</label>
+          <input type="number" name="householdSize" className="form-control" value={formData.householdSize} onChange={handleChange} />
         </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="form-label">Name</label>
-            <input
-              type="text"
-              name="name"
-              className="form-control"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Phone</label>
-            <input
-              type="text"
-              name="phone"
-              className="form-control"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Address</label>
-            <input
-              type="text"
-              name="address"
-              className="form-control"
-              value={formData.address}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Occupation</label>
-            <input
-              type="text"
-              name="occupation"
-              className="form-control"
-              value={formData.occupation}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="form-label">Salary</label>
-            <input
-              type="number"
-              name="salary"
-              className="form-control"
-              value={formData.salary}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="d-flex justify-content-between">
-            <button
-              type="button"
-              className="btn btn-outline-secondary rounded-pill px-4"
-              onClick={() => navigate(-1)}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="btn btn-primary rounded-pill px-4"
-            >
-              Save Changes
-            </button>
-          </div>
-
-        </form>
-
-        <button
-          type="button"
-          className="btn btn-outline-danger w-100 mt-4 rounded-pill py-2"
-          onClick={handleDeleteAccount}
-        >
-          🗑 Delete Account
-        </button>
-      </div>
+        <div className="form-check mb-3">
+          <input type="checkbox" name="hasFamily" className="form-check-input" checked={formData.hasFamily} onChange={handleChange} />
+          <label className="form-check-label">Has Family</label>
+        </div>
+        <div className="form-check mb-3">
+          <input type="checkbox" name="hasPets" className="form-check-input" checked={formData.hasPets} onChange={handleChange} />
+          <label className="form-check-label">Has Pets</label>
+        </div>
+        <div className="form-check mb-3">
+          <input type="checkbox" name="smoker" className="form-check-input" checked={formData.smoker} onChange={handleChange} />
+          <label className="form-check-label">Smoker</label>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Occupation</label>
+          <input type="text" name="occupation" className="form-control" value={formData.occupation} onChange={handleChange} />
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Salary</label>
+          <input type="number" name="salary" className="form-control" value={formData.salary} onChange={handleChange} />
+        </div>
+        <button type="submit" className="btn btn-primary">Save</button>
+      </form>
+        
     </div>
   );
 }

@@ -101,18 +101,39 @@ function Profile() {
             <div className="mb-3">
               <label className="form-label">Phone</label>
               <input className="form-control" value={user.phone || ''} disabled />
+              <label className="form-label">Age</label>
+              <input className="form-control" value={user.age || ''} disabled />
             </div>
             <div className="mb-3">
               <label className="form-label">Address</label>
               <input className="form-control" value={user.address || ''} disabled />
             </div>
+              <label className="form-label">Household Size</label>
+              <input className="form-control" value={user.householdSize || ''} disabled />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Has Family</label>
+              <input className="form-control" value={user.hasFamily ? 'Yes' : 'No'} disabled />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Has Pets</label>
+              <input className="form-control" value={user.hasPets ? 'Yes' : 'No'} disabled />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Smoker</label>
+              <input className="form-control" value={user.smoker ? 'Yes' : 'No'} disabled />
             <div className="mb-3">
               <label className="form-label">Occupation</label>
               <input className="form-control" value={user.occupation || ''} disabled />
             </div>
-            <div className="mb-4">
+            <div className="mb-3">
               <label className="form-label">Salary</label>
               <input className="form-control" value={user.salary || ''} disabled />
+            </div>
+
+             <div className="mb-4">
+              <label className="form-label">Willing to have roommate</label>
+              <input className="form-control" value={user.isWillingToHaveRoommate ? 'Yes' : 'No'} disabled />
             </div>
 
             <div className="d-flex justify-content-end">

@@ -5,7 +5,6 @@ import Register from './pages/Register';
 import Properties from './pages/Properties';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
@@ -45,7 +44,7 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <Profile />
+              <EditProfile />
             </ProtectedRoute>
           }
         />
@@ -85,16 +84,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        <Route
-          path="/edit-profile"
-          element={
-            <ProtectedRoute>
-              <EditProfile />
-            </ProtectedRoute>
-          }
-        />
-
         <Route
           path="/add-property"
           element={

@@ -193,9 +193,9 @@ function EditProperty() {
           insulation: !!p.insulation,
           plotSize: p.plotSize ?? '',
           ownerNotes: p.ownerNotes || '',
-           minTenantSalary: p.minTenantSalary ?? '',
-          allowedOccupations: Array.isArray(p.allowedOccupations)
-            ? p.allowedOccupations.join(', ')
+         minTenantSalary: p.tenantRequirements?.minTenantSalary ?? '',
+          allowedOccupations: Array.isArray(p.tenantRequirements?.allowedOccupations)
+            ? p.tenantRequirements.allowedOccupations.join(', ')
             : '',
 
           features: Array.isArray(p.features) ? p.features : [],
@@ -279,10 +279,10 @@ function EditProperty() {
 
       // extras
       yearBuilt: parseOrUndefined(formData.yearBuilt),
-      condition: formData.condition,
-      heating: formData.heating,
-      energyClass: formData.energyClass,
-      orientation: formData.orientation,
+      condition: formData.condition,          // ✅ canonical
+      heating: formData.heating,              // ✅ canonical
+      energyClass: formData.energyClass,      // ✅ canonical
+      orientation: formData.orientation,      // ✅ canonical
       furnished: formData.furnished ? 'true' : 'false',
       petsAllowed: formData.petsAllowed ? 'true' : 'false',
       smokingAllowed: formData.smokingAllowed ? 'true' : 'false',
@@ -290,7 +290,7 @@ function EditProperty() {
       hasStorage: formData.hasStorage ? 'true' : 'false',
       parkingSpaces: parseOrUndefined(formData.parkingSpaces),
       monthlyMaintenanceFee: parseOrUndefined(formData.monthlyMaintenanceFee, parseFloat),
-      view: formData.view,
+      view: formData.view,                    // ✅ canonical
       insulation: formData.insulation ? 'true' : 'false',
       plotSize: parseOrUndefined(formData.plotSize),
       ownerNotes: formData.ownerNotes,
@@ -298,17 +298,23 @@ function EditProperty() {
     };
 
     Object.entries(cleaned).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) data.append(k, v);
+      if (v !== undefined && v !== null && v !== '') data.append(k, v);
     });
-      String(formData.allowedOccupations)
+
+    String(formData.allowedOccupations)
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
       .forEach((o) => data.append('allowedOccupations[]', o));
 
-
     // features
-    (formData.features || []).forEach(f => data.append('features', f));
+    if (formData.features && formData.features.length) {
+      formData.features.forEach((f) => data.append('features[]', f));
+    } else {
+      // αν θες όντως να αδειάζεις τα features στο backend, άφησέ το
+      // αλλιώς μπορείς να μην στείλεις καθόλου το πεδίο
+      data.append('features[]', '');
+    }
 
     // geo
     if (latLng) {
@@ -353,7 +359,7 @@ function EditProperty() {
         <h4 className="fw-bold mb-4">Edit Property</h4>
 
         {noKey && (
-          <div className="alert alert.warning">
+          <div className="alert alert-warning">
             Google Maps API key is missing. Πρόσθεσε στο <code>frontend/.env</code>:
             <br />
             <code>REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_KEY_HERE</code>
@@ -504,11 +510,12 @@ function EditProperty() {
               <label className="form-label">Heating</label>
               <select name="heating" className="form-control" value={formData.heating} onChange={handleChange}>
                 <option value="">—</option>
-                <option value="natural_gas">Natural Gas</option>
-                <option value="oil">Oil</option>
-                <option value="electric">Electric</option>
-                <option value="heat_pump">Heat Pump</option>
                 <option value="none">None</option>
+                <option value="central">Central</option>
+                <option value="autonomous">Autonomous</option>
+                <option value="gas">Gas</option>
+                <option value="ac">A/C (Heat Pump)</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div className="col-sm-4">
@@ -517,7 +524,6 @@ function EditProperty() {
                 <option value="">—</option>
                 <option value="A+">A+</option>
                 <option value="A">A</option>
-                <option value="B+">B+</option>
                 <option value="B">B</option>
                 <option value="C">C</option>
                 <option value="D">D</option>
@@ -530,14 +536,14 @@ function EditProperty() {
               <label className="form-label">Orientation</label>
               <select name="orientation" className="form-control" value={formData.orientation} onChange={handleChange}>
                 <option value="">—</option>
-                <option value="N">N</option>
-                <option value="NE">NE</option>
-                <option value="E">E</option>
-                <option value="SE">SE</option>
-                <option value="S">S</option>
-                <option value="SW">SW</option>
-                <option value="W">W</option>
-                <option value="NW">NW</option>
+                <option value="north">North</option>
+                <option value="north-east">North-East</option>
+                <option value="east">East</option>
+                <option value="south-east">South-East</option>
+                <option value="south">South</option>
+                <option value="south-west">South-West</option>
+                <option value="west">West</option>
+                <option value="north-west">North-West</option>
               </select>
             </div>
           </div>
@@ -548,10 +554,9 @@ function EditProperty() {
               <select name="condition" className="form-control" value={formData.condition} onChange={handleChange}>
                 <option value="">—</option>
                 <option value="new">New</option>
-                <option value="excellent">Excellent</option>
-                <option value="very_good">Very Good</option>
+                <option value="renovated">Renovated</option>
                 <option value="good">Good</option>
-                <option value="needs_renovation">Needs Renovation</option>
+                <option value="needs renovation">Needs Renovation</option>
               </select>
             </div>
             <div className="col-sm-4">
@@ -562,7 +567,7 @@ function EditProperty() {
                 <option value="mountain">Mountain</option>
                 <option value="park">Park</option>
                 <option value="city">City</option>
-                <option value="open">Open</option>
+                <option value="none">None</option>
               </select>
             </div>
             <div className="col-sm-4">
@@ -623,7 +628,8 @@ function EditProperty() {
               <input name="ownerNotes" className="form-control" value={formData.ownerNotes} onChange={handleChange} placeholder="Internal notes (not visible to tenants)" />
             </div>
           </div>
- <h5 className="mt-4">Tenant Requirements</h5>
+
+          <h5 className="mt-4">Tenant Requirements</h5>
           <div className="row g-3">
             <div className="col-sm-6">
               <label className="form-label">Minimum Tenant Salary (€)</label>
@@ -647,6 +653,7 @@ function EditProperty() {
               />
             </div>
           </div>
+
           {/* FEATURE TAGS */}
           <h5 className="mt-4">Features</h5>
           <div className="d-flex flex-wrap gap-3">

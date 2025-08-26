@@ -9,7 +9,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const { setUser } = useAuth();
+  const { setUser,setToken } = useAuth();
   const navigate = useNavigate();
 
     const pageGradient = {
@@ -24,10 +24,11 @@ function Login() {
     try {
       const data = await loginUser({ email, password });
       setUser(data.user);
+      setToken(data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
       setMessage(`Welcome, ${data.user.name}`);
-      navigate('/dashboard');
+      navigate('/profile');
     } catch (err) {
       setMessage(err.response?.data?.message || 'Login error');
     }

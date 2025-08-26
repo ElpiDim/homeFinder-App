@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../api';
+import {registerUser} from '../services/authService';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from "../components/Logo";
 
@@ -32,7 +32,7 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/auth/register', formData);
+      await registerUser(formData);
       setMessage('Registration successful! Redirecting to login...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
