@@ -1,35 +1,102 @@
 const express = require("express");
 const router = express.Router();
 
-// Controllers
-const userController = require("../controllers/userController");
 
 // Middlewares
 const verifyToken = require("../middlewares/authMiddleware");
-const { uploadProfilePicture } = require("../middlewares/uploadMiddleware");
+// Models
+const User = require("../models/user");
 
-// Register
-router.post("/register", userController.registerUser);
+// GET /api/users/me - return current user without password
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-// Login
-router.post("/login", userController.loginUser);
+// PUT /api/users/me - update personal fields
+router.put("/me", verifyToken, async (req, res) => {
+  const allowedFields = [
+    "age",
+    "householdSize",
+    "hasFamily",
+    "hasPets",
+    "smoker",
+    "occupation",
+    "salary",
+    "isWillingToHaveRoommate",
+  ];
 
-// Get profile
-router.get("/profile", verifyToken, userController.getUserProfile);
+  const updateData = {};
+  allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      updateData[field] = req.body[field];
+    }
+  });
 
-// Update profile
-router.put(
-  "/profile",
-  verifyToken,
-  uploadProfilePicture,
-  userController.updateUserProfile
-);
+  try {
+    const user = await User.findByIdAndUpdate(req.user.userId, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
 
-// Current user endpoints
-router.get("/me", verifyToken, userController.getCurrentUser);
-router.put("/me", verifyToken, userController.updateCurrentUser);
-// Delete profile
-router.delete("/profile", verifyToken, userController.deleteUserAccount);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// PUT /api/users/me/preferences - update preference fields
+router.put("/me/preferences", verifyToken, async (req, res) => {
+  const prefFields = [
+    "type",
+    "location",
+    "minPrice",
+    "maxPrice",
+    "minSqm",
+    "maxSqm",
+    "bedrooms",
+    "bathrooms",
+    "petsAllowed",
+    "smokingAllowed",
+    "furnished",
+  ];
+
+  const updateData = {};
+  prefFields.forEach((field) => {
+    if (req.body[field] !== undefined) {
+      updateData[`preferences.${field}`] = req.body[field];
+    }
+  });
+
+  if (req.body.completeOnboarding === true) {
+    updateData.hasCompletedOnboarding = true;
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(req.user.userId, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ ok: true, user });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 module.exports = router;
 
