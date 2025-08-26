@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: true
     },
 
     email: {
@@ -12,16 +12,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true,
+      trim: true
     },
 
     password: {
       type: String,
       required: true,
-    },
-
-    phone: {
-      type: String,
     },
 
     role: {
@@ -30,37 +26,47 @@ const userSchema = new mongoose.Schema(
       default: "client",
     },
 
-    address: String,
+    age: Number,
+    householdSize: Number,
+    hasFamily: Boolean,
+    hasPets: Boolean,
+    smoker: Boolean,
     occupation: String,
     salary: Number,
+    isWillingToHaveRoommate: Boolean,
     profilePicture: String,
-    profileCompleted: {
+    hasCompletedOnboarding: {
       type: Boolean,
-      default: false,
+      default: false
     },
 
-    // ✅ Email verification flags
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    emailVerifiedAt: {
-      type: Date,
+    preferences: {
+      type: {
+        type: String,
+        enum: ["rent", "sale"],
+        default: "rent"
+      },
+      location: String,
+      minPrice: Number,
+      maxPrice: Number,
+      minSqm: Number,
+      maxSqm: Number,
+      bedrooms: Number,
+      bathrooms: Number,
+      petsAllowed: Boolean,
+      smokingAllowed: Boolean,
+      furnished: Boolean
     },
 
     favorites: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Property",
-      },
-    ],
-  },
-  {
-    timestamps: true, // createdAt & updatedAt
+          ref: "Property"
+      }
+    ]
   }
 );
 
-// (προαιρετικό) index για γρήγορα queries σε verified χρήστες
-userSchema.index({ emailVerified: 1 });
+userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);
