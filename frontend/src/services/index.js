@@ -1,7 +1,3 @@
-end/src/services/index.js
-Νέο
-+17
--0
 
 import api from '../api';
 
