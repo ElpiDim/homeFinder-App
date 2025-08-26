@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getCurrentUser, updateCurrentUser } from '../services/userService';
+import { getUserProfile, updateUserProfile } from '../services/userService';
 
 function EditProfile() {
   const {setUser } = useAuth();
@@ -21,7 +21,7 @@ function EditProfile() {
   useEffect(() => {
      const loadUser = async () => {
       try {
-        const data = await getCurrentUser();
+        const data = await getUserProfile();
         setFormData({
           age: data.age || '',
           householdSize: data.householdSize || 1,
@@ -47,7 +47,7 @@ function EditProfile() {
     e.preventDefault();
 
     try {
-      const updated = await updateCurrentUser(formData);
+      const updated = await updateUserProfile(formData);
       setUser(updated);
       setMessage('Profile updated successfully!');
     } catch (err) {
