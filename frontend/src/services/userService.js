@@ -1,6 +1,6 @@
 import http from '../api/http';
 
-const API_BASE = '/user';
+const API_BASE = '/users';
 
 export const getCurrentUser = async () => {
     const res = await http.get(`${API_BASE}/me`);

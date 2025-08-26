@@ -73,8 +73,8 @@ function EditProfile() {
           smokingAllowed: !!p.smokingAllowed,
           furnished: !!p.furnished,
         });
-        // sync context user (χρήσιμο για το hasCompletedOnboarding flag)
         setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
       } catch (err) {
         console.error('load user failed', err);
       }
@@ -107,7 +107,13 @@ function EditProfile() {
         salary: formData.salary !== '' ? Number(formData.salary) : undefined,
         isWillingToHaveRoommate: !!formData.isWillingToHaveRoommate,
       };
-      await updateCurrentUser(payloadUser);
+
+      // ❗ ΠΑΙΡΝΟΥΜΕ ΤΟΝ UPDATED USER ΚΑΙ ΤΟΝ ΠΕΡΝΑΜΕ ΣΤΟ CONTEXT
+      const updatedUser = await updateCurrentUser(payloadUser);
+      if (updatedUser) {
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
 
       // 2) Update preferences (+ mark onboarding complete if 1η φορά)
       const payloadPref = {
@@ -122,21 +128,19 @@ function EditProfile() {
         petsAllowed: !!prefData.petsAllowed,
         smokingAllowed: !!prefData.smokingAllowed,
         furnished: !!prefData.furnished,
-        completeOnboarding: !(user?.hasCompletedOnboarding), // μόνο την 1η φορά
+        completeOnboarding: !(user?.hasCompletedOnboarding),
       };
-      const res = await updatePreferences(payloadPref);
 
-      // 3) ενημέρωσε το context user (ώστε το flag να είναι true)
-            if (res?.user) {
+      const res = await updatePreferences(payloadPref);
+      if (res?.user) {
         setUser(res.user);
         localStorage.setItem('user', JSON.stringify(res.user));
       }
 
       setMessage('Profile updated successfully!');
-      // 4) redirect: αν ήταν onboarding → dashboard, αλλιώς μείνε/πήγαινε dashboard
-      if (!user?.hasCompletedOnboarding || res?.user?.hasCompletedOnboarding) {
-        navigate('/dashboard');
-      }
+      // 3) Redirect always to dashboard
+      navigate('/dashboard');
+
     } catch (err) {
       console.error('update failed', err);
       setMessage(err?.response?.data?.message || 'Update failed');

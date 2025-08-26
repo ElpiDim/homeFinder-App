@@ -54,22 +54,28 @@ const userSchema = new mongoose.Schema(
     favorites: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Property" }
     ],
+
+       // Preferences for apartment search
+    preferences: {
+      type: {
+        type: String,
+        enum: ["rent", "sale"],
+        default: "rent",
+      },
+      location: { type: String },
+      minPrice: { type: Number },
+      maxPrice: { type: Number },
+      minSqm: { type: Number },
+      maxSqm: { type: Number },
+      bedrooms: { type: Number },
+      bathrooms: { type: Number },
+      petsAllowed: { type: Boolean },
+      smokingAllowed: { type: Boolean },
+      furnished: { type: Boolean },
+    },
   },
-  {
-   preferences: {
-    type: { type: String, enum: ["rent", "sale"], default: "rent" },
-    location: { type: String },
-    minPrice: { type: Number },
-    maxPrice: { type: Number },
-    minSqm: { type: Number },
-    maxSqm: { type: Number },
-    bedrooms: { type: Number },
-    bathrooms: { type: Number },
-    petsAllowed: { type: Boolean },
-    smokingAllowed: { type: Boolean },
-    furnished: { type: Boolean },
-  },
-}, { timestamps: true });
+  
+{ timestamps: true });
 // Χρήσιμα indexes
 userSchema.index({ emailVerified: 1 });
 userSchema.index({ role: 1 });
