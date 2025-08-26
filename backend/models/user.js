@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["client", "owner", "admin"], // client = tenant
       default: "client",
+
     },
 
     // --- Tenant profile fields (για eligibility) ---
@@ -43,7 +44,7 @@ const userSchema = new mongoose.Schema(
     hasPets: { type: Boolean, default: false },
     smoker: { type: Boolean, default: false },
     isWillingToHaveRoommate: { type: Boolean, default: false },
-
+    hasCompletedOnboarding: { type: Boolean, default: false },    
     profilePicture: String,
 
     // Email verification
@@ -55,10 +56,20 @@ const userSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // createdAt & updatedAt
-  }
-);
-
+   preferences: {
+    type: { type: String, enum: ["rent", "sale"], default: "rent" },
+    location: { type: String },
+    minPrice: { type: Number },
+    maxPrice: { type: Number },
+    minSqm: { type: Number },
+    maxSqm: { type: Number },
+    bedrooms: { type: Number },
+    bathrooms: { type: Number },
+    petsAllowed: { type: Boolean },
+    smokingAllowed: { type: Boolean },
+    furnished: { type: Boolean },
+  },
+}, { timestamps: true });
 // Χρήσιμα indexes
 userSchema.index({ emailVerified: 1 });
 userSchema.index({ role: 1 });

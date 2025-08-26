@@ -1,98 +1,103 @@
-const express = require('express');
+// routes/auth.js
+const express = require("express");
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const User = require('../models/user');
-const jwt = require('jsonwebtoken');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 
-// @route   POST /api/auth/register
-// @desc    Register new user
-// @access  Public
-router.post('/register', async (req, res) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+// POST /api/auth/register
+// Minimal signup: name, email, password. Role defaults to "client".
+router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    // Έλεγχος για κενά
+    const { name, email, password } = req.body || {};
+
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "please fill all required fields" });
+      return res.status(400).json({ message: "Please fill all required fields" });
     }
 
-    // Έλεγχος για email format
-    if (!emailRegex.test(email)) {
+    // basic email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // Έλεγχος μήκους κωδικού
-    if (password.length < 8) {
+    // password policy (simple)
+    if (String(password).length < 8) {
       return res.status(400).json({ message: "Password must be at least 8 characters" });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
+    // uniqueness
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(409).json({ message: "Email already in use" });
     }
 
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(password, 10);
 
-    // Create and save the user
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      ...User(role &&{role}),
+    const newUser = await User.create({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password: hash,
+      role: "client",                // 👈 default
+      hasCompletedOnboarding: false, // 👈 1η φορά θα πάει στο /profile
     });
 
-    await newUser.save();
-    res.status(201).json({ message: 'User registered successfully ' });
+    return res.status(201).json({
+      message: "User registered successfully",
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        hasCompletedOnboarding: newUser.hasCompletedOnboarding,
+      },
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error ' });
+    console.error("register error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
+// POST /api/auth/login
+// Returns JWT({ userId, role }) + user object (incl. hasCompletedOnboarding)
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    // Βρες τον χρήστη με βάση το email
-    const user = await User.findOne({ email });
+    const { email, password } = req.body || {};
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Σύγκρινε τους κωδικούς
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(String(password || ""), user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Φτιάξε το JWT token
-    const payload = {
-      userId: user._id,
-      role: user.role
-    };
+    if (!process.env.JWT_SECRET) {
+      console.warn("⚠️ JWT_SECRET is not set");
+    }
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h"
-    });
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET || "dev_secret_change_me",
+      { expiresIn: "7d" } // πιο φιλικό για web sessions
+    );
 
     const baseUrl = process.env.BASE_URL || "http://localhost:5000";
-    const profilePicture = user.profilePicture
-      ? `${baseUrl}${user.profilePicture}`
-      : null;
+    const profilePicture = user.profilePicture ? `${baseUrl}${user.profilePicture}` : null;
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+
+        // προφίλ/χαρακτηριστικά (αν τα χρειάζεσαι άμεσα στο UI)
         phone: user.phone,
         address: user.address,
         occupation: user.occupation,
@@ -103,13 +108,19 @@ router.post("/login", async (req, res) => {
         hasPets: user.hasPets,
         smoker: user.smoker,
         isWillingToHaveRoommate: user.isWillingToHaveRoommate,
-        profilePicture,
-      }
-    });
 
+        // 👇 πολύ σημαντικό για το onboarding redirect
+        hasCompletedOnboarding: !!user.hasCompletedOnboarding,
+
+        // προτιμήσεις (προαιρετικό, χρήσιμο για default filters)
+        preferences: user.preferences || null,
+
+        profilePicture,
+      },
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("login error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

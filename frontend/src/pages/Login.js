@@ -2,47 +2,56 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { loginUser } from '../services/authService';
+import { loginUser } from '../services/authService'; // κάνει POST /auth/login και επιστρέφει { token, user }
 import Logo from '../components/Logo';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const { setUser,setToken } = useAuth();
+  const { setUser, setToken } = useAuth();
   const navigate = useNavigate();
 
-    const pageGradient = {
-      minHeight: '100vh',
-      background:
-        'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
-      backgroundAttachment: 'fixed',
-    };
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
+    backgroundAttachment: 'fixed',
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setMessage('');
     try {
-      const data = await loginUser({ email, password });
+      const data = await loginUser({ email, password }); // { token, user }
+      // αποθήκευση σε context + localStorage
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
+
+      // welcome flash
       setMessage(`Welcome, ${data.user.name}`);
-      navigate('/profile');
+
+      // ✅ ΣΩΣΤΟ flag: hasCompletedOnboarding (όχι hasCompletedOnBoarding)
+      if (!data.user.hasCompletedOnboarding) {
+        navigate('/profile');     // πρώτη φορά → συμπλήρωση προφίλ/προτιμήσεων
+      } else {
+        navigate('/dashboard');   // από εδώ και πέρα
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Login error');
+      setMessage(err?.response?.data?.message || 'Login error');
     }
   };
 
   return (
     <div style={pageGradient}>
-      {/* Navbar (compact + glass) */}
+      {/* Navbar */}
       <nav
         className="navbar navbar-expand-lg px-3 compact-nav shadow-sm glass-bg"
         style={{ position: 'sticky', top: 0, zIndex: 5000 }}
       >
         <div className="d-flex align-items-center gap-2">
-        {/* Brand logo (λευκό με σκιές) */}
           <Logo as="h5" className="mb-0 logo-white" />
         </div>
 
@@ -69,6 +78,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                autoComplete="username"
               />
             </div>
 
@@ -81,6 +91,7 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                autoComplete="current-password"
               />
             </div>
 
