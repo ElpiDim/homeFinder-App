@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema(
     occupation: String,
     salary: Number,
     profilePicture: String,
+    profileCompleted: {
+      type: Boolean,
+      default: false,
+    },
 
     // ✅ Email verification flags
     emailVerified: {

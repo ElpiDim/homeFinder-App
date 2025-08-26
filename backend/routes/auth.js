@@ -103,6 +103,7 @@ router.post("/login", async (req, res) => {
         occupation: user.occupation,
         salary: user.salary,
         profilePicture,
+        profileCompleted: user.profileCompleted,
       }
     });
 

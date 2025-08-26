@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import api from "../api";
+import http from "../api/http"
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -15,8 +15,8 @@ export const AuthProvider = ({ children }) => {
 
   // Keep API Authorization header in sync with token
   useEffect(() => {
-    if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
-    else delete api.defaults.headers.common.Authorization;
+     if (token) http.defaults.headers.common.Authorization = `Bearer ${token}`;
+    else delete http.defaults.headers.common.Authorization;
   }, [token]);
 
   // Verify token / refresh user once on mount
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     const bootstrap = async () => {
       if (!token) { setAuthReady(true); return; }
       try {
-        const res = await api.get("/user/profile");
+        const res = await http.get("/users/me");
         const data = res.data?.user || res.data; // handle either shape
         if (!cancelled && data) {
           setUser(data);
@@ -47,14 +47,14 @@ export const AuthProvider = ({ children }) => {
 
   // Optional helpers
   const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
+    const res = await http.post("/auth/login", { email, password });
     const tk = res.data.token;
     const usr = res.data.user;
     setToken(tk);
     setUser(usr);
     localStorage.setItem("token", tk);
     localStorage.setItem("user", JSON.stringify(usr));
-    api.defaults.headers.common.Authorization = `Bearer ${tk}`;
+    http.defaults.headers.common.Authorization = `Bearer ${tk}`;
   };
 
   const logout = () => {
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    delete api.defaults.headers.common.Authorization;
+    delete http.defaults.headers.common.Authorization;
   };
 
   const value = useMemo(() => ({

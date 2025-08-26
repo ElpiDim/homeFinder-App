@@ -136,7 +136,45 @@ exports.updateUserProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// GET /api/users/me
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
+// PUT /api/users/me
+exports.updateCurrentUser = async (req, res) => {
+  const userId = req.user.userId;
+  const allowedFields = [
+    "age",
+    "householdSize",
+    "hasFamily",
+    "hasPets",
+    "smoker",
+    "occupation",
+    "salary",
+  ];
+
+  const updateData = {};
+  allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) updateData[field] = req.body[field];
+  });
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    }).select("-password");
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 // DELETE /api/user/profile
 exports.deleteUserAccount = async (req, res) => {
   try {

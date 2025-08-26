@@ -25,6 +25,9 @@ router.put(
   userController.updateUserProfile
 );
 
+// Current user endpoints
+router.get("/me", verifyToken, userController.getCurrentUser);
+router.put("/me", verifyToken, userController.updateCurrentUser);
 // Delete profile
 router.delete("/profile", verifyToken, userController.deleteUserAccount);
 
