@@ -3,15 +3,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-
 require("dotenv").config();
 
 const app = express();
-
-app.use((req, _res, next) => {
-  console.log(`[${req.method}] ${req.originalUrl}`);
-  next();
-});
 
 /* ---------- Middleware ---------- */
 app.use(cors());
@@ -35,7 +29,6 @@ const notificationRoutes = require("./routes/notifications");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/users",userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/messages", messageRoutes);

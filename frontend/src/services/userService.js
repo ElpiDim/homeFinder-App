@@ -1,6 +1,6 @@
 import http from '../api/http';
 
-const API_BASE = '/users';
+const API_BASE = '/user';
 
 export const getCurrentUser = async () => {
     const res = await http.get(`${API_BASE}/me`);
@@ -13,4 +13,4 @@ export const updateCurrentUser = async (updatedData) => {
 };
 
 export const updatePreferences = (payload) =>
-    http.put(`${API_BASE}/me/preferences`, payload).then(r => r.data);
+    http.put(`${API_BASE}/me/preferences`, payload).then((r) => r.data);
