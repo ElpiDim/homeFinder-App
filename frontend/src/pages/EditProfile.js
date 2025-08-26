@@ -127,7 +127,10 @@ function EditProfile() {
       const res = await updatePreferences(payloadPref);
 
       // 3) ενημέρωσε το context user (ώστε το flag να είναι true)
-      if (res?.user) setUser(res.user);
+            if (res?.user) {
+        setUser(res.user);
+        localStorage.setItem('user', JSON.stringify(res.user));
+      }
 
       setMessage('Profile updated successfully!');
       // 4) redirect: αν ήταν onboarding → dashboard, αλλιώς μείνε/πήγαινε dashboard

@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     const bootstrap = async () => {
       if (!token) { setAuthReady(true); return; }
       try {
-        const res = await http.get("/users/me");
+        const res = await http.get("/user/me");
         const data = res.data?.user || res.data; // handle either shape
         if (!cancelled && data) {
           setUser(data);
@@ -47,14 +47,14 @@ export const AuthProvider = ({ children }) => {
 
   // Optional helpers
   const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
+    const res = await http.post("/auth/login", { email, password });
     const tk = res.data.token;
     const usr = res.data.user;
     setToken(tk);
     setUser(usr);
     localStorage.setItem("token", tk);
     localStorage.setItem("user", JSON.stringify(usr));
-    api.defaults.headers.common.Authorization = `Bearer ${tk}`;
+    http.defaults.headers.common.Authorization = `Bearer ${tk}`;
   };
 
   const logout = () => {
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    delete api.defaults.headers.common.Authorization;
+    delete http.defaults.headers.common.Authorization;
   };
 
   const value = useMemo(() => ({

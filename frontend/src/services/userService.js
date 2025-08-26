@@ -12,5 +12,7 @@ export const updateCurrentUser = async (updatedData) => {
     return res.data;
 };
 
-export const updatePreferences = (payload) =>
-    http.put(`${API_BASE}/me/preferences`, payload).then((r) => r.data);
+export const updatePreferences = async (payload) => {
+    const res = await http.put(`${API_BASE}/me/preferences`, payload);
+    return res.data;
+};
