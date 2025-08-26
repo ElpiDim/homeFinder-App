@@ -3,51 +3,52 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, updateCurrentUser, updatePreferences } from '../services/userService';
 
+const initialPersonal = {
+  age: '',
+  householdSize: 1,
+  hasFamily: false,
+  hasPets: false,
+  smoker: false,
+  occupation: '',
+  salary: '',
+  isWillingToHaveRoommate: false,
+};
+
+const initialPrefs = {
+  type: 'rent',
+  location: '',
+  minPrice: '',
+  maxPrice: '',
+  minSqm: '',
+  maxSqm: '',
+  bedrooms: '',
+  bathrooms: '',
+  petsAllowed: false,
+  smokingAllowed: false,
+  furnished: false,
+};
+
+
 function EditProfile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  // --- Personal (user) fields ---
-  const [formData, setFormData] = useState({
-    age: '',
-    householdSize: 1,
-    hasFamily: false,
-    hasPets: false,
-    smoker: false,
-    occupation: '',
-    salary: '',
-    isWillingToHaveRoommate: false,
-  });
-
-  // --- Preferences (apartment) ---
-  const [prefData, setPrefData] = useState({
-    type: 'rent',
-    location: '',
-    minPrice: '',
-    maxPrice: '',
-    minSqm: '',
-    maxSqm: '',
-    bedrooms: '',
-    bathrooms: '',
-    petsAllowed: false,
-    smokingAllowed: false,
-    furnished: false,
-  });
-
+const [formData, setFormData] = useState(initialPersonal);
+  const [prefData, setPrefData] = useState(initialPrefs);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const pageGradient = useMemo(() => ({
-    minHeight: '100vh',
-    background:
-      'linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)',
-  }), []);
-
+ const pageGradient = useMemo(
+    () => ({
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)',
+    }),
+    []
+  );
   useEffect(() => {
-    (async () => {
+     async function fetchUser() {
       try {
         const data = await getCurrentUser();
-        // personal
         setFormData({
           age: data.age ?? '',
           householdSize: data.householdSize ?? 1,
@@ -58,7 +59,7 @@ function EditProfile() {
           salary: data.salary ?? '',
           isWillingToHaveRoommate: !!data.isWillingToHaveRoommate,
         });
-        // preferences
+        
         const p = data.preferences || {};
         setPrefData({
           type: p.type || 'rent',
@@ -76,28 +77,33 @@ function EditProfile() {
         setUser(data);
         localStorage.setItem('user', JSON.stringify(data));
       } catch (err) {
-        console.error('load user failed', err);
+         console.error('Failed to load user', err);
       }
-    })();
+  }
+  fetchUser();
   }, [setUser]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+     setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handlePrefChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setPrefData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
+    setPrefData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setSaving(true);
     try {
-      // 1) Update personal profile
-      const payloadUser = {
+      const userPayload = {
         age: formData.age !== '' ? Number(formData.age) : undefined,
         householdSize: formData.householdSize !== '' ? Number(formData.householdSize) : undefined,
         hasFamily: formData.hasFamily,
@@ -107,16 +113,12 @@ function EditProfile() {
         salary: formData.salary !== '' ? Number(formData.salary) : undefined,
         isWillingToHaveRoommate: !!formData.isWillingToHaveRoommate,
       };
-
-      // ❗ ΠΑΙΡΝΟΥΜΕ ΤΟΝ UPDATED USER ΚΑΙ ΤΟΝ ΠΕΡΝΑΜΕ ΣΤΟ CONTEXT
-      const updatedUser = await updateCurrentUser(payloadUser);
-      if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
-
-      // 2) Update preferences (+ mark onboarding complete if 1η φορά)
-      const payloadPref = {
+      
+      const updatedUser = await updateCurrentUser(userPayload);
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      const prefPayload = {
         type: prefData.type,
         location: prefData.location || undefined,
         minPrice: prefData.minPrice !== '' ? Number(prefData.minPrice) : undefined,
@@ -128,21 +130,19 @@ function EditProfile() {
         petsAllowed: !!prefData.petsAllowed,
         smokingAllowed: !!prefData.smokingAllowed,
         furnished: !!prefData.furnished,
-        completeOnboarding: !(user?.hasCompletedOnboarding),
+        completeOnboarding: !user?.hasCompletedOnboarding,
       };
 
-      const res = await updatePreferences(payloadPref);
-      if (res?.user) {
-        setUser(res.user);
-        localStorage.setItem('user', JSON.stringify(res.user));
-      }
+       const updatedAfterPrefs = await updatePreferences(prefPayload);
+      setUser(updatedAfterPrefs);
+      localStorage.setItem('user', JSON.stringify(updatedAfterPrefs));
 
       setMessage('Profile updated successfully!');
-      // 3) Redirect always to dashboard
+
       navigate('/dashboard');
 
     } catch (err) {
-      console.error('update failed', err);
+      console.error('Update failed', err);
       setMessage(err?.response?.data?.message || 'Update failed');
     } finally {
       setSaving(false);
@@ -262,11 +262,7 @@ function EditProfile() {
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </button>
-            <button
-              type="button"
-              className="btn btn-secondary ms-2"
-              onClick={() => navigate('/dashboard')}
-            >
+             <button type="button" className="btn btn-secondary ms-2" onClick={() => navigate('/dashboard')}>
               Back to Dashboard
             </button>
           </div>
@@ -275,5 +271,6 @@ function EditProfile() {
     </div>
   );
 }
+
 
 export default EditProfile;

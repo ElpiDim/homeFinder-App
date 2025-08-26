@@ -1,18 +1,19 @@
 import http from '../api/http';
 
-const API_BASE = '/users';
+const API_BASE = 'users';
 
 export const getCurrentUser = async () => {
     const res = await http.get(`${API_BASE}/me`);
-    return res.data;
-};
+  return res.data;
+}
 
 export const updateCurrentUser = async (updatedData) => {
     const res = await http.put(`${API_BASE}/me`, updatedData);
-    return res.data;
+  return res.data;
 };
 
 export const updatePreferences = async (payload) => {
     const res = await http.put(`${API_BASE}/me/preferences`, payload);
-    return res.data;
+  // backend responds with { ok: true, user }
+  return res.data.user || res.data;
 };
