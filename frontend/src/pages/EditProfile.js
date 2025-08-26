@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import {useNavigate} from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, updateCurrentUser } from '../services/userService';
 
-function EditProfile() {
-  const {setUser } = useAuth();
+function EditProfile() {  
+  const { setUser } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
      age: '',
@@ -97,6 +99,13 @@ function EditProfile() {
           <input type="number" name="salary" className="form-control" value={formData.salary} onChange={handleChange} />
         </div>
         <button type="submit" className="btn btn-primary">Save</button>
+          <button
+          type="button"
+          className="btn btn-secondary ms-2"
+          onClick={() => navigate('/dashboard')}
+        >
+          Back to Dashboard
+        </button>
       </form>
         
     </div>
