@@ -3,6 +3,7 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const Interest = require("../models/interests");
+const User = require("../models/user");
 
 /* ----------------------------- helpers ----------------------------- */
 const hasValue = (v) => v !== undefined && v !== null && `${v}`.trim() !== "";
@@ -42,6 +43,7 @@ exports.createProperty = async (req, res) => {
     const { images, floorPlanImage } = extractImagesFromReq(req);
 
     const b = req.body;
+    const tenantReq = b.tenantRequirements||{};
 
     const newProperty = new Property({
       /* required/basics */
@@ -87,6 +89,28 @@ exports.createProperty = async (req, res) => {
       insulation: b.insulation === "true" || b.insulation === true,
       ownerNotes: b.ownerNotes,
 
+       tenantRequirements: {
+        minTenantSalary: toNum(tenantReq.minTenantSalary, parseFloat),
+        allowedOccupations: Array.isArray(tenantReq.allowedOccupations)
+          ? tenantReq.allowedOccupations
+          : tenantReq.allowedOccupations
+          ? [tenantReq.allowedOccupations]
+          : [],
+        requiresFamily:
+          tenantReq.requiresFamily === true ||
+          tenantReq.requiresFamily === "true" ||
+          tenantReq.requiresFamily === "1",
+        allowsSmokers:
+          tenantReq.allowsSmokers === true ||
+          tenantReq.allowsSmokers === "true" ||
+          tenantReq.allowsSmokers === "1",
+        allowsPets:
+          tenantReq.allowsPets === true ||
+          tenantReq.allowsPets === "true" ||
+          tenantReq.allowsPets === "1",
+        maxOccupants: toNum(tenantReq.maxOccupants, parseInt),
+      },
+
       /* arrays */
       features: Array.isArray(b["features[]"])
         ? b["features[]"]
@@ -123,6 +147,7 @@ exports.getAllProperties = async (req, res) => {
       minSqm, maxSqm,
       minBedrooms, maxBedrooms,
       minBathrooms, maxBathrooms,
+      bedrooms, bathrooms,
       yearFrom, yearTo,
       furnished, petsAllowed, hasElevator, hasStorage,
       energyClass, heating, orientation, view,
@@ -153,20 +178,23 @@ exports.getAllProperties = async (req, res) => {
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
 
-    // bedrooms/bathrooms range
-    const numRange = (field, minV, maxV) => {
-      if (!hasValue(minV) && !hasValue(maxV)) return null;
-      const r = {};
-      if (hasValue(minV)) r.$gte = parseInt(minV);
-      if (hasValue(maxV)) r.$lte = parseInt(maxV);
-      return { [field]: r };
-    };
-    Object.assign(
-      match,
-      numRange("bedrooms", minBedrooms, maxBedrooms) || {},
-      numRange("bathrooms", minBathrooms, maxBathrooms) || {}
-    );
+// bedrooms/bathrooms range or exact
+      const numRange = (field, minV, maxV) => {
+        if (!hasValue(minV) && !hasValue(maxV)) return null;
+        const r = {};
+        if (hasValue(minV)) r.$gte = parseInt(minV);
+        if (hasValue(maxV)) r.$lte = parseInt(maxV);
+        return { [field]: r };
+      };
 
+      if (hasValue(bedrooms)) match.bedrooms = parseInt(bedrooms);
+      if (hasValue(bathrooms)) match.bathrooms = parseInt(bathrooms);
+
+      Object.assign(
+        match,
+        numRange("bedrooms", minBedrooms, maxBedrooms) || {},
+        numRange("bathrooms", minBathrooms, maxBathrooms) || {}
+      );
     // year built
     if (hasValue(yearFrom) || hasValue(yearTo)) {
       match.yearBuilt = {};
@@ -290,8 +318,42 @@ exports.getAllProperties = async (req, res) => {
     pipeline.push({ $skip: skip }, { $limit: numericLimit });
     pipeline.push({ $project: { favDocs: 0 } });
 
-    const properties = await Property.aggregate(pipeline);
-    res.json(properties);
+ let properties = await Property.aggregate(pipeline);
+
+      if (req.user?.role === "client") {
+        try {
+          const user = await User.findById(req.user.userId).lean();
+          if (user) {
+            properties = properties.filter((p) => {
+              const tr = p.tenantRequirements || {};
+              if (
+                tr.minTenantSalary !== undefined &&
+                user.salary < tr.minTenantSalary
+              )
+                return false;
+              if (
+                tr.allowedOccupations &&
+                tr.allowedOccupations.length &&
+                !tr.allowedOccupations.includes(user.occupation)
+              )
+                return false;
+              if (tr.requiresFamily && !user.hasFamily) return false;
+              if (tr.allowsPets === false && user.hasPets) return false;
+              if (tr.allowsSmokers === false && user.smoker) return false;
+              if (
+                tr.maxOccupants !== undefined &&
+                user.householdSize > tr.maxOccupants
+              )
+                return false;
+              return true;
+            });
+          }
+        } catch (e) {
+          console.error("tenantRequirements filter error", e);
+        }
+      }
+
+      res.json(properties);
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
     res.status(500).json({ message: "Server error" });
