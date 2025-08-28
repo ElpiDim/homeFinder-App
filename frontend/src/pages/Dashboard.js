@@ -122,11 +122,27 @@ const pageGradient = useMemo(() => ({
   };
 
   /* ---------- actions ---------- */
-  const handleLogout = () => {
+const handleLogout = () => {
+  try {
+    // Καθάρισε τα πάντα
     localStorage.removeItem('token');
-    setUser(null);
-    navigate('/');
-  };
+    localStorage.removeItem('user');
+
+    // Καθάρισε axios Authorization header
+    if (api?.defaults?.headers?.common?.Authorization) {
+      delete api.defaults.headers.common.Authorization;
+    }
+  } catch (e) {
+    console.error('Logout cleanup failed:', e);
+  }
+
+  // Reset context
+  setUser(null);
+
+  // Redirect
+  navigate('/');
+};
+
 
   const handleFavorite = async (propertyId) => {
     try {
