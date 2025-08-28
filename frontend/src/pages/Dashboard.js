@@ -50,7 +50,7 @@ function normalizeUploadPath(src) {
 }
 
 function Dashboard() {
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   /* ---------- state ---------- */
@@ -123,8 +123,7 @@ const pageGradient = useMemo(() => ({
 
   /* ---------- actions ---------- */
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+    logout();
     navigate('/');
   };
 
@@ -728,9 +727,37 @@ const pageGradient = useMemo(() => ({
           <div className="col-lg-7">
               <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
               <h4 className="fw-bold mb-0">Featured Properties</h4>
-               {user?.role === 'owner' && (
+              {user?.role === 'owner' && (
+                <>
+                  <Link
+                    to="/add-property"
+                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+                    style={{
+                      background: 'linear-gradient(135deg,#006400,#90ee90)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      border: 'none',
+                    }}
+                  >
+                    Add Property
+                  </Link>
+                  <Link
+                    to="/match/clients"
+                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+                    style={{
+                      background: 'linear-gradient(135deg,#006400,#90ee90)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      border: 'none',
+                    }}
+                  >
+                    Suggested Tenants
+                  </Link>
+                </>
+              )}
+              {user?.role === 'client' && (
                 <Link
-                  to="/add-property"
+                  to="/match/properties"
                   className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                   style={{
                     background: 'linear-gradient(135deg,#006400,#90ee90)',
@@ -739,7 +766,7 @@ const pageGradient = useMemo(() => ({
                     border: 'none',
                   }}
                 >
-                  Add Property
+                  Suggested Homes
                 </Link>
               )}
               {/* Toggle: All / Sale / Rent */}
