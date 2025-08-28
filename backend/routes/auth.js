@@ -6,44 +6,49 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 require("dotenv").config();
  
- // @route   POST /api/auth/register
- // @desc    Register new user
- // @access  Public
+// @route   POST /api/auth/register
+// @desc    Register new user
+// @access  Public
 router.post("/register", async (req, res) => {
-  const { name, email, password,role, occupation, salary } = req.body;
-   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const { email, password, role } = req.body;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-   if (!name || !email || !password) {
-    return res.status(400).json({ message: "please fill all required fields" });
+  if (!email || !password || !role) {
+    return res
+      .status(400)
+      .json({ message: "email, password and role are required" });
   }
- 
+
   if (!emailRegex.test(email)) {
     return res.status(400).json({ message: "Invalid email format" });
   }
- 
+
   if (password.length < 8) {
     return res
       .status(400)
       .json({ message: "Password must be at least 8 characters" });
   }
- 
+
   try {
-     const existingUser = await User.findOne({ email });
-     if (existingUser) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
-     }
- 
-     const hashedPassword = await bcrypt.hash(password, 10);
- 
+    }
+
+    const roleSafe = String(role).toLowerCase();
+    const allowed = ["client", "owner"];
+    if (!allowed.includes(roleSafe)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await User.create({
-       name,
-       email,
-       password: hashedPassword,
-       role, 
-       occupation, 
-       salary, 
-     });
- 
+      email,
+      password: hashedPassword,
+      role: roleSafe,
+    });
+
     res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -54,18 +59,17 @@ router.post("/register", async (req, res) => {
         hasCompletedOnboarding: newUser.hasCompletedOnboarding,
       },
     });
-   } catch (err) {
-     console.error(err);
-
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
-   }
- });
+  }
+});
  
- // @route   POST /api/auth/login
- // @desc    Authenticate user & get token
- // @access  Public
- router.post("/login", async (req, res) => {
-   const { email, password, role, occupation, salary } = req.body;
+// @route   POST /api/auth/login
+// @desc    Authenticate user & get token
+// @access  Public
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
  
    try {
      const user = await User.findOne({ email });
