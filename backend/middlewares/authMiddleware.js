@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -12,11 +13,14 @@ const verifyToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    //  Βάζουμε καθαρά userId και role στο req.user
-    req.user = {
-      userId: decoded.userId,
-      role: decoded.role
-    };
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // Διαθέσιμο τόσο ως _id όσο και ως userId
+    req.user = user;
+    req.user.userId = user._id;
 
     next();
   } catch (err) {

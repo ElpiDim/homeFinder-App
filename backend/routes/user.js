@@ -3,12 +3,14 @@ const router = express.Router();
 
 
 // Middlewares
-const verifyToken = require("../middlewares/authMiddleware");
+const authMiddleware = require("../middlewares/authMiddleware");
+// Controllers
+const { updateMe } = require("../controllers/userController");
 // Models
 const User = require("../models/user");
 
 // GET /api/users/me - return current user without password
-router.get("/me", verifyToken, async (req, res) => {
+router.get("/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
     if (!user) {
@@ -20,8 +22,11 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/users/me - update allowed fields
+router.patch("/me", authMiddleware, updateMe);
+
 // PUT /api/users/me - update personal fields
-router.put("/me", verifyToken, async (req, res) => {
+router.put("/me", authMiddleware, async (req, res) => {
   const allowedFields = [
     "age",
     "householdSize",
@@ -57,7 +62,7 @@ router.put("/me", verifyToken, async (req, res) => {
 });
 
 // PUT /api/users/me/preferences - update preference fields
-router.put("/me/preferences", verifyToken, async (req, res) => {
+router.put("/me/preferences", authMiddleware, async (req, res) => {
   const prefFields = [
     "type",
     "location",
