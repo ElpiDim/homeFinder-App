@@ -726,11 +726,24 @@ const pageGradient = useMemo(() => ({
         <div className="row g-4">
           {/* LEFT: Properties list */}
           <div className="col-lg-7">
-            <div className="d-flex align-items-center gap-3 mb-3">
+              <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
               <h4 className="fw-bold mb-0">Featured Properties</h4>
-
+               {user?.role === 'owner' && (
+                <Link
+                  to="/add-property"
+                  className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg,#006400,#90ee90)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    border: 'none',
+                  }}
+                >
+                  Add Property
+                </Link>
+              )}
               {/* Toggle: All / Sale / Rent */}
-              <div className="d-flex">
+              <div className="d-flex ms-auto">
                 <div className="toggle-container">
                   <div className="toggle-options">
                     <button
