@@ -16,6 +16,7 @@ import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
 import { useAuth } from './context/AuthContext';
+import Onboarding from './pages/Onboarding';
 
 import './App.css';
 
@@ -32,6 +33,14 @@ function App() {
         <Route path="/register" element={<Register />} />
        
         {/* Protected routes */}
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={
