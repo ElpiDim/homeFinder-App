@@ -7,6 +7,8 @@ export default function Onboarding() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
+  console.log('Onboarding render, user:', user);
+
   if (!user) return <div className="container mt-4">Loading...</div>;
 
   const isClient = user.role === 'client';
@@ -41,7 +43,9 @@ export default function Onboarding() {
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+    const fieldValue = type === 'checkbox' ? checked : value;
+    console.log('onboarding field change:', name, fieldValue);
+    setForm((f) => ({ ...f, [name]: fieldValue }));
   };
 
   const submit = async (e) => {
@@ -65,17 +69,20 @@ export default function Onboarding() {
 
         Object.keys(preferences).forEach((k) => preferences[k] === undefined && delete preferences[k]);
 
+         console.log('submitting client preferences', preferences);
         res = await api.put('/users/me/preferences', {
           ...preferences,
           completeOnboarding: true,
         });
       } else {
+        console.log('submitting owner onboarding');
         // Owners currently only complete onboarding without storing additional fields
         res = await api.put('/users/me/preferences', {
           completeOnboarding: true,
         });
       }
-
+      console.log('onboarding success', res.data);
+      
       const updated = res.data.user || res.data;
       setUser(updated);
       localStorage.setItem('user', JSON.stringify(updated));

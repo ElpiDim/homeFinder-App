@@ -2,33 +2,56 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// register new user 
+// --- register: μόνο email, password, role (ασφαλές lowercasing) ---
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone, address, occupation, salary } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Email already used" });
+    const { email, password, role } = req.body;
+    if (!email || !password || !role) {
+      return res.status(400).json({ message: "email, password and role are required" });
+    }
+    const roleSafe = String(role).toLowerCase();
+    const allowed = ["client", "owner"];
+    if (!allowed.includes(roleSafe)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-      phone,
-      address,
-      occupation,
-      salary,
-    });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "Email already used" });
 
-    await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
-
+    const hashed = await bcrypt.hash(password, 10);
+    await User.create({ email, password: hashed, role: roleSafe }); // name default από schema
+    return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "server error" });
+    console.error("register error", err);
+    return res.status(500).json({ message: "server error" });
   }
 };
+
+// --- PATCH /api/users/me (FIX: userId από token) ---
+exports.updateMe = async (req, res) => {
+  try {
+    const userId = req.user.userId; // 👈 FIX εδώ
+    const allowedUpdates = [
+      "name", "phone", "address", "occupation", "salary",
+      "preferences", "requirements", "hasCompletedOnboarding",
+    ];
+
+    const updateData = {};
+    for (const f of allowedUpdates) {
+      if (req.body[f] !== undefined) updateData[f] = req.body[f];
+    }
+
+    const updated = await User.findByIdAndUpdate(userId, updateData, {
+      new: true, runValidators: true,
+    }).select("-password");
+
+    res.json(updated);
+  } catch (err) {
+    console.error("updateMe error", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 // login
 exports.loginUser = async (req, res) => {
@@ -231,5 +254,5 @@ exports.deleteUserAccount = async (req, res) => {
   } catch (err) {
     console.error('❌ Delete user error:', err);
     res.status(500).json({ message: 'Server error' });
-  }
+  } 
 };

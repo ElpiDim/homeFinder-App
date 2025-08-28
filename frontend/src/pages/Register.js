@@ -1,20 +1,15 @@
+// src/pages/Register.js
 import React, { useState } from 'react';
-import {registerUser} from '../services/authService';
+import { registerUser } from '../services/authService'; // προσαρμόσε το path αν χρειάζεται
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from "../components/Logo";
 
 function Register() {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     role: '',
-    phone: '',
-    address: '',
-    occupation: '',
-    salary: ''
   });
-
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
@@ -26,23 +21,28 @@ function Register() {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((s) => ({ ...s, [name]: value }));
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await registerUser(formData);
+      const payload = {
+        email: formData.email.trim(),
+        password: formData.password,
+        role: formData.role.toLowerCase(),
+      };
+      await registerUser(payload);
       setMessage('Registration successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 1500);
+      setTimeout(() => navigate('/login'), 1200);
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Error while registering');
+      setMessage(err?.response?.data?.message || 'Error while registering');
     }
   };
 
   return (
     <div style={pageGradient}>
-      {/* Navbar (translucent) */}
       <nav
         className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
         style={{
@@ -51,6 +51,11 @@ function Register() {
           WebkitBackdropFilter: 'blur(8px)',
         }}
       >
+        <div className="d-flex align-items-center gap-2">
+          <Link to="/" className="text-decoration-none">
+            <Logo as="h5" className="mb-0 logo-in-nav" />
+          </Link>
+        </div>
         <div className="ms-auto d-flex align-items-center gap-3">
           <Link
             to="/"
@@ -62,35 +67,39 @@ function Register() {
         </div>
       </nav>
 
-      {/* Register Card (με κενό κάτω από το navbar) */}
       <div
         className="container d-flex justify-content-center align-items-center"
-        style={{
-          minHeight: 'calc(100vh - 88px)',  // αφαιρεί περίπου το ύψος του navbar
-          paddingTop: 24,                    // “ανάσα” κάτω από τη μπάρα
-          paddingBottom: 24,
-        }}
+        style={{ minHeight: 'calc(100vh - 88px)', paddingTop: 24, paddingBottom: 24 }}
       >
-        <div className="card shadow p-4" style={{ maxWidth: '640px', width: '100%', borderRadius: '1rem' }}>
+        <div className="card shadow p-4" style={{ maxWidth: 520, width: '100%', borderRadius: '1rem' }}>
           <h4 className="fw-bold mb-3">Create a new account</h4>
           {message && <div className="alert alert-info rounded-pill">{message}</div>}
 
           <form onSubmit={handleRegister}>
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Full Name</label>
-                <input type="text" className="form-control" name="name" required onChange={handleChange} />
-              </div>
-
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Email</label>
-                <input type="email" className="form-control" name="email" required onChange={handleChange} />
-              </div>
+            <div className="mb-3">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                className="form-control"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="email"
+              />
             </div>
 
             <div className="mb-3">
               <label className="form-label">Password</label>
-              <input type="password" className="form-control" name="password" required onChange={handleChange} />
+              <input
+                type="password"
+                className="form-control"
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+              />
             </div>
 
             <div className="mb-3">
@@ -106,30 +115,6 @@ function Register() {
                 <option value="client">Client</option>
                 <option value="owner">Owner</option>
               </select>
-            </div>
-
-            {/* Phone + Address */}
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Phone number</label>
-                <input type="tel" className="form-control" name="phone" onChange={handleChange} />
-              </div>
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Address</label>
-                <input type="text" className="form-control" name="address" onChange={handleChange} />
-              </div>
-            </div>
-
-            {/* Occupation + Salary */}
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Occupation</label>
-                <input type="text" className="form-control" name="occupation" onChange={handleChange} />
-              </div>
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Salary/year (€)</label>
-                <input type="number" className="form-control" name="salary" onChange={handleChange} />
-              </div>
             </div>
 
             <div className="d-grid">
@@ -151,11 +136,7 @@ function Register() {
 
           <div className="mt-3 text-center">
             <span className="text-muted">Already have an account? </span>
-            <Link
-              to="/login"
-              className="btn btn-link rounded-pill px-2 py-1"
-              style={{ textDecoration: 'none', fontWeight: 600 }}
-            >
+            <Link to="/login" className="btn btn-link rounded-pill px-2 py-1" style={{ textDecoration: 'none', fontWeight: 600 }}>
               Login
             </Link>
           </div>
