@@ -1,5 +1,43 @@
 const mongoose = require("mongoose");
 
+
+const preferencesSchema = new mongoose.Schema(
+  {
+    location: String,
+    rentMin: Number,
+    rentMax: Number,
+    sqmMin: Number,
+    sqmMax: Number,
+    bedrooms: Number,
+    bathrooms: Number,
+    floorMin: Number,
+    furnished: Boolean,
+    petsAllowed: Boolean,
+    smokingAllowed: Boolean,
+    yearBuiltMin: Number,
+    heatingType: { type: String, enum: ["autonomous", "central", "ac", "none"] }
+  },
+  { _id: false }
+);
+
+const requirementsSchema = new mongoose.Schema(
+  {
+    incomeMin: Number,
+    incomeMax: Number,
+    allowedOccupations: [String],
+    familyStatus: {
+      type: String,
+      enum: ["single", "couple", "family", "any"],
+      default: "any"
+    },
+    petsAllowed: Boolean,
+    smokingAllowed: Boolean,
+    workLocation: String,
+    preferredTenantRegion: String
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -41,23 +79,8 @@ const userSchema = new mongoose.Schema(
       default: false
     },
 
-    preferences: {
-      type: {
-        type: String,
-        enum: ["rent", "sale"],
-        default: "rent"
-      },
-      location: String,
-      minPrice: Number,
-      maxPrice: Number,
-      minSqm: Number,
-      maxSqm: Number,
-      bedrooms: Number,
-      bathrooms: Number,
-      petsAllowed: Boolean,
-      smokingAllowed: Boolean,
-      furnished: Boolean
-    },
+   preferences: preferencesSchema,
+   requirements: requirementsSchema,
 
     favorites: [
       {
