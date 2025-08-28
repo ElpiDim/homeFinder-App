@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", tk);
     localStorage.setItem("user", JSON.stringify(usr));
     http.defaults.headers.common.Authorization = `Bearer ${tk}`;
+    return usr;
   };
 
   const logout = () => {

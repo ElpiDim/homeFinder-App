@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["client", "owner"],
-      default: "client",
+    
     },
 
     age: Number,
@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema(
     salary: Number,
     isWillingToHaveRoommate: Boolean,
     profilePicture: String,
+
     hasCompletedOnboarding: {
       type: Boolean,
       default: false

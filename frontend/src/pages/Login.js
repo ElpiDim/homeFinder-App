@@ -2,14 +2,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { loginUser } from '../services/authService';
 import Logo from '../components/Logo';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const { setUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
     const pageGradient = {
@@ -22,11 +21,8 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const data = await loginUser({ email, password });
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      setMessage(`Welcome, ${data.user.name}`);
+        const usr = await login(email, password);
+      setMessage(`Welcome, ${usr.name}`);
       navigate('/dashboard');
     } catch (err) {
       setMessage(err.response?.data?.message || 'Login error');

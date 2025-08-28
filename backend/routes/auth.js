@@ -10,7 +10,7 @@ require("dotenv").config();
  // @desc    Register new user
  // @access  Public
 router.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password,role, occupation, salary } = req.body;
    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
    if (!name || !email || !password) {
@@ -39,6 +39,9 @@ router.post("/register", async (req, res) => {
        name,
        email,
        password: hashedPassword,
+       role, 
+       occupation, 
+       salary, 
      });
  
     res.status(201).json({
@@ -62,7 +65,7 @@ router.post("/register", async (req, res) => {
  // @desc    Authenticate user & get token
  // @access  Public
  router.post("/login", async (req, res) => {
-   const { email, password } = req.body;
+   const { email, password, role, occupation, salary } = req.body;
  
    try {
      const user = await User.findOne({ email });

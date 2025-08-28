@@ -8,7 +8,7 @@ function Register() {
     name: '',
     email: '',
     password: '',
-    role: 'client',
+    role: '',
     phone: '',
     address: '',
     occupation: '',
@@ -95,7 +95,14 @@ function Register() {
 
             <div className="mb-3">
               <label className="form-label">Role</label>
-              <select className="form-select" name="role" onChange={handleChange} defaultValue="client">
+              <select
+                className="form-select"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Select role --</option>
                 <option value="client">Client</option>
                 <option value="owner">Owner</option>
               </select>

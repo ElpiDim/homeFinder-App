@@ -86,7 +86,7 @@ function Appointments() {
                     {user?.role === 'owner' && appt.tenantId && (
                       <div className="mt-1">Tenant: {appt.tenantId.name}</div>
                     )}
-                    {user?.role === 'tenant' && appt.ownerId && (
+                    {user?.role === 'client' && appt.ownerId && (
                       <div className="mt-1">Owner: {appt.ownerId.name}</div>
                     )}
                   </div>
@@ -101,7 +101,7 @@ function Appointments() {
                     </Link>
                   )}
 
-                  {user?.role === 'tenant' && appt.status !== 'confirmed' && (
+                  {user?.role === 'client' && appt.status !== 'confirmed' && (
                     <button
                       className="btn btn-sm btn-primary rounded-pill px-3 py-1"
                       onClick={() => setSelectedAppointmentId(appt._id)}

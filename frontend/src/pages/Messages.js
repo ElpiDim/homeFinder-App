@@ -16,7 +16,7 @@ function Messages() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const data = await getUserMessages(token);
+        const data = await getMessages(token);
         setMessages(data);
       } catch (err) {
         console.error('Failed to load messages', err);
