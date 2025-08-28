@@ -175,6 +175,38 @@ exports.updateCurrentUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// PATCH /api/users/me
+exports.updateMe = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const allowedUpdates = [
+      "name",
+      "phone",
+      "address",
+      "occupation",
+      "salary",
+      "preferences",
+      "requirements",
+      "hasCompletedOnboarding",
+    ];
+
+    const updateData = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 // DELETE /api/user/profile
 exports.deleteUserAccount = async (req, res) => {
   try {
