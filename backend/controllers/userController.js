@@ -64,6 +64,7 @@ exports.loginUser = async (req, res) => {
         address: user.address,
         occupation: user.occupation,
         salary: user.salary,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
         profilePicture: fullProfilePicture,
         createdAt: user.createdAt,
       },
@@ -97,6 +98,7 @@ exports.getUserProfile = async (req, res) => {
       address: user.address,
       occupation: user.occupation,
       salary: user.salary,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
       profilePicture: fullProfilePicture,
       createdAt: user.createdAt,
     });
@@ -207,6 +209,7 @@ exports.updateMe = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // DELETE /api/user/profile
 exports.deleteUserAccount = async (req, res) => {
   try {
