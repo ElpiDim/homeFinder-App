@@ -5,14 +5,9 @@ import Logo from "../components/Logo";
 
 function Register() {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     role: '',
-    phone: '',
-    address: '',
-    occupation: '',
-    salary: ''
   });
 
   const [message, setMessage] = useState('');
@@ -76,16 +71,9 @@ function Register() {
           {message && <div className="alert alert-info rounded-pill">{message}</div>}
 
           <form onSubmit={handleRegister}>
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Full Name</label>
-                <input type="text" className="form-control" name="name" required onChange={handleChange} />
-              </div>
-
-              <div className="mb-3 col-md-6">
+            <div className="mb-3">
                 <label className="form-label">Email</label>
                 <input type="email" className="form-control" name="email" required onChange={handleChange} />
-              </div>
             </div>
 
             <div className="mb-3">
@@ -106,30 +94,6 @@ function Register() {
                 <option value="client">Client</option>
                 <option value="owner">Owner</option>
               </select>
-            </div>
-
-            {/* Phone + Address */}
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Phone number</label>
-                <input type="tel" className="form-control" name="phone" onChange={handleChange} />
-              </div>
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Address</label>
-                <input type="text" className="form-control" name="address" onChange={handleChange} />
-              </div>
-            </div>
-
-            {/* Occupation + Salary */}
-            <div className="row">
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Occupation</label>
-                <input type="text" className="form-control" name="occupation" onChange={handleChange} />
-              </div>
-              <div className="mb-3 col-md-6">
-                <label className="form-label">Salary/year (€)</label>
-                <input type="number" className="form-control" name="salary" onChange={handleChange} />
-              </div>
             </div>
 
             <div className="d-grid">
