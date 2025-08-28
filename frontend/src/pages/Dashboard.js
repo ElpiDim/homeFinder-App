@@ -50,7 +50,7 @@ function normalizeUploadPath(src) {
 }
 
 function Dashboard() {
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   /* ---------- state ---------- */
@@ -123,8 +123,7 @@ const pageGradient = useMemo(() => ({
 
   /* ---------- actions ---------- */
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+    logout();
     navigate('/');
   };
 
