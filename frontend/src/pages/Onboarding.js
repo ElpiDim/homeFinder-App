@@ -47,29 +47,35 @@ export default function Onboarding() {
   const submit = async (e) => {
     e.preventDefault();
 
-    const payload = isClient ? { preferences: { ...form } } : { requirements: { ...form } };
-
-    if (isClient) {
-      ['rentMin', 'rentMax', 'sqmMin', 'sqmMax', 'bedrooms', 'bathrooms', 'yearBuiltMin'].forEach((k) => {
-        if (payload.preferences[k] === '') delete payload.preferences[k];
-        else payload.preferences[k] = Number(payload.preferences[k]);
-      });
-    } else {
-      ['incomeMin', 'incomeMax'].forEach((k) => {
-        if (payload.requirements[k] === '') delete payload.requirements[k];
-        else payload.requirements[k] = Number(payload.requirements[k]);
-      });
-      payload.requirements.allowedOccupations = form.allowedOccupations
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-
     try {
-      const res = await api.patch('/users/me', {
-        ...payload,
-        hasCompletedOnboarding: true,
-      });
+      let res;
+      if (isClient) {
+        const preferences = {
+          location: form.location || undefined,
+          minPrice: form.rentMin ? Number(form.rentMin) : undefined,
+          maxPrice: form.rentMax ? Number(form.rentMax) : undefined,
+          minSqm: form.sqmMin ? Number(form.sqmMin) : undefined,
+          maxSqm: form.sqmMax ? Number(form.sqmMax) : undefined,
+          bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+          bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+          furnished: form.furnished,
+          petsAllowed: form.petsAllowed,
+          smokingAllowed: form.smokingAllowed,
+        };
+
+        Object.keys(preferences).forEach((k) => preferences[k] === undefined && delete preferences[k]);
+
+        res = await api.put('/users/me/preferences', {
+          ...preferences,
+          completeOnboarding: true,
+        });
+      } else {
+        // Owners currently only complete onboarding without storing additional fields
+        res = await api.put('/users/me/preferences', {
+          completeOnboarding: true,
+        });
+      }
+
       const updated = res.data.user || res.data;
       setUser(updated);
       localStorage.setItem('user', JSON.stringify(updated));
