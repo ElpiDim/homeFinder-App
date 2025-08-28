@@ -2,13 +2,16 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// --- register: μόνο email, password, role (ασφαλές lowercasing) ---
+// --- register: requires email, password & role ---
 exports.registerUser = async (req, res) => {
   try {
     const { email, password, role } = req.body;
     if (!email || !password || !role) {
-      return res.status(400).json({ message: "email, password and role are required" });
+      return res
+        .status(400)
+        .json({ message: "email, password and role are required" });
     }
+
     const roleSafe = String(role).toLowerCase();
     const allowed = ["client", "owner"];
     if (!allowed.includes(roleSafe)) {
@@ -19,8 +22,10 @@ exports.registerUser = async (req, res) => {
     if (exists) return res.status(400).json({ message: "Email already used" });
 
     const hashed = await bcrypt.hash(password, 10);
-    await User.create({ email, password: hashed, role: roleSafe }); // name default από schema
-    return res.status(201).json({ message: "User registered successfully" });
+    await User.create({ email, password: hashed, role: roleSafe });
+    return res
+      .status(201)
+      .json({ message: "User registered successfully" });
   } catch (err) {
     console.error("register error", err);
     return res.status(500).json({ message: "server error" });

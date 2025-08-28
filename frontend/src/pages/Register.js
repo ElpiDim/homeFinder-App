@@ -31,7 +31,7 @@ function Register() {
       const payload = {
         email: formData.email.trim(),
         password: formData.password,
-        role: formData.role.toLowerCase(),
+        role: formData.role,
       };
       await registerUser(payload);
       setMessage('Registration successful! Redirecting to login...');
@@ -105,13 +105,13 @@ function Register() {
             <div className="mb-3">
               <label className="form-label">Role</label>
               <select
-                className="form-select"
+                className="form-control"
                 name="role"
+                required
                 value={formData.role}
                 onChange={handleChange}
-                required
               >
-                <option value="">-- Select role --</option>
+                <option value="" disabled>Select role</option>
                 <option value="client">Client</option>
                 <option value="owner">Owner</option>
               </select>
