@@ -2,37 +2,24 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
 const verifyToken = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('JWT decoded:', decoded); // 👈 δες userId/role
+    console.log('DB name:', require('mongoose').connection.name); // 👈 δες σε ποια DB είσαι
 
-    // 🔑 Χρησιμοποιούμε το userId που βάλαμε στο payload του token
-    const user = await User.findById(decoded.userId).select("-password");
+    const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      console.log('No user for id:', decoded.userId);
+      return res.status(401).json({ message: 'User not found' });
     }
-
-    // Βάζουμε στο req.user μόνο τα απαραίτητα
-    req.user = {
-      userId: user._id.toString(),
-      role: user.role,
-    };
-
-    // Αν χρειάζεται και πλήρες object, το κρατάμε σε ξεχωριστό property
+    req.user = { userId: user._id.toString(), role: user.role };
     req.currentUser = user;
-
     next();
-  } catch (err) {
-    console.error("Auth error:", err.message);
-    return res.status(401).json({ message: "Invalid or expired token" });
+  } catch (e) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
+
 
 module.exports = verifyToken;
