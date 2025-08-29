@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -22,6 +22,30 @@ import Onboarding from './pages/Onboarding';
 
 import './App.css';
 
+/** Gate που ανακατευθύνει στο /onboarding αν δεν έχει ολοκληρωθεί */
+function RequireOnboarding({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  // υποστηρίζει και παλιά ονομασία hasCompletedOnboarding
+  const onboardingCompleted =
+    user?.onboardingCompleted ?? user?.hasCompletedOnboarding ?? false;
+
+  if (user && !onboardingCompleted && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+  return children;
+}
+
+/** Συντόμευση: Protected + Onboarding gate μαζί */
+function OnboardingProtected({ children }) {
+  return (
+    <ProtectedRoute>
+      <RequireOnboarding>{children}</RequireOnboarding>
+    </ProtectedRoute>
+  );
+}
+
 function App() {
   const { authReady } = useAuth();
   if (!authReady) return <div className="p-4">Loading...</div>;
@@ -33,8 +57,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-       
-        {/* Protected routes */}
+
+        {/* Onboarding (προστατευμένο αλλά χωρίς το gate) */}
         <Route
           path="/onboarding"
           element={
@@ -43,120 +67,122 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Protected + απαιτεί ολοκληρωμένο onboarding */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Dashboard />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Profile />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/favorites"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Favorites />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/messages"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Messages />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/match/clients"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <MatchClients />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/match/properties"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <MatchProperties />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/notifications"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Notifications />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/appointments"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <Appointments />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/edit-profile"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <EditProfile />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/add-property"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <AddProperty />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/property/:propertyId"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <PropertyDetails />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/my-properties"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <MyProperties />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
 
         <Route
           path="/edit-property/:propertyId"
           element={
-            <ProtectedRoute>
+            <OnboardingProtected>
               <EditProperty />
-            </ProtectedRoute>
+            </OnboardingProtected>
           }
         />
       </Routes>

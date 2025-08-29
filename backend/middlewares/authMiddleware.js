@@ -13,17 +13,24 @@ const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // 🔑 Χρησιμοποιούμε το userId που βάλαμε στο payload του token
     const user = await User.findById(decoded.userId).select("-password");
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
 
-    // Διαθέσιμο τόσο ως _id όσο και ως userId
-    req.user = user;
-    req.user.userId = user._id;
+    // Βάζουμε στο req.user μόνο τα απαραίτητα
+    req.user = {
+      userId: user._id.toString(),
+      role: user.role,
+    };
+
+    // Αν χρειάζεται και πλήρες object, το κρατάμε σε ξεχωριστό property
+    req.currentUser = user;
 
     next();
   } catch (err) {
+    console.error("Auth error:", err.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };

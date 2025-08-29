@@ -48,40 +48,51 @@ export default function Onboarding() {
     e.preventDefault();
 
     try {
-      let res;
+      let payload;
       if (isClient) {
-        const preferences = {
-          location: form.location || undefined,
-          minPrice: form.rentMin ? Number(form.rentMin) : undefined,
-          maxPrice: form.rentMax ? Number(form.rentMax) : undefined,
-          minSqm: form.sqmMin ? Number(form.sqmMin) : undefined,
-          maxSqm: form.sqmMax ? Number(form.sqmMax) : undefined,
-          bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-          bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-          furnished: form.furnished,
-          petsAllowed: form.petsAllowed,
-          smokingAllowed: form.smokingAllowed,
+        payload = {
+          preferences: {
+            location: form.location || undefined,
+            rentMin: form.rentMin ? Number(form.rentMin) : undefined,
+            rentMax: form.rentMax ? Number(form.rentMax) : undefined,
+            sqmMin: form.sqmMin ? Number(form.sqmMin) : undefined,
+            sqmMax: form.sqmMax ? Number(form.sqmMax) : undefined,
+            bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+            bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+            furnished: form.furnished,
+            petsAllowed: form.petsAllowed,
+            smokingAllowed: form.smokingAllowed,
+            yearBuiltMin: form.yearBuiltMin ? Number(form.yearBuiltMin) : undefined,
+            heatingType: form.heatingType || undefined,
+          },
         };
-
-        Object.keys(preferences).forEach((k) => preferences[k] === undefined && delete preferences[k]);
-
-        res = await api.put('/users/me/preferences', {
-          ...preferences,
-          completeOnboarding: true,
-        });
       } else {
-        // Owners currently only complete onboarding without storing additional fields
-        res = await api.put('/users/me/preferences', {
-          completeOnboarding: true,
-        });
+        payload = {
+          requirements: {
+            incomeMin: form.incomeMin ? Number(form.incomeMin) : undefined,
+            incomeMax: form.incomeMax ? Number(form.incomeMax) : undefined,
+            allowedOccupations: form.allowedOccupations
+              ? form.allowedOccupations.split(',').map((o) => o.trim())
+              : [],
+            familyStatus: form.familyStatus || undefined,
+            petsAllowed: form.petsAllowed,
+            smokingAllowed: form.smokingAllowed,
+            workLocation: form.workLocation || undefined,
+            preferredTenantRegion: form.preferredTenantRegion || undefined,
+          },
+        };
       }
 
-      const updated = res.data.user || res.data;
+      // Εδώ καλούμε το νέο endpoint
+      const res = await api.post('/users/onboarding', payload);
+
+      const updated = res.data.user;
       setUser(updated);
       localStorage.setItem('user', JSON.stringify(updated));
       navigate('/dashboard');
     } catch (err) {
       console.error('onboarding failed', err);
+      alert('Onboarding failed, please try again');
     }
   };
 
@@ -91,6 +102,7 @@ export default function Onboarding() {
       <form onSubmit={submit}>
         {isClient ? (
           <>
+            {/* --- όλα τα πεδία για client --- */}
             <div className="mb-3">
               <label className="form-label">Location</label>
               <input className="form-control" name="location" value={form.location} onChange={onChange} />
@@ -150,6 +162,7 @@ export default function Onboarding() {
           </>
         ) : (
           <>
+            {/* --- όλα τα πεδία για owner --- */}
             <div className="row g-3">
               <div className="col-sm-6">
                 <label className="form-label">Income Min</label>

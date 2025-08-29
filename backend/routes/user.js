@@ -1,107 +1,41 @@
 const express = require("express");
 const router = express.Router();
 
-
 // Middlewares
 const authMiddleware = require("../middlewares/authMiddleware");
+
 // Controllers
-const { updateMe } = require("../controllers/userController");
-// Models
-const User = require("../models/user");
+const {
+  getUserProfile,
+  updateUserProfile,
+  getCurrentUser,
+  updateCurrentUser,
+  updateMe,
+  deleteUserAccount,
+  saveOnboarding,
+} = require("../controllers/userController");
 
-// GET /api/users/me - return current user without password
-router.get("/me", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
+// -------------------- ROUTES --------------------
 
-// PATCH /api/users/me - update allowed fields
+// GET /api/users/profile - full profile
+router.get("/profile", authMiddleware, getUserProfile);
+
+// PATCH /api/users/profile - update name/phone/occupation/salary (+ photo)
+router.patch("/profile", authMiddleware, updateUserProfile);
+
+// GET /api/users/me - current user (safe info, no password)
+router.get("/me", authMiddleware, getCurrentUser);
+
+// PUT /api/users/me - update simple personal fields
+router.put("/me", authMiddleware, updateCurrentUser);
+
+// PATCH /api/users/me - smart patch (preferences, requirements, onboardingCompleted κλπ)
 router.patch("/me", authMiddleware, updateMe);
 
-// PUT /api/users/me - update personal fields
-router.put("/me", authMiddleware, async (req, res) => {
-  const allowedFields = [
-    "age",
-    "householdSize",
-    "hasFamily",
-    "hasPets",
-    "smoker",
-    "occupation",
-    "salary",
-    "isWillingToHaveRoommate",
-  ];
+// POST /api/users/onboarding - first login onboarding form
+router.post("/onboarding", authMiddleware, saveOnboarding);
 
-  const updateData = {};
-  allowedFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      updateData[field] = req.body[field];
-    }
-  });
+// DELETE /api/users/profile - delete account
+router.delete("/profile", authMiddleware, deleteUserAccount);
 
-  try {
-    const user = await User.findByIdAndUpdate(req.user.userId, updateData, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// PUT /api/users/me/preferences - update preference fields
-router.put("/me/preferences", authMiddleware, async (req, res) => {
-  const prefFields = [
-    "type",
-    "location",
-    "minPrice",
-    "maxPrice",
-    "minSqm",
-    "maxSqm",
-    "bedrooms",
-    "bathrooms",
-    "petsAllowed",
-    "smokingAllowed",
-    "furnished",
-  ];
-
-  const updateData = {};
-  prefFields.forEach((field) => {
-    if (req.body[field] !== undefined) {
-      updateData[`preferences.${field}`] = req.body[field];
-    }
-  });
-
-  if (req.body.completeOnboarding === true) {
-    updateData.hasCompletedOnboarding = true;
-  }
-
-  try {
-    const user = await User.findByIdAndUpdate(req.user.userId, updateData, {
-      new: true,
-      runValidators: true,
-    }).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json({ ok: true, user });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
 module.exports = router;
-
