@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
+import Chat from './pages/Chat';
 import MatchClients from './pages/MatchClients';
 import MatchProperties from './pages/MatchProperties';
 import Notifications from './pages/Notifications';
@@ -74,6 +75,15 @@ function App() {
           element={
             <OnboardingProtected>
               <Dashboard />
+            </OnboardingProtected>
+          }
+        />
+
+        <Route
+          path="/messages/property/:propertyId/user/:userId"
+          element={
+            <OnboardingProtected>
+              <Chat />
             </OnboardingProtected>
           }
         />

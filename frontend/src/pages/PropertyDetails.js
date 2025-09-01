@@ -249,6 +249,15 @@ Could we schedule a viewing? Thanks!`;
                 👋 I'm Interested
               </Button>
             )}
+            {!isOwner && user && (
+              <Button
+                variant="success"
+                className="rounded-pill px-4"
+                onClick={() => navigate(`/messages/property/${propertyId}/user/${property.ownerId._id}`)}
+              >
+                Contact Owner
+              </Button>
+            )}
           </div>
         </div>
 

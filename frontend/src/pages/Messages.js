@@ -1,15 +1,12 @@
-// src/pages/Messages.js
 import React, { useEffect, useState } from 'react';
-import { getMessages, sendMessage } from '../services/messagesService';
-import { Container, Card, Button, Form } from 'react-bootstrap';
+import { getMessages } from '../services/messagesService';
+import { Container, Card, Button, ListGroup } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function Messages() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [receiverId, setReceiverId] = useState('');
+  const [conversations, setConversations] = useState([]);
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
@@ -17,73 +14,71 @@ function Messages() {
     const fetchMessages = async () => {
       try {
         const data = await getMessages(token);
-        setMessages(data);
+        const groupedConversations = data.reduce((acc, msg) => {
+          const otherUser =
+            msg.senderId._id === user.id ? msg.receiverId : msg.senderId;
+          const property = msg.propertyId;
+          const key = `${property._id}-${otherUser._id}`;
+
+          if (!acc[key]) {
+            acc[key] = {
+              property,
+              otherUser,
+              lastMessage: msg,
+            };
+          } else {
+            if (new Date(msg.timeStamp) > new Date(acc[key].lastMessage.timeStamp)) {
+              acc[key].lastMessage = msg;
+            }
+          }
+          return acc;
+        }, {});
+        setConversations(Object.values(groupedConversations));
       } catch (err) {
         console.error('Failed to load messages', err);
       }
     };
 
-    fetchMessages();
-  }, []);
-
-  const handleSend = async (e) => {
-    e.preventDefault();
-    try {
-      await sendMessage(receiverId, newMessage, token);
-      setNewMessage('');
-      alert('Message sent');
-    } catch (err) {
-      console.error('Failed to send message', err);
+    if (token) {
+      fetchMessages();
     }
+  }, [token, user.id]);
+
+  const handleConversationClick = (propertyId, otherUserId) => {
+    navigate(`/messages/property/${propertyId}/user/${otherUserId}`);
   };
 
   return (
     <Container className="mt-4">
-        <Button 
-          variant="outline-secondary"
-           className="mb-3"
-            onClick={() => navigate('/dashboard')}>
-              Back 
-            </Button>
-      <h3>Messages</h3>
-
-      <Form onSubmit={handleSend} className="mb-4">
-        <Form.Group className="mb-2">
-          <Form.Label>Send to User ID</Form.Label>
-          <Form.Control
-            value={receiverId}
-            onChange={(e) => setReceiverId(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-2">
-          <Form.Label>Message</Form.Label>
-          <Form.Control
-            as="textarea"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Button type="submit">Send</Button>
-      </Form>
-
-      {messages.length === 0 ? (
-        <p>No messages yet</p>
+      <Button
+        variant="outline-secondary"
+        className="mb-3"
+        onClick={() => navigate('/dashboard')}
+      >
+        Back
+      </Button>
+      <h3>Conversations</h3>
+      {conversations.length === 0 ? (
+        <p>No conversations yet.</p>
       ) : (
-        messages.map((msg) => (
-          <Card key={msg._id} className="mb-3">
-            <Card.Body>
-              <Card.Title>From: {msg.senderId?.name || msg.senderId}</Card.Title>
-              <Card.Text>{msg.content}</Card.Text>
-              <Card.Text>
-                <small>{new Date(msg.createdAt).toLocaleString()}</small>
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        ))
+        <ListGroup>
+          {conversations.map(({ property, otherUser, lastMessage }) => (
+            <ListGroup.Item
+              key={`${property._id}-${otherUser._id}`}
+              action
+              onClick={() => handleConversationClick(property._id, otherUser._id)}
+            >
+              <div className="d-flex w-100 justify-content-between">
+                <h5 className="mb-1">{property.title}</h5>
+                <small>{new Date(lastMessage.timeStamp).toLocaleDateString()}</small>
+              </div>
+              <p className="mb-1">
+                Conversation with <strong>{otherUser.name}</strong>
+              </p>
+              <small>{lastMessage.content}</small>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
       )}
     </Container>
   );
