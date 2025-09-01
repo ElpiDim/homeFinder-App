@@ -30,6 +30,190 @@ const extractImagesFromReq = (req) => {
   }
   return { images: [], floorPlanImage: undefined };
 };
+// Build aggregation stages to filter properties for a client
+const buildClientFilterStages = (user) => {
+  const salary = user.salary ?? 0;
+  const occupation = user.occupation || null;
+  const hasFamily = !!user.hasFamily;
+  const hasPets = !!user.hasPets;
+  const smoker = !!user.smoker;
+  const household = user.householdSize ?? 0;
+  const age = user.age ?? null;
+  const familyStatus = hasFamily
+    ? "family"
+    : household > 1
+    ? "couple"
+    : "single";
+
+  return [
+    {
+      $lookup: {
+        from: "users",
+        localField: "ownerId",
+        foreignField: "_id",
+        as: "ownerDoc",
+      },
+    },
+    { $unwind: "$ownerDoc" },
+    {
+      $match: {
+        $expr: {
+          $and: [
+            {
+              $or: [
+                { $eq: ["$tenantRequirements.minTenantSalary", null] },
+                { $lte: ["$tenantRequirements.minTenantSalary", salary] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$tenantRequirements.maxOccupants", null] },
+                { $gte: ["$tenantRequirements.maxOccupants", household] },
+              ],
+            },
+            {
+              $or: [
+                {
+                  $eq: [
+                    {
+                      $size: {
+                        $ifNull: ["$tenantRequirements.allowedOccupations", []],
+                      },
+                    },
+                    0,
+                  ],
+                },
+                {
+                  $in: [
+                    occupation,
+                    { $ifNull: ["$tenantRequirements.allowedOccupations", []] },
+                  ],
+                },
+              ],
+            },
+            {
+              $or: [
+                { $ne: ["$tenantRequirements.requiresFamily", true] },
+                { $eq: [hasFamily, true] },
+              ],
+            },
+            {
+              $or: [
+                { $ne: ["$tenantRequirements.allowsPets", false] },
+                { $eq: [hasPets, false] },
+              ],
+            },
+            {
+              $or: [
+                { $ne: ["$tenantRequirements.allowsSmokers", false] },
+                { $eq: [smoker, false] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.incomeMin", null] },
+                { $lte: ["$ownerDoc.requirements.incomeMin", salary] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.incomeMax", null] },
+                { $gte: ["$ownerDoc.requirements.incomeMax", salary] },
+              ],
+            },
+            {
+              $or: [
+                {
+                  $eq: [
+                    {
+                      $size: {
+                        $ifNull: ["$ownerDoc.requirements.allowedOccupations", []],
+                      },
+                    },
+                    0,
+                  ],
+                },
+                {
+                  $in: [
+                    occupation,
+                    { $ifNull: ["$ownerDoc.requirements.allowedOccupations", []] },
+                  ],
+                },
+              ],
+            },
+            {
+              $or: [
+                { $ne: ["$ownerDoc.requirements.petsAllowed", false] },
+                { $eq: [hasPets, false] },
+              ],
+            },
+            {
+              $or: [
+                { $ne: ["$ownerDoc.requirements.smokingAllowed", false] },
+                { $eq: [smoker, false] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.familyStatus", null] },
+                { $eq: ["$ownerDoc.requirements.familyStatus", "any"] },
+                { $eq: ["$ownerDoc.requirements.familyStatus", familyStatus] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.ageMin", null] },
+                { $lte: ["$ownerDoc.requirements.ageMin", age] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.ageMax", null] },
+                { $gte: ["$ownerDoc.requirements.ageMax", age] },
+              ],
+            },
+            {
+              $or: [
+                { $eq: ["$ownerDoc.requirements.maxHouseholdSize", null] },
+                { $gte: ["$ownerDoc.requirements.maxHouseholdSize", household] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  ];
+};
+
+const clientMatchesRequirements = (user, property) => {
+  const tr = property.tenantRequirements || {};
+  const or = property.ownerId?.requirements || {};
+  const familyStatus = user.hasFamily
+    ? "family"
+    : user.householdSize > 1
+    ? "couple"
+    : "single";
+  if (tr.minTenantSalary != null && user.salary < tr.minTenantSalary) return false;
+  if (tr.allowedOccupations?.length && !tr.allowedOccupations.includes(user.occupation))
+    return false;
+  if (tr.requiresFamily && !user.hasFamily) return false;
+  if (tr.allowsPets === false && user.hasPets) return false;
+  if (tr.allowsSmokers === false && user.smoker) return false;
+  if (tr.maxOccupants != null && user.householdSize > tr.maxOccupants) return false;
+  if (or.incomeMin != null && user.salary < or.incomeMin) return false;
+  if (or.incomeMax != null && user.salary > or.incomeMax) return false;
+  if (or.allowedOccupations?.length && !or.allowedOccupations.includes(user.occupation))
+    return false;
+  if (or.petsAllowed === false && user.hasPets) return false;
+  if (or.smokingAllowed === false && user.smoker) return false;
+  if (or.familyStatus && or.familyStatus !== "any" && or.familyStatus !== familyStatus)
+    return false;
+  if (or.ageMin != null && user.age < or.ageMin) return false;
+  if (or.ageMax != null && user.age > or.ageMax) return false;
+  if (or.maxHouseholdSize != null && user.householdSize > or.maxHouseholdSize)
+    return false;
+  return true;
+};
 
 /* --------------------------- CREATE PROPERTY --------------------------- */
 exports.createProperty = async (req, res) => {
@@ -296,6 +480,9 @@ exports.getAllProperties = async (req, res) => {
       { $addFields: { favoritesCount: { $size: "$favDocs" } } },
       ...(hasCoords ? [{ $addFields: { distanceKm: distanceExpr } }] : []),
     ];
+       if (req.user?.role === "client" && req.currentUser) {
+      pipeline.push(...buildClientFilterStages(req.currentUser));
+    }
 
     // sorting
     if (sort === "newest") {
@@ -316,35 +503,11 @@ exports.getAllProperties = async (req, res) => {
 
     // pagination
     pipeline.push({ $skip: skip }, { $limit: numericLimit });
-    pipeline.push({ $project: { favDocs: 0 } });
+  const projectFields = { favDocs: 0 };
 
-    let properties = await Property.aggregate(pipeline);
+  const properties = await Property.aggregate(pipeline);
 
-    if (req.user?.role === "client" && req.currentUser) {
-      const user = req.currentUser;
-      properties = properties.filter((p) => {
-        const tr = p.tenantRequirements || {};
-        if (tr.minTenantSalary !== undefined && user.salary < tr.minTenantSalary)
-          return false;
-        if (
-          tr.allowedOccupations &&
-          tr.allowedOccupations.length &&
-          !tr.allowedOccupations.includes(user.occupation)
-        )
-          return false;
-        if (tr.requiresFamily && !user.hasFamily) return false;
-        if (tr.allowsPets === false && user.hasPets) return false;
-        if (tr.allowsSmokers === false && user.smoker) return false;
-        if (
-          tr.maxOccupants !== undefined &&
-          user.householdSize > tr.maxOccupants
-        )
-          return false;
-        return true;
-      });
-    }
-
-      res.json(properties);
+  res.json(properties);
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
     res.status(500).json({ message: "Server error" });
@@ -397,6 +560,11 @@ exports.getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId).populate("ownerId");
     if (!property) return res.status(404).json({ message: "Property not found" });
+        if (req.user?.role === "client" && req.currentUser) {
+      if (!clientMatchesRequirements(req.currentUser, property)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+    }
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);

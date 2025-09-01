@@ -200,7 +200,7 @@ exports.updateMe = async (req, res) => {
       "isWillingToHaveRoommate",
       "preferences",
       "requirements",
-      "onboardingCompleted", // FIX: αντί για hasCompletedOnboarding
+      "onboardingCompleted", 
       "profilePicture", // σε περίπτωση που στέλνεις direct string
     ];
 
