@@ -4,13 +4,10 @@ const verifyToken = require("../middlewares/authMiddleware");
 const {uploadImages} = require("../middlewares/uploadMiddleware");
 const propertyController = require("../controllers/propertyController");
 const Property = require("../models/property");
+const optionalAuth = require("../middlewares/uploadMiddleware");
 
-
-
-
-router.get("/", propertyController.getAllProperties);
-
-router.get("/mine",verifyToken, propertyController.getMyProperties);
+router.get("/", optionalAuth, propertyController.getAllProperties);
+router.get("/mine", verifyToken, propertyController.getMyProperties);
 
 router.post("/", verifyToken, uploadImages, propertyController.createProperty);
 

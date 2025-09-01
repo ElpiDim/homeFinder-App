@@ -318,40 +318,31 @@ exports.getAllProperties = async (req, res) => {
     pipeline.push({ $skip: skip }, { $limit: numericLimit });
     pipeline.push({ $project: { favDocs: 0 } });
 
- let properties = await Property.aggregate(pipeline);
+    let properties = await Property.aggregate(pipeline);
 
-      if (req.user?.role === "client") {
-        try {
-          const user = await User.findById(req.user.userId).lean();
-          if (user) {
-            properties = properties.filter((p) => {
-              const tr = p.tenantRequirements || {};
-              if (
-                tr.minTenantSalary !== undefined &&
-                user.salary < tr.minTenantSalary
-              )
-                return false;
-              if (
-                tr.allowedOccupations &&
-                tr.allowedOccupations.length &&
-                !tr.allowedOccupations.includes(user.occupation)
-              )
-                return false;
-              if (tr.requiresFamily && !user.hasFamily) return false;
-              if (tr.allowsPets === false && user.hasPets) return false;
-              if (tr.allowsSmokers === false && user.smoker) return false;
-              if (
-                tr.maxOccupants !== undefined &&
-                user.householdSize > tr.maxOccupants
-              )
-                return false;
-              return true;
-            });
-          }
-        } catch (e) {
-          console.error("tenantRequirements filter error", e);
-        }
-      }
+    if (req.user?.role === "client" && req.currentUser) {
+      const user = req.currentUser;
+      properties = properties.filter((p) => {
+        const tr = p.tenantRequirements || {};
+        if (tr.minTenantSalary !== undefined && user.salary < tr.minTenantSalary)
+          return false;
+        if (
+          tr.allowedOccupations &&
+          tr.allowedOccupations.length &&
+          !tr.allowedOccupations.includes(user.occupation)
+        )
+          return false;
+        if (tr.requiresFamily && !user.hasFamily) return false;
+        if (tr.allowsPets === false && user.hasPets) return false;
+        if (tr.allowsSmokers === false && user.smoker) return false;
+        if (
+          tr.maxOccupants !== undefined &&
+          user.householdSize > tr.maxOccupants
+        )
+          return false;
+        return true;
+      });
+    }
 
       res.json(properties);
   } catch (err) {
