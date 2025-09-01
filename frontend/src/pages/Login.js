@@ -8,24 +8,41 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const { login } = useAuth();
+  const { login, setUser } = useAuth(); // <- χρειαζόμαστε setUser για να ενημερώσουμε το context
   const navigate = useNavigate();
 
-    const pageGradient = {
-      minHeight: '100vh',
-      background:
-        'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
-      backgroundAttachment: 'fixed',
-    };
+  const pageGradient = {
+    minHeight: '100vh',
+    background:
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
+    backgroundAttachment: 'fixed',
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setMessage('');
     try {
-        const usr = await login(email, password);
-      setMessage(`Welcome, ${usr.name}`);
-      navigate('/dashboard');
+      // login() πρέπει να επιστρέφει τουλάχιστον { user, token }
+      const result = await login(email, password);
+
+      // Καλύπτουμε και τα δύο πιθανά σχήματα: είτε γυρνάει object, είτε σκέτο user
+      const token = result?.token || result?.data?.token;
+      const user  = result?.user  || result?.data?.user || result;
+
+      if (token) localStorage.setItem('token', token);
+      if (user) {
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      setMessage(`Welcome, ${user?.name || user?.email || ''}`);
+
+      // Αν δεν έχει ολοκληρώσει onboarding -> /onboarding, αλλιώς /dashboard
+      const completed = user?.onboardingCompleted ?? user?.hasCompletedOnboarding ?? false;
+      navigate(completed ? '/dashboard' : '/onboarding', { replace: true });
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Login error');
+      const msg = err?.response?.data?.message || 'Login error';
+      setMessage(msg);
     }
   };
 
@@ -37,7 +54,6 @@ function Login() {
         style={{ position: 'sticky', top: 0, zIndex: 5000 }}
       >
         <div className="d-flex align-items-center gap-2">
-        {/* Brand logo (λευκό με σκιές) */}
           <Logo as="h5" className="mb-0 logo-white" />
         </div>
 

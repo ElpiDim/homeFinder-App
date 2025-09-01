@@ -41,13 +41,23 @@ router.post("/register", async (req, res) => {
        role, 
      });
  
+    const payload = {
+      userId: newUser._id,
+      role: newUser.role,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
     res.status(201).json({
+      token,
       message: "User registered successfully",
       user: {
         id: newUser._id,
         email: newUser.email,
         role: newUser.role,
-        hasCompletedOnboarding: newUser.hasCompletedOnboarding,
+        onboardingCompleted: newUser.onboardingCompleted,
       },
     });
    } catch (err) {
@@ -90,7 +100,7 @@ router.post("/register", async (req, res) => {
          name: user.name,
          email: user.email,
          role: user.role,
-        hasCompletedOnboarding: user.hasCompletedOnboarding,
+        onboardingCompleted: user.onboardingCompleted,
         age: user.age,
         householdSize: user.householdSize,
         hasFamily: user.hasFamily,

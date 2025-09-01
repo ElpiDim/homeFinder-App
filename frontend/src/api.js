@@ -4,9 +4,13 @@ const api = axios.create({
   baseURL: '/api'
 });
 
-const token = localStorage.getItem('token');
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+// κάθε φορά που φεύγει request, βάζουμε φρέσκο token από localStorage
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token && token !== 'null' && token !== 'undefined') {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export default api;

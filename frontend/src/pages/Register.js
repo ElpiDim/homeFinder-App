@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import {registerUser} from '../services/authService';
 import { useNavigate, Link } from 'react-router-dom';
-import Logo from "../components/Logo";
+import { useAuth } from '../context/AuthContext';
+import { registerUser } from '../services/authService';
+import Logo from '../components/Logo';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ function Register() {
 
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
+  const { setToken, setUser } = useAuth();
 
   const pageGradient = {
     minHeight: '100vh',
@@ -27,9 +29,16 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await registerUser(formData);
-      setMessage('Registration successful! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 1500);
+      const { token, user } = await registerUser(formData);
+      setMessage('Registration successful! Redirecting to onboarding...');
+
+      // Update auth context and local storage
+      setToken(token);
+      setUser(user);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      setTimeout(() => navigate('/onboarding'), 1500);
     } catch (err) {
       setMessage(err.response?.data?.message || 'Error while registering');
     }

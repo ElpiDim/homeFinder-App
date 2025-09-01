@@ -7,7 +7,7 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
  if (!user) return <Navigate to="/" replace />;
-  if (user.hasCompletedOnboarding === false && location.pathname !== '/onboarding') {
+  if (user.onboardingCompleted === false && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 
