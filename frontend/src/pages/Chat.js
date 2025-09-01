@@ -6,16 +6,16 @@ import { Container, Card, Button, Form, InputGroup } from 'react-bootstrap';
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
-  const { user } = useAuth();
+  const { user, token} = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const token = localStorage.getItem('token');
+
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const allMessages = await getMessages(token);
+        const allMessages = await getMessages();
         const filteredMessages = allMessages.filter(
           (msg) =>
             msg.propertyId?._id === propertyId &&
@@ -38,10 +38,10 @@ function Chat() {
     if (!newMessage.trim()) return;
 
     try {
-      await sendMessage(receiverId, propertyId, newMessage, token);
+      await sendMessage(receiverId, propertyId, newMessage);
       setNewMessage('');
       // Refetch messages to show the new one
-      const allMessages = await getMessages(token);
+      const allMessages = await getMessages();
       const filteredMessages = allMessages.filter(
         (msg) =>
           msg.propertyId?._id === propertyId &&
@@ -49,6 +49,7 @@ function Chat() {
             (msg.senderId?._id === receiverId && msg.receiverId?._id === user.id))
       );
       setMessages(filteredMessages);
+      localStorage.setItem('lastMessageCheck', new Date().toISOString());
     } catch (err) {
       console.error('Failed to send message', err);
       alert('Failed to send message.');

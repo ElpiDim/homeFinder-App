@@ -8,6 +8,7 @@ import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo'; 
+import { getMessages } from '../services/messagesService';
 
 
 /* ---------- helpers (notifications) ---------- */
@@ -70,7 +71,7 @@ function Dashboard() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-
+  const [unreadMessages, setUnreadMessages] = useState(0);
   // filters (υπάρχουν για μελλοντική χρήση, δεν προβάλλεται panel)
   const [locationFilter, setLocationFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
@@ -226,6 +227,22 @@ const pageGradient = useMemo(() => ({
       setUnreadCount(0);
     }
   }, [token]);
+ const fetchUnreadMessages = useCallback(async () => {
+    try {
+      const msgs = await getMessages();
+      const lastCheck = localStorage.getItem('lastMessageCheck');
+      const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
+      const count = msgs.filter(
+        (m) =>
+          m.receiverId?._id === user?.id &&
+          new Date(m.timeStamp) > lastDate
+      ).length;
+      setUnreadMessages(count);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setUnreadMessages(0);
+    }
+  }, [user]);
 
   /* ---------- effects ---------- */
   useEffect(() => {
@@ -243,6 +260,7 @@ const pageGradient = useMemo(() => ({
     }
 
     fetchAllProperties({ page: 1 });
+    fetchUnreadMessages();
 
     api.get('/favorites', { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
@@ -262,7 +280,7 @@ const pageGradient = useMemo(() => ({
         setHasAppointments(confirmed.length > 0);
       })
       .catch(() => setHasAppointments(false));
-  }, [user, token, fetchAllProperties, fetchNotifications]);
+  }, [user, token, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
 
   // client-side σελιδοποίηση όταν αλλάζει η σελίδα
   useEffect(() => {
@@ -280,6 +298,12 @@ const pageGradient = useMemo(() => ({
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
+   // messages polling
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(fetchUnreadMessages, 30000);
+    return () => clearInterval(id);
+  }, [user, fetchUnreadMessages]);
 
   // close popovers on outside click + Esc (notifications, profile)
   useEffect(() => {
@@ -462,6 +486,17 @@ const pageGradient = useMemo(() => ({
             </Link>
           )}
           <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
+           <Link to="/messages" className="text-dark text-decoration-none position-relative">
+            Messages
+            {unreadMessages > 0 && (
+              <span
+                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                style={{ fontSize: '0.65rem' }}
+              >
+                {unreadMessages}
+              </span>
+            )}
+          </Link>
           <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
 
           {/* Notifications */}

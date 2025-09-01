@@ -5,15 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function Messages() {
-  const { user } = useAuth();
+  const { user,token } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const token = localStorage.getItem('token');
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const data = await getMessages(token);
+        const data = await getMessages();
         const groupedConversations = data.reduce((acc, msg) => {
           const otherUser =
             msg.senderId._id === user.id ? msg.receiverId : msg.senderId;
@@ -34,6 +33,7 @@ function Messages() {
           return acc;
         }, {});
         setConversations(Object.values(groupedConversations));
+         localStorage.setItem('lastMessageCheck', new Date().toISOString());
       } catch (err) {
         console.error('Failed to load messages', err);
       }

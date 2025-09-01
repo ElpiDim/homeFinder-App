@@ -22,7 +22,8 @@ exports.getMessagesForUser = async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [{ senderId: userId }, { receiverId: userId }]
-    }).populate("senderId receiverId propertyId");
+    }).sort({timeStamp: 1})
+      .populate("senderId receiverId propertyId");
 
     res.json(messages);
   } catch (err) {
