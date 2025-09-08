@@ -1,29 +1,18 @@
 const mongoose = require("mongoose");
-const unifiedSchema = require('./unifiedSchema');
+const { criteriaSchema } = require('./unifiedSchema');
 
 // Sub-schema for tenant's personal profile, based on the unified schema
 const clientProfileSchema = new mongoose.Schema({
-  occupation: unifiedSchema.path('occupation'),
-  income: unifiedSchema.path('income'),
-  familyStatus: unifiedSchema.path('familyStatus'),
-  pets: unifiedSchema.path('pets'),
-  smoker: unifiedSchema.path('smoker'),
+  occupation: criteriaSchema.path('occupation'),
+  income: criteriaSchema.path('income'),
+  familyStatus: criteriaSchema.path('familyStatus'),
+  pets: criteriaSchema.path('pets'),
+  smoker: criteriaSchema.path('smoker'),
 }, { _id: false });
 
-// Sub-schema for tenant's property preferences, based on the unified schema
-const propertyPreferencesSchema = new mongoose.Schema({
-  location: unifiedSchema.path('location'),
-  rent: unifiedSchema.path('rent'),
-  sqm: unifiedSchema.path('sqm'),
-  bedrooms: unifiedSchema.path('bedrooms'),
-  bathrooms: unifiedSchema.path('bathrooms'),
-  floor: unifiedSchema.path('floor'),
-  yearBuilt: unifiedSchema.path('yearBuilt'),
-  furnished: unifiedSchema.path('furnished'),
-  parking: unifiedSchema.path('parking'),
-  elevator: unifiedSchema.path('elevator'),
-  heatingType: unifiedSchema.path('heatingType'),
-}, { _id: false });
+// Reuse the shared criteria schema for property preferences so
+// that the structure matches property tenant requirements.
+const propertyPreferencesSchema = criteriaSchema;
 
 
 // --- Main schema ---
@@ -68,6 +57,10 @@ const userSchema = new mongoose.Schema(
       type: propertyPreferencesSchema,
       default: () => ({})
     },
+
+    // Minimum number of matching criteria required before a
+    // property is considered a match for this user.
+    matchThreshold: { type: Number, default: 2 },
 
     favorites: [
       {

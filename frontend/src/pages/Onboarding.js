@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
+import { tenantFields, propertyFields } from '../config/criteria';
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -23,12 +24,21 @@ export default function Onboarding() {
     }
   }, [user, navigate]);
 
-  const [clientProfile, setClientProfile] = useState(user?.clientProfile || {
-    occupation: '', income: '', familyStatus: 'single', pets: false, smoker: false
-  });
-  const [propertyPreferences, setPropertyPreferences] = useState(user?.propertyPreferences || {
-    location: '', rent: '', sqm: '', bedrooms: '', furnished: false, parking: false
-  });
+  const initValues = (fields, existing = {}) =>
+    fields.reduce(
+      (acc, f) => ({
+        ...acc,
+        [f.key]: existing[f.key] ?? (f.type === 'checkbox' ? false : ''),
+      }),
+      {}
+    );
+
+  const [clientProfile, setClientProfile] = useState(
+    initValues(tenantFields, user?.clientProfile || {})
+  );
+  const [propertyPreferences, setPropertyPreferences] = useState(
+    initValues(propertyFields, user?.propertyPreferences || {})
+  );
 
   const [saving, setSaving] = useState(false);
 
@@ -77,70 +87,93 @@ export default function Onboarding() {
               {/* Client Profile */}
               <h5 className="mt-2">Your Profile</h5>
               <Row className="g-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Occupation</Form.Label>
-                    <Form.Control name="occupation" value={clientProfile.occupation} onChange={onChange(setClientProfile)} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Income (€/month)</Form.Label>
-                    <Form.Control type="number" name="income" value={clientProfile.income} onChange={onChange(setClientProfile)} />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row className="g-3 mt-2">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Family Status</Form.Label>
-                    <Form.Select name="familyStatus" value={clientProfile.familyStatus} onChange={onChange(setClientProfile)}>
-                      <option value="single">Single</option>
-                      <option value="couple">Couple</option>
-                      <option value="family">Family</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={4} className="d-flex align-items-end">
-                  <Form.Check label="Have pets" name="pets" checked={clientProfile.pets} onChange={onChange(setClientProfile)} />
-                </Col>
-                <Col md={4} className="d-flex align-items-end">
-                  <Form.Check label="Smoker" name="smoker" checked={clientProfile.smoker} onChange={onChange(setClientProfile)} />
-                </Col>
+                {tenantFields.map((f) => (
+                  <Col
+                    md={f.type === 'checkbox' ? 4 : 6}
+                    className={f.type === 'checkbox' ? 'd-flex align-items-end' : ''}
+                    key={f.key}
+                  >
+                    {f.type === 'checkbox' ? (
+                      <Form.Check
+                        label={f.label}
+                        name={f.key}
+                        checked={clientProfile[f.key]}
+                        onChange={onChange(setClientProfile)}
+                      />
+                    ) : f.type === 'select' ? (
+                      <Form.Group>
+                        <Form.Label>{f.label}</Form.Label>
+                        <Form.Select
+                          name={f.key}
+                          value={clientProfile[f.key]}
+                          onChange={onChange(setClientProfile)}
+                        >
+                          {f.options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt || 'Any'}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    ) : (
+                      <Form.Group>
+                        <Form.Label>{f.label}</Form.Label>
+                        <Form.Control
+                          type={f.type}
+                          name={f.key}
+                          value={clientProfile[f.key]}
+                          onChange={onChange(setClientProfile)}
+                        />
+                      </Form.Group>
+                    )}
+                  </Col>
+                ))}
               </Row>
 
-                {/* Property Preferences */}
+              {/* Property Preferences */}
               <h5 className="mt-4">Your Property Preferences</h5>
               <Row className="g-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Location</Form.Label>
-                    <Form.Control name="location" value={propertyPreferences.location} onChange={onChange(setPropertyPreferences)} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Max Rent (€/month)</Form.Label>
-                    <Form.Control type="number" name="rent" value={propertyPreferences.rent} onChange={onChange(setPropertyPreferences)} />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row className="g-3 mt-2">
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Min Square Meters (sqm)</Form.Label>
-                    <Form.Control type="number" name="sqm" value={propertyPreferences.sqm} onChange={onChange(setPropertyPreferences)} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Min Bedrooms</Form.Label>
-                    <Form.Control type="number" name="bedrooms" value={propertyPreferences.bedrooms} onChange={onChange(setPropertyPreferences)} />
-                  </Form.Group>
-                </Col>
-                <Col md={4} className="d-flex align-items-end">
-                  <Form.Check label="Furnished" name="furnished" checked={propertyPreferences.furnished} onChange={onChange(setPropertyPreferences)} />
-                </Col>
+                {propertyFields.map((f) => (
+                  <Col
+                    md={f.type === 'checkbox' ? 4 : 6}
+                    className={f.type === 'checkbox' ? 'd-flex align-items-end' : ''}
+                    key={f.key}
+                  >
+                    {f.type === 'checkbox' ? (
+                      <Form.Check
+                        label={f.label}
+                        name={f.key}
+                        checked={propertyPreferences[f.key]}
+                        onChange={onChange(setPropertyPreferences)}
+                      />
+                    ) : f.type === 'select' ? (
+                      <Form.Group>
+                        <Form.Label>{f.label}</Form.Label>
+                        <Form.Select
+                          name={f.key}
+                          value={propertyPreferences[f.key]}
+                          onChange={onChange(setPropertyPreferences)}
+                        >
+                          {f.options.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt || 'Any'}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    ) : (
+                      <Form.Group>
+                        <Form.Label>{f.label}</Form.Label>
+                        <Form.Control
+                          type={f.type}
+                          name={f.key}
+                          value={propertyPreferences[f.key]}
+                          onChange={onChange(setPropertyPreferences)}
+                        />
+                      </Form.Group>
+                    )}
+                  </Col>
+                ))}
               </Row>
             </>
                

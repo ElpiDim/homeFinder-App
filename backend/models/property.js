@@ -1,18 +1,6 @@
 // backend/models/property.js
 const mongoose = require("mongoose");
-const unifiedSchema = require("./unifiedSchema");
-
-// Sub-schema for owner's tenant requirements (reusing unified schema paths)
-const tenantRequirementsSchema = new mongoose.Schema(
-  {
-    occupation: unifiedSchema.path("occupation"),
-    income: unifiedSchema.path("income"),
-    familyStatus: unifiedSchema.path("familyStatus"),
-    pets: unifiedSchema.path("pets"),
-    smoker: unifiedSchema.path("smoker"),
-  },
-  { _id: false }
-);
+const { criteriaSchema } = require("./unifiedSchema");
 
 const propertySchema = new mongoose.Schema({
   ownerId: {
@@ -68,7 +56,9 @@ const propertySchema = new mongoose.Schema({
 
   // Owner's requirements for tenants
   tenantRequirements: {
-    type: tenantRequirementsSchema,
+    // Use the shared criteria schema so that tenant requirements
+    // and tenant search filters share an identical structure.
+    type: criteriaSchema,
     default: () => ({}),
   },
 
