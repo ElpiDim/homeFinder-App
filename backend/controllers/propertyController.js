@@ -50,7 +50,7 @@ exports.createProperty = async (req, res) => {
       ownerId,
       title: b.title,
       location: b.location,
-      price: toNum(b.price, parseFloat),
+      rent: toNum(b.rent, parseFloat),
       type: b.type, // 'rent' | 'sale'
 
       /* optional core */
@@ -153,10 +153,10 @@ exports.getAllProperties = async (req, res) => {
 
     // price range
     if (hasValue(minPrice) || hasValue(maxPrice)) {
-      match.price = {};
-      if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
-      if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
-    }
+         const priceField = type === "rent" ? "rent" : "price";
+      match[priceField] = {};
+      if (hasValue(minPrice)) match[priceField].$gte = parseFloat(minPrice);
+      if (hasValue(maxPrice)) match[priceField].$lte = parseFloat(maxPrice);
 
 // bedrooms/bathrooms range or exact
       const numRange = (field, minV, maxV) => {
@@ -282,11 +282,12 @@ exports.getAllProperties = async (req, res) => {
 
     // sorting
     if (sort === "newest") {
-      pipeline.push({ $sort: { createdAt: -1 } });
+       const priceField = type === "rent" ? "rent" : "price";
+      pipeline.push({ $sort: { [priceField]: 1, createdAt: -1 } });
     } else if (sort === "price_asc") {
-      pipeline.push({ $sort: { price: 1, createdAt: -1 } });
-    } else if (sort === "price_desc") {
-      pipeline.push({ $sort: { price: -1, createdAt: -1 } });
+      const priceField = type === "rent" ? "rent" : "price";
+      pipeline.push({ $sort: { [priceField]: -1, createdAt: -1 } });
+
     } else if (sort === "likes") {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     } else {
@@ -396,6 +397,7 @@ exports.updateProperty = async (req, res) => {
 
     // numbers
     property.price = setIfProvided(property.price, b.price, parseFloat);
+     property.rent = setIfProvided(property.rent, b.rent, parseFloat);
     property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
     property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) => parseInt(v));
     property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));

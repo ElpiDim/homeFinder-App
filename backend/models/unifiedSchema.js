@@ -17,7 +17,7 @@ const criteriaSchema = new mongoose.Schema({
   // Tenant attributes
   occupation: { type: String, trim: true },
   income: { type: Number, min: 0 },
-  familyStatus: { type: String, enum: ['single', 'couple', 'family'] },
+  familyStatus: { type: String, enum: ['Single', 'couple', 'family'] },
   pets: { type: Boolean },
   smoker: { type: Boolean },
 
