@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
-import InterestsModal from '../components/InterestsModal';
+import InterestsModal from '../components/interestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo'; 

@@ -9,6 +9,7 @@ export default function PropertyCard({
   isFavorite = false,
   onToggleFavorite = () => {},
   imgUrl = (src) => src, // πέρασε τη δική σου helper αν θες
+  children,
 }) {
   const cover = prop?.images?.[0] ? imgUrl(prop.images[0]) : "https://placehold.co/800x450?text=No+Image";
   const typeLabel = prop?.type || "-";
@@ -66,6 +67,7 @@ export default function PropertyCard({
           )}
           {prop?.floor != null && <span className="pcard-chip">⬆️ Floor {prop.floor}</span>}
         </div>
+        {children}
       </div>
     </div>
   );

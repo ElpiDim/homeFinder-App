@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import AppointmentModal from '../components/AppointmentModal';
-import InterestsModal from '../components/InterestsModal';
+import InterestsModal from '../components/interestsModal';
 
 export default function NotificationsPage() {
   const navigate = useNavigate();

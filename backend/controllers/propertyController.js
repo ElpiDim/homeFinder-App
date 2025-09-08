@@ -30,190 +30,6 @@ const extractImagesFromReq = (req) => {
   }
   return { images: [], floorPlanImage: undefined };
 };
-// Build aggregation stages to filter properties for a client
-const buildClientFilterStages = (user) => {
-  const salary = user.salary ?? 0;
-  const occupation = user.occupation || null;
-  const hasFamily = !!user.hasFamily;
-  const hasPets = !!user.hasPets;
-  const smoker = !!user.smoker;
-  const household = user.householdSize ?? 0;
-  const age = user.age ?? null;
-  const familyStatus = hasFamily
-    ? "family"
-    : household > 1
-    ? "couple"
-    : "single";
-
-  return [
-    {
-      $lookup: {
-        from: "users",
-        localField: "ownerId",
-        foreignField: "_id",
-        as: "ownerDoc",
-      },
-    },
-    { $unwind: "$ownerDoc" },
-    {
-      $match: {
-        $expr: {
-          $and: [
-            {
-              $or: [
-                { $eq: ["$tenantRequirements.minTenantSalary", null] },
-                { $lte: ["$tenantRequirements.minTenantSalary", salary] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$tenantRequirements.maxOccupants", null] },
-                { $gte: ["$tenantRequirements.maxOccupants", household] },
-              ],
-            },
-            {
-              $or: [
-                {
-                  $eq: [
-                    {
-                      $size: {
-                        $ifNull: ["$tenantRequirements.allowedOccupations", []],
-                      },
-                    },
-                    0,
-                  ],
-                },
-                {
-                  $in: [
-                    occupation,
-                    { $ifNull: ["$tenantRequirements.allowedOccupations", []] },
-                  ],
-                },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.requiresFamily", true] },
-                { $eq: [hasFamily, true] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.allowsPets", false] },
-                { $eq: [hasPets, false] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.allowsSmokers", false] },
-                { $eq: [smoker, false] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.incomeMin", null] },
-                { $lte: ["$ownerDoc.requirements.incomeMin", salary] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.incomeMax", null] },
-                { $gte: ["$ownerDoc.requirements.incomeMax", salary] },
-              ],
-            },
-            {
-              $or: [
-                {
-                  $eq: [
-                    {
-                      $size: {
-                        $ifNull: ["$ownerDoc.requirements.allowedOccupations", []],
-                      },
-                    },
-                    0,
-                  ],
-                },
-                {
-                  $in: [
-                    occupation,
-                    { $ifNull: ["$ownerDoc.requirements.allowedOccupations", []] },
-                  ],
-                },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$ownerDoc.requirements.petsAllowed", false] },
-                { $eq: [hasPets, false] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$ownerDoc.requirements.smokingAllowed", false] },
-                { $eq: [smoker, false] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.familyStatus", null] },
-                { $eq: ["$ownerDoc.requirements.familyStatus", "any"] },
-                { $eq: ["$ownerDoc.requirements.familyStatus", familyStatus] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.ageMin", null] },
-                { $lte: ["$ownerDoc.requirements.ageMin", age] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.ageMax", null] },
-                { $gte: ["$ownerDoc.requirements.ageMax", age] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.maxHouseholdSize", null] },
-                { $gte: ["$ownerDoc.requirements.maxHouseholdSize", household] },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  ];
-};
-
-const clientMatchesRequirements = (user, property) => {
-  const tr = property.tenantRequirements || {};
-  const or = property.ownerId?.requirements || {};
-  const familyStatus = user.hasFamily
-    ? "family"
-    : user.householdSize > 1
-    ? "couple"
-    : "single";
-  if (tr.minTenantSalary != null && user.salary < tr.minTenantSalary) return false;
-  if (tr.allowedOccupations?.length && !tr.allowedOccupations.includes(user.occupation))
-    return false;
-  if (tr.requiresFamily && !user.hasFamily) return false;
-  if (tr.allowsPets === false && user.hasPets) return false;
-  if (tr.allowsSmokers === false && user.smoker) return false;
-  if (tr.maxOccupants != null && user.householdSize > tr.maxOccupants) return false;
-  if (or.incomeMin != null && user.salary < or.incomeMin) return false;
-  if (or.incomeMax != null && user.salary > or.incomeMax) return false;
-  if (or.allowedOccupations?.length && !or.allowedOccupations.includes(user.occupation))
-    return false;
-  if (or.petsAllowed === false && user.hasPets) return false;
-  if (or.smokingAllowed === false && user.smoker) return false;
-  if (or.familyStatus && or.familyStatus !== "any" && or.familyStatus !== familyStatus)
-    return false;
-  if (or.ageMin != null && user.age < or.ageMin) return false;
-  if (or.ageMax != null && user.age > or.ageMax) return false;
-  if (or.maxHouseholdSize != null && user.householdSize > or.maxHouseholdSize)
-    return false;
-  return true;
-};
 
 /* --------------------------- CREATE PROPERTY --------------------------- */
 exports.createProperty = async (req, res) => {
@@ -273,27 +89,7 @@ exports.createProperty = async (req, res) => {
       insulation: b.insulation === "true" || b.insulation === true,
       ownerNotes: b.ownerNotes,
 
-       tenantRequirements: {
-        minTenantSalary: toNum(tenantReq.minTenantSalary, parseFloat),
-        allowedOccupations: Array.isArray(tenantReq.allowedOccupations)
-          ? tenantReq.allowedOccupations
-          : tenantReq.allowedOccupations
-          ? [tenantReq.allowedOccupations]
-          : [],
-        requiresFamily:
-          tenantReq.requiresFamily === true ||
-          tenantReq.requiresFamily === "true" ||
-          tenantReq.requiresFamily === "1",
-        allowsSmokers:
-          tenantReq.allowsSmokers === true ||
-          tenantReq.allowsSmokers === "true" ||
-          tenantReq.allowsSmokers === "1",
-        allowsPets:
-          tenantReq.allowsPets === true ||
-          tenantReq.allowsPets === "true" ||
-          tenantReq.allowsPets === "1",
-        maxOccupants: toNum(tenantReq.maxOccupants, parseInt),
-      },
+      tenantRequirements: b.tenantRequirements ? JSON.parse(b.tenantRequirements) : {},
 
       /* arrays */
       features: Array.isArray(b["features[]"])
@@ -666,6 +462,10 @@ exports.updateProperty = async (req, res) => {
     }
     if (floorPlanImage) {
       property.floorPlanImage = floorPlanImage;
+    }
+
+    if (b.tenantRequirements) {
+      property.tenantRequirements = JSON.parse(b.tenantRequirements);
     }
 
     await property.save();

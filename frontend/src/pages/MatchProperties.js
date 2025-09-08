@@ -1,44 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import PropertyCard from '../components/propertyCard';
+import { useAuth } from '../context/AuthContext';
 
 function MatchProperties() {
-  const [properties, setProperties] = useState([]);
+  const { user } = useAuth();
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProperties = async () => {
+    if (!user?._id) return;
+
+    const fetchMatches = async () => {
+      setLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await api.get('/match/properties', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = Array.isArray(res.data) ? res.data : [];
-        setProperties(data);
+        const res = await api.get(`/properties/matches/${user._id}`);
+        setMatches(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('Failed to fetch property matches', err);
-        setProperties([]);
+        setMatches([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProperties();
-  }, []);
+    fetchMatches();
+  }, [user]);
 
   const imgUrl = (src) =>
     src ? (src.startsWith('http') ? src : `http://localhost:5000${src}`) : '';
 
   return (
     <div className="container mt-4">
-      <h3>Suggested Homes</h3>
-      <div className="row g-3">
-        {properties.map((prop) => (
-          <div className="col-md-4" key={prop._id}>
-            <PropertyCard prop={prop} imgUrl={imgUrl} />
-          </div>
-        ))}
-        {properties.length === 0 && (
-          <p className="text-muted">No matches found.</p>
-        )}
-      </div>
+      <h3>Your Property Matches</h3>
+      {loading ? (
+        <p>Loading matches...</p>
+      ) : (
+        <div className="row g-3">
+          {matches.map(({ property, propertyMatchScore, tenantMatchScore }) => (
+            <div className="col-md-4" key={property._id}>
+              <PropertyCard prop={property} imgUrl={imgUrl}>
+                <div className="mt-2">
+                  <p className="mb-0">Property Match Score: {propertyMatchScore}</p>
+                  <p className="mb-0">Tenant Match Score: {tenantMatchScore}</p>
+                </div>
+              </PropertyCard>
+            </div>
+          ))}
+          {matches.length === 0 && (
+            <p className="text-muted">No matches found. Try adjusting your profile and preferences.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

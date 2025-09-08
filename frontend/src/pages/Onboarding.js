@@ -1,5 +1,5 @@
 // src/pages/Onboarding.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
@@ -18,58 +18,16 @@ export default function Onboarding() {
 
   const isClient = user?.role === 'client';
 
-  // --- initial values from existing user data (if any) ---
-  const initPersonal = useMemo(
-    () => ({
-      name: user?.name || '',
-      phone: user?.phone || '',
-      age: user?.age ?? '',
-      householdSize: user?.householdSize ?? '',
-      hasFamily: !!user?.hasFamily,
-      hasPets: !!user?.hasPets,
-      smoker: !!user?.smoker,
-      occupation: user?.occupation || '',
-      salary: user?.salary ?? '',
-      isWillingToHaveRoommate: !!user?.isWillingToHaveRoommate,
-    }),
-    [user]
-  );
+  const [clientProfile, setClientProfile] = useState(user?.clientProfile || {
+    occupation: '', income: '', familyStatus: 'single', pets: false, smoker: false
+  });
+  const [propertyPreferences, setPropertyPreferences] = useState(user?.propertyPreferences || {
+    location: '', rent: '', sqm: '', bedrooms: '', furnished: false, parking: false
+  });
+  const [tenantRequirements, setTenantRequirements] = useState(user?.tenantRequirements || {
+    occupation: '', income: '', familyStatus: 'single', pets: false, smoker: false
+  });
 
-  const initPrefs = useMemo(
-    () => ({
-      location: user?.preferences?.location || '',
-      rentMin: user?.preferences?.rentMin ?? '',
-      rentMax: user?.preferences?.rentMax ?? '',
-      sqmMin: user?.preferences?.sqmMin ?? '',
-      sqmMax: user?.preferences?.sqmMax ?? '',
-      bedrooms: user?.preferences?.bedrooms ?? '',
-      bathrooms: user?.preferences?.bathrooms ?? '',
-      furnished: !!user?.preferences?.furnished,
-      petsAllowed: !!user?.preferences?.petsAllowed,
-      smokingAllowed: !!user?.preferences?.smokingAllowed,
-      yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
-      heatingType: user?.preferences?.heatingType || '',
-    }),
-    [user]
-  );
-
-  const initReqs = useMemo(
-    () => ({
-      incomeMin: user?.requirements?.incomeMin ?? '',
-      incomeMax: user?.requirements?.incomeMax ?? '',
-      allowedOccupations: (user?.requirements?.allowedOccupations || []).join(', '),
-      familyStatus: user?.requirements?.familyStatus || '',
-      petsAllowed: !!user?.requirements?.petsAllowed,
-      smokingAllowed: !!user?.requirements?.smokingAllowed,
-      workLocation: user?.requirements?.workLocation || '',
-      preferredTenantRegion: user?.requirements?.preferredTenantRegion || '',
-    }),
-    [user]
-  );
-
-  const [personal, setPersonal] = useState(initPersonal);
-  const [prefs, setPrefs] = useState(initPrefs);
-  const [reqs, setReqs] = useState(initReqs);
   const [saving, setSaving] = useState(false);
 
   const onChange = (setter) => (e) => {
@@ -84,52 +42,14 @@ export default function Onboarding() {
       let payload;
 
       if (isClient) {
-        // Personal + Preferences
-        const personalClean = clean({
-          name: personal.name,
-          phone: personal.phone,
-          age: personal.age ? Number(personal.age) : undefined,
-          householdSize: personal.householdSize ? Number(personal.householdSize) : undefined,
-          hasFamily: personal.hasFamily,
-          hasPets: personal.hasPets,
-          smoker: personal.smoker,
-          occupation: personal.occupation,
-          salary: personal.salary ? Number(personal.salary) : undefined,
-          isWillingToHaveRoommate: personal.isWillingToHaveRoommate,
-        });
-
-        const prefsClean = clean({
-          location: prefs.location,
-          rentMin: prefs.rentMin ? Number(prefs.rentMin) : undefined,
-          rentMax: prefs.rentMax ? Number(prefs.rentMax) : undefined,
-          sqmMin: prefs.sqmMin ? Number(prefs.sqmMin) : undefined,
-          sqmMax: prefs.sqmMax ? Number(prefs.sqmMax) : undefined,
-          bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
-          bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
-          furnished: !!prefs.furnished,
-          petsAllowed: !!prefs.petsAllowed,
-          smokingAllowed: !!prefs.smokingAllowed,
-          yearBuiltMin: prefs.yearBuiltMin ? Number(prefs.yearBuiltMin) : undefined,
-          heatingType: prefs.heatingType || undefined, // enum: autonomous|central|ac|none
-        });
-
-        payload = { ...personalClean, preferences: prefsClean };
-      } else {
-        // Only Requirements (owner)
-        const reqsClean = clean({
-          incomeMin: reqs.incomeMin ? Number(reqs.incomeMin) : undefined,
-          incomeMax: reqs.incomeMax ? Number(reqs.incomeMax) : undefined,
-          allowedOccupations: reqs.allowedOccupations
-            ? reqs.allowedOccupations.split(',').map((o) => o.trim()).filter(Boolean)
-            : [],
-          familyStatus: reqs.familyStatus || undefined,
-          petsAllowed: !!reqs.petsAllowed,
-          smokingAllowed: !!reqs.smokingAllowed,
-          workLocation: reqs.workLocation || undefined,
-          preferredTenantRegion: reqs.preferredTenantRegion || undefined,
-        });
-
-        payload = { requirements: reqsClean };
+        payload = {
+          clientProfile: clean(clientProfile),
+          propertyPreferences: clean(propertyPreferences),
+        };
+      } else { // Owner
+        payload = {
+          tenantRequirements: clean(tenantRequirements)
+        };
       }
 
       const { data } = await api.post('/users/onboarding', payload);
@@ -159,217 +79,112 @@ export default function Onboarding() {
           </Card.Title>
 
           <Form onSubmit={submit}>
-            {/* CLIENT: Personal + Preferences */}
             {isClient ? (
               <>
-                {/* Personal */}
-                <h5 className="mt-2">Personal Information</h5>
+                {/* Client Profile */}
+                <h5 className="mt-2">Your Profile</h5>
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Name</Form.Label>
-                      <Form.Control name="name" value={personal.name} onChange={onChange(setPersonal)} />
+                      <Form.Label>Occupation</Form.Label>
+                      <Form.Control name="occupation" value={clientProfile.occupation} onChange={onChange(setClientProfile)} />
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Phone</Form.Label>
-                      <Form.Control name="phone" value={personal.phone} onChange={onChange(setPersonal)} />
+                      <Form.Label>Income (€/month)</Form.Label>
+                      <Form.Control type="number" name="income" value={clientProfile.income} onChange={onChange(setClientProfile)} />
                     </Form.Group>
                   </Col>
                 </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Age</Form.Label>
-                      <Form.Control type="number" name="age" value={personal.age} onChange={onChange(setPersonal)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Household Size</Form.Label>
-                      <Form.Control type="number" name="householdSize" value={personal.householdSize} onChange={onChange(setPersonal)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Has family" name="hasFamily" checked={personal.hasFamily} onChange={onChange(setPersonal)} />
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Has pets" name="hasPets" checked={personal.hasPets} onChange={onChange(setPersonal)} />
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Smoker" name="smoker" checked={personal.smoker} onChange={onChange(setPersonal)} />
-                  </Col>
-                  <Col md={5}>
-                    <Form.Group>
-                      <Form.Label>Occupation</Form.Label>
-                      <Form.Control name="occupation" value={personal.occupation} onChange={onChange(setPersonal)} />
-                    </Form.Group>
-                  </Col>
+                <Row className="g-3 mt-2">
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label>Salary (€)</Form.Label>
-                      <Form.Control type="number" name="salary" value={personal.salary} onChange={onChange(setPersonal)} />
+                      <Form.Label>Family Status</Form.Label>
+                      <Form.Select name="familyStatus" value={clientProfile.familyStatus} onChange={onChange(setClientProfile)}>
+                        <option value="single">Single</option>
+                        <option value="couple">Couple</option>
+                        <option value="family">Family</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={6} className="d-flex align-items-end">
-                    <Form.Check
-                      label="I’m willing to have a roommate"
-                      name="isWillingToHaveRoommate"
-                      checked={personal.isWillingToHaveRoommate}
-                      onChange={onChange(setPersonal)}
-                    />
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check label="Have pets" name="pets" checked={clientProfile.pets} onChange={onChange(setClientProfile)} />
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check label="Smoker" name="smoker" checked={clientProfile.smoker} onChange={onChange(setClientProfile)} />
                   </Col>
                 </Row>
 
-                {/* Preferences */}
-                <h5 className="mt-4">Preferences (What you’re looking for)</h5>
+                {/* Property Preferences */}
+                <h5 className="mt-4">Your Property Preferences</h5>
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
                       <Form.Label>Location</Form.Label>
-                      <Form.Control name="location" value={prefs.location} onChange={onChange(setPrefs)} />
+                      <Form.Control name="location" value={propertyPreferences.location} onChange={onChange(setPropertyPreferences)} />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Rent Min (€)</Form.Label>
-                      <Form.Control type="number" name="rentMin" value={prefs.rentMin} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Rent Max (€)</Form.Label>
-                      <Form.Control type="number" name="rentMax" value={prefs.rentMax} onChange={onChange(setPrefs)} />
+                      <Form.Label>Max Rent (€/month)</Form.Label>
+                      <Form.Control type="number" name="rent" value={propertyPreferences.rent} onChange={onChange(setPropertyPreferences)} />
                     </Form.Group>
                   </Col>
                 </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3}>
+                <Row className="g-3 mt-2">
+                  <Col md={4}>
                     <Form.Group>
-                      <Form.Label>Sqm Min</Form.Label>
-                      <Form.Control type="number" name="sqmMin" value={prefs.sqmMin} onChange={onChange(setPrefs)} />
+                      <Form.Label>Min Square Meters (sqm)</Form.Label>
+                      <Form.Control type="number" name="sqm" value={propertyPreferences.sqm} onChange={onChange(setPropertyPreferences)} />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={4}>
                     <Form.Group>
-                      <Form.Label>Sqm Max</Form.Label>
-                      <Form.Control type="number" name="sqmMax" value={prefs.sqmMax} onChange={onChange(setPrefs)} />
+                      <Form.Label>Min Bedrooms</Form.Label>
+                      <Form.Control type="number" name="bedrooms" value={propertyPreferences.bedrooms} onChange={onChange(setPropertyPreferences)} />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Bedrooms</Form.Label>
-                      <Form.Control type="number" name="bedrooms" value={prefs.bedrooms} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Bathrooms</Form.Label>
-                      <Form.Control type="number" name="bathrooms" value={prefs.bathrooms} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Furnished" name="furnished" checked={prefs.furnished} onChange={onChange(setPrefs)} />
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Pets allowed" name="petsAllowed" checked={prefs.petsAllowed} onChange={onChange(setPrefs)} />
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Smoking allowed" name="smokingAllowed" checked={prefs.smokingAllowed} onChange={onChange(setPrefs)} />
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Year Built Min</Form.Label>
-                      <Form.Control type="number" name="yearBuiltMin" value={prefs.yearBuiltMin} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Heating Type</Form.Label>
-                      <Form.Select name="heatingType" value={prefs.heatingType} onChange={onChange(setPrefs)}>
-                        <option value="">Select</option>
-                        <option value="autonomous">Autonomous</option>
-                        <option value="central">Central</option>
-                        <option value="ac">AC</option>
-                        <option value="none">None</option>
-                      </Form.Select>
-                    </Form.Group>
+                   <Col md={4} className="d-flex align-items-end">
+                    <Form.Check label="Furnished" name="furnished" checked={propertyPreferences.furnished} onChange={onChange(setPropertyPreferences)} />
                   </Col>
                 </Row>
               </>
             ) : (
               // OWNER: Requirements only
               <>
-                <h5 className="mt-2">Requirements</h5>
-                <Row className="g-3">
-                  <Col md={3}>
+                <h5 className="mt-2">Tenant Requirements</h5>
+                 <Row className="g-3">
+                  <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Income Min (€)</Form.Label>
-                      <Form.Control type="number" name="incomeMin" value={reqs.incomeMin} onChange={onChange(setReqs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Income Max (€)</Form.Label>
-                      <Form.Control type="number" name="incomeMax" value={reqs.incomeMax} onChange={onChange(setReqs)} />
+                      <Form.Label>Minimum Occupation</Form.Label>
+                      <Form.Control name="occupation" value={tenantRequirements.occupation} onChange={onChange(setTenantRequirements)} />
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Allowed Occupations (comma separated)</Form.Label>
-                      <Form.Control name="allowedOccupations" value={reqs.allowedOccupations} onChange={onChange(setReqs)} />
+                      <Form.Label>Minimum Income (€/month)</Form.Label>
+                      <Form.Control type="number" name="income" value={tenantRequirements.income} onChange={onChange(setTenantRequirements)} />
                     </Form.Group>
                   </Col>
                 </Row>
-
-                <Row className="g-3 mt-0">
+                <Row className="g-3 mt-2">
                   <Col md={4}>
                     <Form.Group>
                       <Form.Label>Family Status</Form.Label>
-                      <Form.Select name="familyStatus" value={reqs.familyStatus} onChange={onChange(setReqs)}>
-                        <option value="">Select</option>
+                      <Form.Select name="familyStatus" value={tenantRequirements.familyStatus} onChange={onChange(setTenantRequirements)}>
+                        <option value="any">Any</option>
                         <option value="single">Single</option>
                         <option value="couple">Couple</option>
                         <option value="family">Family</option>
-                        <option value="any">Any</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
                   <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Pets allowed" name="petsAllowed" checked={reqs.petsAllowed} onChange={onChange(setReqs)} />
+                    <Form.Check label="Pets Allowed" name="pets" checked={tenantRequirements.pets} onChange={onChange(setTenantRequirements)} />
                   </Col>
                   <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Smoking allowed" name="smokingAllowed" checked={reqs.smokingAllowed} onChange={onChange(setReqs)} />
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Work Location</Form.Label>
-                      <Form.Control name="workLocation" value={reqs.workLocation} onChange={onChange(setReqs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Preferred Tenant Region</Form.Label>
-                      <Form.Control name="preferredTenantRegion" value={reqs.preferredTenantRegion} onChange={onChange(setReqs)} />
-                    </Form.Group>
+                    <Form.Check label="Smokers Allowed" name="smoker" checked={tenantRequirements.smoker} onChange={onChange(setTenantRequirements)} />
                   </Col>
                 </Row>
               </>
