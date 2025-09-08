@@ -20,6 +20,7 @@ const extractImagesFromReq = (req) => {
       floorPlanImage: undefined,
     };
   }
+
   // fields mode
   if (req.files && typeof req.files === "object") {
     const images = Array.isArray(req.files.images)
@@ -28,8 +29,10 @@ const extractImagesFromReq = (req) => {
     const floorPlanImage = Array.isArray(req.files.floorPlanImage)
       ? `/uploads/${req.files.floorPlanImage[0].filename}`
       : undefined;
+
     return { images, floorPlanImage };
   }
+
   return { images: [], floorPlanImage: undefined };
 };
 
@@ -49,14 +52,6 @@ exports.createProperty = async (req, res) => {
     const { images, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // tenant requirements: stringified JSON ή object
-    const tenantRequirements =
-      typeof b.tenantRequirements === "string"
-        ? JSON.parse(b.tenantRequirements || "{}")
-        : (b.tenantRequirements || {});
-
-    const priceOrRent = toNum(b.price ?? b.rent, parseFloat);
-
     const newProperty = new Property({
       /* required/basics */
       ownerId,
@@ -73,7 +68,6 @@ exports.createProperty = async (req, res) => {
       description: b.description,
       address: b.address,
       floor: toNum(b.floor, parseInt),
-      // δέξου είτε squareMeters είτε sqm
       squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
       surface: toNum(b.surface, parseInt),
       onTopFloor:
@@ -87,26 +81,28 @@ exports.createProperty = async (req, res) => {
       wc: toNum(b.wc, parseInt),
       kitchens: toNum(b.kitchens, parseInt),
       livingRooms: toNum(b.livingRooms, parseInt),
-
-      /* extended attributes */
-      plotSize: toNum(b.plotSize, parseFloat),
-      yearBuilt: toNum(b.yearBuilt, parseInt),
-      condition: b.condition,
+      constructionYear: toNum(b.constructionYear, parseInt),
+      renovationYear: toNum(b.renovationYear, parseInt),
+      condition: b.condition, // 'new','good','needs_renovation',...
       hasElevator: b.hasElevator === "true" || b.hasElevator === true,
       hasStorage: b.hasStorage === "true" || b.hasStorage === true,
       furnished: b.furnished === "true" || b.furnished === true,
-      heating: b.heating,
-      energyClass: b.energyClass,
-      orientation: b.orientation,
+      parkingSpaces: toNum(b.parkingSpaces, parseInt),
+      parking: b.parking === "true" || b.parking === true,
+      heating: b.heating, // e.g. 'natural_gas', 'heat_pump', ...
+      energyClass: b.energyClass, // A+..G
+      orientation: b.orientation, // N/E/S/W/SE,...
       petsAllowed: b.petsAllowed === "true" || b.petsAllowed === true,
       smokingAllowed: b.smokingAllowed === "true" || b.smokingAllowed === true,
-      parkingSpaces: toNum(b.parkingSpaces, parseInt),
       monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
       view: b.view,
       insulation: b.insulation === "true" || b.insulation === true,
       ownerNotes: b.ownerNotes,
 
-      tenantRequirements,
+      tenantRequirements:
+        typeof b.tenantRequirements === "string"
+          ? JSON.parse(b.tenantRequirements)
+          : (b.tenantRequirements || {}),
 
       /* arrays */
       features: Array.isArray(b["features[]"])
@@ -146,234 +142,118 @@ exports.createProperty = async (req, res) => {
 exports.getAllProperties = async (req, res) => {
   try {
     const {
-      q,
+      page = 1,
+      limit = 12,
+      sortBy = "createdAt",
+      sortOrder = "desc",
       type,
       minPrice,
       maxPrice,
-      minSqm,
-      maxSqm,
-      minBedrooms,
-      maxBedrooms,
-      minBathrooms,
-      maxBathrooms,
+      minSquareMeters,
+      maxSquareMeters,
       bedrooms,
       bathrooms,
-      yearFrom,
-      yearTo,
+      location,
+      ownerId,
+      search,
+      features,
+      hasElevator,
       furnished,
       petsAllowed,
-      hasElevator,
-      hasStorage,
-      energyClass,
-      heating,
-      orientation,
-      view,
-      sort = "relevance",
-      lat,
-      lng,
-      page = 1,
-      limit = 24,
+      parking,
+      status,
     } = req.query;
-
-    const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
-    const numericPage = Math.max(1, parseInt(page) || 1);
-    const skip = (numericPage - 1) * numericLimit;
 
     const match = {};
 
-    if (hasValue(q)) {
-      const rx = new RegExp(`${q}`.trim(), "i");
-      match.$or = [{ title: rx }, { location: rx }, { address: rx }];
-    }
-    if (type) match.type = type;
+    if (type) match.type = type; // rent|sale
+    if (status) match.status = status;
+    if (ownerId) match.ownerId = ownerId;
+    if (location) match.location = { $regex: location, $options: "i" };
 
-    if (hasValue(minPrice) || hasValue(maxPrice)) {
-      match.price = {};
-      if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
-      if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
-    }
-
-    const numRange = (field, minV, maxV) => {
-      if (!hasValue(minV) && !hasValue(maxV)) return null;
-      const r = {};
-      if (hasValue(minV)) r.$gte = parseInt(minV);
-      if (hasValue(maxV)) r.$lte = parseInt(maxV);
-      return { [field]: r };
-    };
-
-    if (hasValue(bedrooms)) match.bedrooms = parseInt(bedrooms);
-    if (hasValue(bathrooms)) match.bathrooms = parseInt(bathrooms);
-    Object.assign(
-      match,
-      numRange("bedrooms", minBedrooms, maxBedrooms) || {},
-      numRange("bathrooms", minBathrooms, maxBathrooms) || {}
-    );
-
-    if (hasValue(yearFrom) || hasValue(yearTo)) {
-      match.yearBuilt = {};
-      if (hasValue(yearFrom)) match.yearBuilt.$gte = parseInt(yearFrom);
-      if (hasValue(yearTo)) match.yearBuilt.$lte = parseInt(yearTo);
+    // features (array)
+    if (features) {
+      const arr = Array.isArray(features) ? features : `${features}`.split(",");
+      match.features = { $all: arr.filter(Boolean) };
     }
 
-    const boolEq = (key, val) =>
-      hasValue(val)
-        ? { [key]: val === "true" || val === true || val === "1" }
-        : null;
+    if (bedrooms) match.bedrooms = { $gte: Number(bedrooms) };
+    if (bathrooms) match.bathrooms = { $gte: Number(bathrooms) };
 
-    Object.assign(
-      match,
-      boolEq("furnished", furnished) || {},
-      boolEq("petsAllowed", petsAllowed) || {},
-      boolEq("hasElevator", hasElevator) || {},
-      boolEq("hasStorage", hasStorage) || {}
-    );
+    // booleans
+    if (hasElevator !== undefined)
+      match.hasElevator =
+        hasElevator === "true" || hasElevator === true ? true : false;
+    if (furnished !== undefined)
+      match.furnished = furnished === "true" || furnished === true ? true : false;
+    if (petsAllowed !== undefined)
+      match.petsAllowed =
+        petsAllowed === "true" || petsAllowed === true ? true : false;
+    if (parking !== undefined)
+      match.parking = parking === "true" || parking === true ? true : false;
 
-    if (hasValue(energyClass)) match.energyClass = energyClass;
-    if (hasValue(heating)) match.heating = heating;
-    if (hasValue(orientation)) match.orientation = orientation;
-    if (hasValue(view)) match.view = view;
-
-    // sqm filter via $expr (squareMeters or surface)
-    let sqmMatchStage = null;
-    if (hasValue(minSqm) || hasValue(maxSqm)) {
-      const min = hasValue(minSqm) ? parseInt(minSqm) : undefined;
-      const max = hasValue(maxSqm) ? parseInt(maxSqm) : undefined;
-      const sqrExpr = [];
-      const surfExpr = [];
-      if (min !== undefined) {
-        sqrExpr.push({ $gte: [{ $toDouble: "$squareMeters" }, min] });
-        surfExpr.push({ $gte: [{ $toDouble: "$surface" }, min] });
-      }
-      if (max !== undefined) {
-        sqrExpr.push({ $lte: [{ $toDouble: "$squareMeters" }, max] });
-        surfExpr.push({ $lte: [{ $toDouble: "$surface" }, max] });
-      }
-      sqmMatchStage = {
-        $match: { $or: [{ $expr: { $and: sqrExpr } }, { $expr: { $and: surfExpr } }] },
-      };
+    // text search
+    if (search) {
+      match.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { address: { $regex: search, $options: "i" } },
+        { location: { $regex: search, $options: "i" } },
+      ];
     }
 
-    const hasCoords = hasValue(lat) && hasValue(lng);
-    const userLat = hasCoords ? Number(lat) : null;
-    const userLng = hasCoords ? Number(lng) : null;
-    const distanceExpr = hasCoords
-      ? {
-          $multiply: [
-            111.32,
-            {
-              $sqrt: {
-                $add: [
-                  { $pow: [{ $subtract: [{ $toDouble: "$latitude" }, userLat] }, 2] },
-                  {
-                    $pow: [
-                      {
-                        $multiply: [
-                          { $cos: [{ $degreesToRadians: userLat }] },
-                          { $subtract: [{ $toDouble: "$longitude" }, userLng] },
-                        ],
-                      },
-                      2,
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
-        }
-      : null;
+    // price & square meters use $expr (fields may be strings in DB)
+    const expr = [];
+    if (minPrice) expr.push({ $gte: [{ $toDouble: "$price" }, Number(minPrice)] });
+    if (maxPrice) expr.push({ $lte: [{ $toDouble: "$price" }, Number(maxPrice)] });
 
-    const pipeline = [
-      ...(sqmMatchStage ? [sqmMatchStage] : []),
-      { $match: match },
-      {
-        $lookup: {
-          from: "favorites",
-          localField: "_id",
-          foreignField: "propertyId",
-          as: "favDocs",
-        },
-      },
-      { $addFields: { favoritesCount: { $size: "$favDocs" } } },
-      ...(hasCoords ? [{ $addFields: { distanceKm: distanceExpr } }] : []),
-    ];
-
-    if (req.user?.role === "client" && req.currentUser) {
-      // αν έχεις client-based filters, βάλε τα εδώ
-    }
-
-    if (sort === "newest") {
-      pipeline.push({ $sort: { createdAt: -1 } });
-    } else if (sort === "price_asc") {
-      pipeline.push({ $sort: { price: 1, createdAt: -1 } });
-    } else if (sort === "price_desc") {
-      pipeline.push({ $sort: { price: -1, createdAt: -1 } });
-    } else if (sort === "likes") {
-      pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
-    } else {
-      pipeline.push({
-        $sort: hasCoords
-          ? { distanceKm: 1, favoritesCount: -1, createdAt: -1 }
-          : { favoritesCount: -1, createdAt: -1 },
+    // sqm filter via $expr to tolerate stringy data
+    if (minSquareMeters)
+      expr.push({
+        $gte: [{ $toDouble: "$squareMeters" }, Number(minSquareMeters)],
       });
-    }
+    if (maxSquareMeters)
+      expr.push({
+        $lte: [{ $toDouble: "$squareMeters" }, Number(maxSquareMeters)],
+      });
 
-    pipeline.push({ $skip: skip }, { $limit: numericLimit });
+    const pipeline = [{ $match: match }];
+    if (expr.length) pipeline.push({ $match: { $expr: { $and: expr } } });
 
-    const properties = await Property.aggregate(pipeline);
-    res.json(properties);
+    // sorting
+    const sortStage = {};
+    sortStage[sortBy] = sortOrder === "asc" ? 1 : -1;
+    pipeline.push({ $sort: sortStage });
+
+    // pagination
+    pipeline.push(
+      { $skip: (Number(page) - 1) * Number(limit) },
+      { $limit: Number(limit) }
+    );
+
+    const [items, total] = await Promise.all([
+      Property.aggregate(pipeline),
+      Property.countDocuments(match),
+    ]);
+
+    res.json({
+      items,
+      total,
+      page: Number(page),
+      pageSize: Number(limit),
+      totalPages: Math.ceil(total / Number(limit)),
+    });
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ------------------------- GET MY PROPS + STATS ------------------------ */
-exports.getMyProperties = async (req, res) => {
-  try {
-    if (req.user.role !== "owner") {
-      return res.status(403).json({ message: "Only owners can view their properties" });
-    }
-
-    const properties = await Property.find({ ownerId: req.user.userId });
-
-    if (req.query.includeStats) {
-      const ids = properties.map((p) => p._id);
-
-      const favoritesAgg = await Favorites.aggregate([
-        { $match: { propertyId: { $in: ids } } },
-        { $group: { _id: "$propertyId", count: { $sum: 1 } } },
-      ]);
-
-      const interestsAgg = await Interest.aggregate([
-        { $match: { propertyId: { $in: ids } } },
-        { $group: { _id: "$propertyId", count: { $sum: 1 } } },
-      ]);
-
-      const favMap = new Map(favoritesAgg.map((f) => [String(f._id), f.count]));
-      const interestMap = new Map(interestsAgg.map((i) => [String(i._id), i.count]));
-
-      const withStats = properties.map((p) => ({
-        ...p.toObject(),
-        favoritesCount: favMap.get(String(p._id)) || 0,
-        viewsCount: interestMap.get(String(p._id)) || 0,
-      }));
-
-      return res.json(withStats);
-    }
-
-    res.json(properties);
-  } catch (err) {
-    console.error("❌ getMyProperties error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* --------------------------- GET PROPERTY BY ID --------------------------- */
+/* --------------------------- GET ONE PROPERTY --------------------------- */
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.propertyId).populate("ownerId");
+    const property = await Property.findById(req.params.propertyId);
     if (!property) return res.status(404).json({ message: "Property not found" });
-
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
@@ -381,7 +261,7 @@ exports.getPropertyById = async (req, res) => {
   }
 };
 
-/* ---------------------------- UPDATE PROPERTY ---------------------------- */
+/* --------------------------- UPDATE PROPERTY --------------------------- */
 exports.updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
@@ -407,12 +287,8 @@ exports.updateProperty = async (req, res) => {
     property.view = b.view ?? property.view;
     property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
 
-    // numbers (sync price/rent)
-    if (hasValue(b.price) || hasValue(b.rent)) {
-      const v = parseFloat(hasValue(b.price) ? b.price : b.rent);
-      property.price = v;
-      property.rent = v;
-    }
+    // numbers
+    property.price = setIfProvided(property.price, b.price, (v) => parseFloat(v));
     property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
     property.squareMeters = setIfProvided(
       property.squareMeters,
@@ -436,10 +312,16 @@ exports.updateProperty = async (req, res) => {
       b.monthlyMaintenanceFee,
       (v) => parseFloat(v)
     );
-    property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
-    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) => parseInt(v));
-
-    // geo
+    property.constructionYear = setIfProvided(
+      property.constructionYear,
+      b.constructionYear,
+      (v) => parseInt(v)
+    );
+    property.renovationYear = setIfProvided(
+      property.renovationYear,
+      b.renovationYear,
+      (v) => parseInt(v)
+    );
     property.latitude = setIfProvided(property.latitude, b.latitude, Number);
     property.longitude = setIfProvided(property.longitude, b.longitude, Number);
 
@@ -470,15 +352,17 @@ exports.updateProperty = async (req, res) => {
       property.insulation = b.insulation === "true" || b.insulation === true;
     }
 
-    // features
-    if (b["features[]"] !== undefined || b.features !== undefined) {
-      property.features = Array.isArray(b["features[]"])
-        ? b["features[]"]
-        : Array.isArray(b.features)
-        ? b.features
-        : b.features
-        ? [b.features]
-        : [];
+    // arrays
+    if (b.features !== undefined || b["features[]"] !== undefined) {
+      const ft =
+        Array.isArray(b["features[]"])
+          ? b["features[]"]
+          : Array.isArray(b.features)
+          ? b.features
+          : b.features
+          ? [b.features]
+          : [];
+      property.features = ft;
     }
 
     // images
@@ -493,7 +377,7 @@ exports.updateProperty = async (req, res) => {
     if (b.tenantRequirements !== undefined) {
       property.tenantRequirements =
         typeof b.tenantRequirements === "string"
-          ? JSON.parse(b.tenantRequirements || "{}")
+          ? JSON.parse(b.tenantRequirements)
           : b.tenantRequirements || {};
     }
 
@@ -505,7 +389,7 @@ exports.updateProperty = async (req, res) => {
   }
 };
 
-/* ---------------------------- DELETE PROPERTY ---------------------------- */
+/* --------------------------- DELETE PROPERTY --------------------------- */
 exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
@@ -525,6 +409,7 @@ exports.deleteProperty = async (req, res) => {
       referenceId: property._id,
       message: `The property "${property.title}" has been removed.`,
     }));
+
     if (notifications.length) {
       await Notification.insertMany(notifications);
     }

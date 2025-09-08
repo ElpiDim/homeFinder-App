@@ -13,7 +13,7 @@ export default function AddProperty() {
     description: '',
     location: '',
     address: '',
-    rent: '',
+    price: '',
     sqm: '',
     bedrooms: '',
     bathrooms: '',
@@ -99,8 +99,8 @@ export default function AddProperty() {
         </div>
         <div className="row g-3">
           <div className="col-sm-4">
-            <label className="form-label">Rent (€/month)</label>
-            <input type="number" className="form-control" name="rent" value={form.rent} onChange={onChange} required />
+            <label className="form-label">price (€/month)</label>
+            <input type="number" className="form-control" name="price" value={form.price} onChange={onChange} required />
           </div>
           <div className="col-sm-4">
             <label className="form-label">Square Meters (sqm)</label>

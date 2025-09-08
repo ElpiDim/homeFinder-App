@@ -48,7 +48,7 @@ exports.findMatchingProperties = async (req, res) => {
       // 1. Match property attributes with tenant's preferences
       const propertyData = {
         location: property.location,
-        rent: property.rent,
+        rent: property.price,
         sqm: property.sqm,
         bedrooms: property.bedrooms,
         bathrooms: property.bathrooms,
