@@ -50,14 +50,14 @@ exports.createProperty = async (req, res) => {
       ownerId,
       title: b.title,
       location: b.location,
-      rent: toNum(b.rent, parseFloat),
+      rent: toNum(b.price, parseFloat),
       type: b.type, // 'rent' | 'sale'
 
       /* optional core */
       description: b.description,
       address: b.address,
       floor: toNum(b.floor, parseInt),
-      squareMeters: toNum(b.squareMeters, parseInt),
+      sqm: toNum(b.sqm, parseInt),
       surface: toNum(b.surface, parseInt),
       onTopFloor:
         b.onTopFloor === true ||
@@ -78,12 +78,12 @@ exports.createProperty = async (req, res) => {
       hasElevator: b.hasElevator === "true" || b.hasElevator === true,
       hasStorage: b.hasStorage === "true" || b.hasStorage === true,
       furnished: b.furnished === "true" || b.furnished === true,
+      parking: b.parking === "true" || b.parking === true,
       heating: b.heating, // e.g. 'natural_gas', 'heat_pump', ...
       energyClass: b.energyClass, // A+..G
       orientation: b.orientation, // N/E/S/W/SE,...
       petsAllowed: b.petsAllowed === "true" || b.petsAllowed === true,
       smokingAllowed: b.smokingAllowed === "true" || b.smokingAllowed === true,
-      parkingSpaces: toNum(b.parkingSpaces, parseInt),
       monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
       view: b.view, // 'sea','park',...
       insulation: b.insulation === "true" || b.insulation === true,
@@ -153,10 +153,10 @@ exports.getAllProperties = async (req, res) => {
 
     // price range
     if (hasValue(minPrice) || hasValue(maxPrice)) {
-         const priceField = type === "rent" ? "rent" : "price";
-      match[priceField] = {};
-      if (hasValue(minPrice)) match[priceField].$gte = parseFloat(minPrice);
-      if (hasValue(maxPrice)) match[priceField].$lte = parseFloat(maxPrice);
+      match.price = {};
+      if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
+      if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
+    }
 
 // bedrooms/bathrooms range or exact
       const numRange = (field, minV, maxV) => {
@@ -282,12 +282,11 @@ exports.getAllProperties = async (req, res) => {
 
     // sorting
     if (sort === "newest") {
-       const priceField = type === "rent" ? "rent" : "price";
-      pipeline.push({ $sort: { [priceField]: 1, createdAt: -1 } });
+      pipeline.push({ $sort: { createdAt: -1 } });
     } else if (sort === "price_asc") {
-      const priceField = type === "rent" ? "rent" : "price";
-      pipeline.push({ $sort: { [priceField]: -1, createdAt: -1 } });
-
+      pipeline.push({ $sort: { price: 1, createdAt: -1 } });
+    } else if (sort === "price_desc") {
+      pipeline.push({ $sort: { price: -1, createdAt: -1 } });
     } else if (sort === "likes") {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     } else {
@@ -397,7 +396,6 @@ exports.updateProperty = async (req, res) => {
 
     // numbers
     property.price = setIfProvided(property.price, b.price, parseFloat);
-     property.rent = setIfProvided(property.rent, b.rent, parseFloat);
     property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
     property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) => parseInt(v));
     property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));
