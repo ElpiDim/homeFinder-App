@@ -30,7 +30,7 @@ function Register() {
     e.preventDefault();
     try {
       const { token, user } = await registerUser(formData);
-      setMessage('Registration successful! Redirecting to onboarding...');
+      setMessage('Registration successful! Redirecting ...');
 
       // Update auth context and local storage
       setToken(token);
@@ -38,7 +38,11 @@ function Register() {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      setTimeout(() => navigate('/onboarding'), 1500);
+     if (user.role === 'owner') {
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } else {
+        setTimeout(() => navigate('/onboarding'), 1500);
+      }
     } catch (err) {
       setMessage(err.response?.data?.message || 'Error while registering');
     }

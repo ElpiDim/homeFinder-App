@@ -28,15 +28,31 @@ function RequireOnboarding({ children }) {
   const { user } = useAuth();
   const location = useLocation();
 
+  console.log('RequireOnboarding: user:', user);
+  console.log('RequireOnboarding: user.role:', user?.role);
+  console.log('RequireOnboarding: is owner?', user?.role === 'owner');
+
+  // bypass onboarding for owners
+  if (user?.role === 'owner') {
+    console.log('RequireOnboarding: Bypassing for owner');
+    return children;
+  }
+
   // υποστηρίζει και παλιά ονομασία hasCompletedOnboarding
   const onboardingCompleted =
     user?.onboardingCompleted ?? user?.hasCompletedOnboarding ?? false;
 
+  console.log('RequireOnboarding: onboardingCompleted:', onboardingCompleted);
+
   if (user && !onboardingCompleted && location.pathname !== '/onboarding') {
+    console.log('RequireOnboarding: Redirecting to /onboarding');
     return <Navigate to="/onboarding" replace />;
   }
+  
+  console.log('RequireOnboarding: Not redirecting');
   return children;
 }
+
 
 /** Συντόμευση: Protected + Onboarding gate μαζί */
 function OnboardingProtected({ children }) {

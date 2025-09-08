@@ -46,11 +46,7 @@ export default function Onboarding() {
           clientProfile: clean(clientProfile),
           propertyPreferences: clean(propertyPreferences),
         };
-      } else { // Owner
-        payload = {
-          tenantRequirements: clean(tenantRequirements)
-        };
-      }
+      } 
 
       const { data } = await api.post('/users/onboarding', payload);
       const updated = data.user || data;
