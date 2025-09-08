@@ -6,11 +6,15 @@ const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
 
- if (!user) return <Navigate to="/" replace />;
-  if (user.onboardingCompleted === false && location.pathname !== '/onboarding') {
+  if (!user) return <Navigate to="/" replace />;
+  if (
+    user.role === 'client' &&
+    user.onboardingCompleted === false &&
+    location.pathname !== '/onboarding'
+  ) {
     return <Navigate to="/onboarding" replace />;
   }
-
+  
   return children; 
 
 };

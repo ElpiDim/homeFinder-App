@@ -6,7 +6,7 @@ const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('JWT decoded:', decoded); // 👈 δες userId/role
-    console.log('DB name:', require('mongoose').connection.name); // 👈 δες σε ποια DB είσαι
+
 
     const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
