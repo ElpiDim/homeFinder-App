@@ -1,5 +1,5 @@
 // src/pages/Onboarding.jsx
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
@@ -16,16 +16,18 @@ export default function Onboarding() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const isClient = user?.role === 'client';
+ const isClient = user?.role === 'client';
+  useEffect(() => {
+    if (user?.role !== 'client') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [clientProfile, setClientProfile] = useState(user?.clientProfile || {
     occupation: '', income: '', familyStatus: 'single', pets: false, smoker: false
   });
   const [propertyPreferences, setPropertyPreferences] = useState(user?.propertyPreferences || {
     location: '', rent: '', sqm: '', bedrooms: '', furnished: false, parking: false
-  });
-  const [tenantRequirements, setTenantRequirements] = useState(user?.tenantRequirements || {
-    occupation: '', income: '', familyStatus: 'single', pets: false, smoker: false
   });
 
   const [saving, setSaving] = useState(false);
@@ -39,14 +41,10 @@ export default function Onboarding() {
     e.preventDefault();
     setSaving(true);
     try {
-      let payload;
-
-      if (isClient) {
-        payload = {
-          clientProfile: clean(clientProfile),
-          propertyPreferences: clean(propertyPreferences),
-        };
-      } 
+            const payload = {
+        clientProfile: clean(clientProfile),
+        propertyPreferences: clean(propertyPreferences),
+      };
 
       const { data } = await api.post('/users/onboarding', payload);
       const updated = data.user || data;
@@ -71,120 +69,81 @@ export default function Onboarding() {
       <Card>
         <Card.Body>
           <Card.Title className="mb-3">
-            {isClient ? 'Welcome! Tell us about you & what you’re looking for' : 'Welcome! Set your tenant requirements'}
+            Welcome! Tell us about you & what you’re looking for
           </Card.Title>
 
           <Form onSubmit={submit}>
-            {isClient ? (
-              <>
-                {/* Client Profile */}
-                <h5 className="mt-2">Your Profile</h5>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Occupation</Form.Label>
-                      <Form.Control name="occupation" value={clientProfile.occupation} onChange={onChange(setClientProfile)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Income (€/month)</Form.Label>
-                      <Form.Control type="number" name="income" value={clientProfile.income} onChange={onChange(setClientProfile)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-                <Row className="g-3 mt-2">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>Family Status</Form.Label>
-                      <Form.Select name="familyStatus" value={clientProfile.familyStatus} onChange={onChange(setClientProfile)}>
-                        <option value="single">Single</option>
-                        <option value="couple">Couple</option>
-                        <option value="family">Family</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Have pets" name="pets" checked={clientProfile.pets} onChange={onChange(setClientProfile)} />
-                  </Col>
-                  <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Smoker" name="smoker" checked={clientProfile.smoker} onChange={onChange(setClientProfile)} />
-                  </Col>
-                </Row>
+               <>
+              {/* Client Profile */}
+              <h5 className="mt-2">Your Profile</h5>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Occupation</Form.Label>
+                    <Form.Control name="occupation" value={clientProfile.occupation} onChange={onChange(setClientProfile)} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Income (€/month)</Form.Label>
+                    <Form.Control type="number" name="income" value={clientProfile.income} onChange={onChange(setClientProfile)} />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row className="g-3 mt-2">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Family Status</Form.Label>
+                    <Form.Select name="familyStatus" value={clientProfile.familyStatus} onChange={onChange(setClientProfile)}>
+                      <option value="single">Single</option>
+                      <option value="couple">Couple</option>
+                      <option value="family">Family</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={4} className="d-flex align-items-end">
+                  <Form.Check label="Have pets" name="pets" checked={clientProfile.pets} onChange={onChange(setClientProfile)} />
+                </Col>
+                <Col md={4} className="d-flex align-items-end">
+                  <Form.Check label="Smoker" name="smoker" checked={clientProfile.smoker} onChange={onChange(setClientProfile)} />
+                </Col>
+              </Row>
 
                 {/* Property Preferences */}
-                <h5 className="mt-4">Your Property Preferences</h5>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Location</Form.Label>
-                      <Form.Control name="location" value={propertyPreferences.location} onChange={onChange(setPropertyPreferences)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Max Rent (€/month)</Form.Label>
-                      <Form.Control type="number" name="rent" value={propertyPreferences.rent} onChange={onChange(setPropertyPreferences)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-                <Row className="g-3 mt-2">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>Min Square Meters (sqm)</Form.Label>
-                      <Form.Control type="number" name="sqm" value={propertyPreferences.sqm} onChange={onChange(setPropertyPreferences)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>Min Bedrooms</Form.Label>
-                      <Form.Control type="number" name="bedrooms" value={propertyPreferences.bedrooms} onChange={onChange(setPropertyPreferences)} />
-                    </Form.Group>
-                  </Col>
-                   <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Furnished" name="furnished" checked={propertyPreferences.furnished} onChange={onChange(setPropertyPreferences)} />
-                  </Col>
-                </Row>
-              </>
-            ) : (
-              // OWNER: Requirements only
-              <>
-                <h5 className="mt-2">Tenant Requirements</h5>
-                 <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Minimum Occupation</Form.Label>
-                      <Form.Control name="occupation" value={tenantRequirements.occupation} onChange={onChange(setTenantRequirements)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Minimum Income (€/month)</Form.Label>
-                      <Form.Control type="number" name="income" value={tenantRequirements.income} onChange={onChange(setTenantRequirements)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-                <Row className="g-3 mt-2">
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>Family Status</Form.Label>
-                      <Form.Select name="familyStatus" value={tenantRequirements.familyStatus} onChange={onChange(setTenantRequirements)}>
-                        <option value="any">Any</option>
-                        <option value="single">Single</option>
-                        <option value="couple">Couple</option>
-                        <option value="family">Family</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Pets Allowed" name="pets" checked={tenantRequirements.pets} onChange={onChange(setTenantRequirements)} />
-                  </Col>
-                  <Col md={4} className="d-flex align-items-end">
-                    <Form.Check label="Smokers Allowed" name="smoker" checked={tenantRequirements.smoker} onChange={onChange(setTenantRequirements)} />
-                  </Col>
-                </Row>
-              </>
-            )}
+              <h5 className="mt-4">Your Property Preferences</h5>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Location</Form.Label>
+                    <Form.Control name="location" value={propertyPreferences.location} onChange={onChange(setPropertyPreferences)} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Max Rent (€/month)</Form.Label>
+                    <Form.Control type="number" name="rent" value={propertyPreferences.rent} onChange={onChange(setPropertyPreferences)} />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row className="g-3 mt-2">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Min Square Meters (sqm)</Form.Label>
+                    <Form.Control type="number" name="sqm" value={propertyPreferences.sqm} onChange={onChange(setPropertyPreferences)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Min Bedrooms</Form.Label>
+                    <Form.Control type="number" name="bedrooms" value={propertyPreferences.bedrooms} onChange={onChange(setPropertyPreferences)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4} className="d-flex align-items-end">
+                  <Form.Check label="Furnished" name="furnished" checked={propertyPreferences.furnished} onChange={onChange(setPropertyPreferences)} />
+                </Col>
+              </Row>
+            </>
+               
 
             <div className="mt-4 d-flex justify-content-end">
               <Button type="submit" disabled={saving}>

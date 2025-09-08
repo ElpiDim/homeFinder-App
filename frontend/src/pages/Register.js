@@ -38,11 +38,12 @@ function Register() {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-     if (user.role === 'owner') {
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } else {
+      if (user.role === 'client') {
         setTimeout(() => navigate('/onboarding'), 1500);
+      } else {
+        setTimeout(() => navigate('/dashboard'), 1500);
       }
+      
     } catch (err) {
       setMessage(err.response?.data?.message || 'Error while registering');
     }
