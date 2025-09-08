@@ -165,13 +165,45 @@ exports.getAllProperties = async (req, res) => {
     } = req.query;
 
     const match = {};
+    const andConditions = [];
 
-    if (type) match.type = type; // rent|sale
+    // If the user is a client, apply filters based on their profile.
+    if (req.user?.role === "client") {
+      const client = await User.findById(req.user.userId);
+      if (client) {
+        // 1. Filter by the client's preferred rent.
+        if (client.propertyPreferences?.rent) {
+          match.price = { $lte: client.propertyPreferences.rent };
+        }
+
+        // 2. Filter by the owner's income requirements.
+        const clientIncome = client.clientProfile?.income;
+        if (clientIncome) {
+          // Show properties that either have no income requirement or where the client's income is sufficient.
+          andConditions.push({
+            $or: [
+              { "tenantRequirements.income": { $exists: false } },
+              { "tenantRequirements.income": null },
+              { "tenantRequirements.income": { $lte: clientIncome } },
+            ],
+          });
+        } else {
+          // If the client has not specified their income, they can only see properties without an income requirement.
+          andConditions.push({
+            $or: [
+              { "tenantRequirements.income": { $exists: false } },
+              { "tenantRequirements.income": null },
+            ],
+          });
+        }
+      }
+    }
+
+    if (type) match.type = type;
     if (status) match.status = status;
     if (ownerId) match.ownerId = ownerId;
     if (location) match.location = { $regex: location, $options: "i" };
 
-    // features (array)
     if (features) {
       const arr = Array.isArray(features) ? features : `${features}`.split(",");
       match.features = { $all: arr.filter(Boolean) };
@@ -180,34 +212,33 @@ exports.getAllProperties = async (req, res) => {
     if (bedrooms) match.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) match.bathrooms = { $gte: Number(bathrooms) };
 
-    // booleans
     if (hasElevator !== undefined)
-      match.hasElevator =
-        hasElevator === "true" || hasElevator === true ? true : false;
+      match.hasElevator = hasElevator === "true" || hasElevator === true;
     if (furnished !== undefined)
-      match.furnished = furnished === "true" || furnished === true ? true : false;
+      match.furnished = furnished === "true" || furnished === true;
     if (petsAllowed !== undefined)
-      match.petsAllowed =
-        petsAllowed === "true" || petsAllowed === true ? true : false;
-    if (parking !== undefined)
-      match.parking = parking === "true" || parking === true ? true : false;
+      match.petsAllowed = petsAllowed === "true" || petsAllowed === true;
+    if (parking !== undefined) match.parking = parking === "true" || parking === true;
 
-    // text search
     if (search) {
-      match.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { address: { $regex: search, $options: "i" } },
-        { location: { $regex: search, $options: "i" } },
-      ];
+      andConditions.push({
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
+          { address: { $regex: search, $options: "i" } },
+          { location: { $regex: search, $options: "i" } },
+        ],
+      });
     }
 
-    // price & square meters use $expr (fields may be strings in DB)
+    if (andConditions.length) {
+      match.$and = (match.$and || []).concat(andConditions);
+    }
+
     const expr = [];
     if (minPrice) expr.push({ $gte: [{ $toDouble: "$price" }, Number(minPrice)] });
     if (maxPrice) expr.push({ $lte: [{ $toDouble: "$price" }, Number(maxPrice)] });
 
-    // sqm filter via $expr to tolerate stringy data
     if (minSquareMeters)
       expr.push({
         $gte: [{ $toDouble: "$squareMeters" }, Number(minSquareMeters)],
@@ -220,12 +251,9 @@ exports.getAllProperties = async (req, res) => {
     const pipeline = [{ $match: match }];
     if (expr.length) pipeline.push({ $match: { $expr: { $and: expr } } });
 
-    // sorting
-    const sortStage = {};
-    sortStage[sortBy] = sortOrder === "asc" ? 1 : -1;
+    const sortStage = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
     pipeline.push({ $sort: sortStage });
 
-    // pagination
     pipeline.push(
       { $skip: (Number(page) - 1) * Number(limit) },
       { $limit: Number(limit) }
