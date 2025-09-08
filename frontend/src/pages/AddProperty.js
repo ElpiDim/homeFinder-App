@@ -3,10 +3,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { tenantFields } from '../config/criteria';
 
 export default function AddProperty() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const initReqs = () =>
+    tenantFields.reduce(
+      (acc, f) => ({ ...acc, [f.key]: f.type === 'checkbox' ? false : '' }),
+      {}
+    );
 
   const [form, setForm] = useState({
     title: '',
@@ -19,13 +26,7 @@ export default function AddProperty() {
     bathrooms: '',
     furnished: false,
     parking: false,
-    tenantRequirements: {
-      occupation: '',
-      income: '',
-      familyStatus: 'any',
-      pets: true,
-      smoker: true,
-    },
+    tenantRequirements: initReqs(),
   });
   const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -119,37 +120,58 @@ export default function AddProperty() {
         {/* Tenant Requirements */}
         <h5 className="mt-3">Tenant Requirements</h5>
         <div className="row g-3">
-          <div className="col-sm-6">
-            <label className="form-label">Minimum Occupation</label>
-            <input className="form-control" name="occupation" value={form.tenantRequirements.occupation} onChange={onReqsChange} />
-          </div>
-          <div className="col-sm-6">
-            <label className="form-label">Minimum Income (€/month)</label>
-            <input type="number" className="form-control" name="income" value={form.tenantRequirements.income} onChange={onReqsChange} />
-          </div>
-        </div>
-        <div className="row g-3 mt-2">
-          <div className="col-sm-4">
-            <label className="form-label">Family Status</label>
-            <select className="form-control" name="familyStatus" value={form.tenantRequirements.familyStatus} onChange={onReqsChange}>
-              <option value="any">Any</option>
-              <option value="single">Single</option>
-              <option value="couple">Couple</option>
-              <option value="family">Family</option>
-            </select>
-          </div>
-          <div className="col-sm-4 d-flex align-items-end">
-            <div className="form-check">
-              <input className="form-check-input" type="checkbox" id="pets" name="pets" checked={form.tenantRequirements.pets} onChange={onReqsChange} />
-              <label className="form-check-label" htmlFor="pets">Pets Allowed</label>
+          {tenantFields.map((f) => (
+            <div
+              key={f.key}
+              className={
+                f.type === 'checkbox'
+                  ? 'col-sm-4 d-flex align-items-end'
+                  : 'col-sm-6'
+              }
+            >
+              {f.type === 'checkbox' ? (
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    name={f.key}
+                    checked={form.tenantRequirements[f.key]}
+                    onChange={onReqsChange}
+                  />
+                  <label className="form-check-label" htmlFor={f.key}>
+                    {f.label}
+                  </label>
+                </div>
+              ) : f.type === 'select' ? (
+                <>
+                  <label className="form-label">{f.label}</label>
+                  <select
+                    className="form-control"
+                    name={f.key}
+                    value={form.tenantRequirements[f.key]}
+                    onChange={onReqsChange}
+                  >
+                    {f.options.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt || 'Any'}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <>
+                  <label className="form-label">{f.label}</label>
+                  <input
+                    type={f.type}
+                    className="form-control"
+                    name={f.key}
+                    value={form.tenantRequirements[f.key]}
+                    onChange={onReqsChange}
+                  />
+                </>
+              )}
             </div>
-          </div>
-          <div className="col-sm-4 d-flex align-items-end">
-            <div className="form-check">
-              <input className="form-check-input" type="checkbox" id="smoker" name="smoker" checked={form.tenantRequirements.smoker} onChange={onReqsChange} />
-              <label className="form-check-label" htmlFor="smoker">Smokers Allowed</label>
-            </div>
-          </div>
+          ))}
         </div>
 
         <div className="mb-3 mt-3">

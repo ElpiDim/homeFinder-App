@@ -1,30 +1,31 @@
 const User = require('../models/user');
 const Property = require('../models/property');
 
-const MIN_MATCH_COUNT = 2; // Configurable minimum number of matching fields
+const DEFAULT_MIN_MATCH_COUNT = 2; // Fallback minimum number of matching fields
 
 // Helper function to calculate match score
 const calculateMatchScore = (criteria, data) => {
   let score = 0;
   for (const key in criteria) {
-    if (criteria.hasOwnProperty(key) && data.hasOwnProperty(key)) {
-      if (criteria[key] !== undefined && data[key] !== undefined) {
-        // Simple equality check for now. Can be extended for ranges, etc.
-        if (typeof criteria[key] === 'boolean') {
-          if (criteria[key] === data[key]) {
-            score++;
-          }
-        } else if (key === 'rent' || key === 'income' || key === 'sqm') {
-          // For numeric range fields, check if data is within criteria range
-          // Assuming criteria stores max values and data stores actual values
-          if (data[key] <= criteria[key]) {
-            score++;
-          }
-        }
-        else if (String(criteria[key]).toLowerCase() === String(data[key]).toLowerCase()) {
-          score++;
-        }
-      }
+    if (!Object.prototype.hasOwnProperty.call(criteria, key)) continue;
+    if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+
+    const cVal = criteria[key];
+    const dVal = data[key];
+    if (cVal === undefined || dVal === undefined) continue;
+
+    if (typeof cVal === 'boolean') {
+      if (cVal === dVal) score++;
+    } else if (
+      ['income', 'sqm', 'bedrooms', 'bathrooms', 'floor', 'yearBuilt'].includes(key)
+    ) {
+      // Numeric fields that represent minimum acceptable values
+      if (Number(dVal) >= Number(cVal)) score++;
+    } else if (['rent'].includes(key)) {
+      // Numeric fields that represent maximum acceptable values
+      if (Number(dVal) <= Number(cVal)) score++;
+    } else if (String(cVal).toLowerCase() === String(dVal).toLowerCase()) {
+      score++;
     }
   }
   return score;
@@ -39,7 +40,10 @@ exports.findMatchingProperties = async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    const { clientProfile, propertyPreferences } = user;
+    const { clientProfile, propertyPreferences, matchThreshold } = user;
+    const minMatch =
+      parseInt(req.query.minMatch, 10) || matchThreshold || DEFAULT_MIN_MATCH_COUNT;
+
     const allProperties = await Property.find({ status: 'available' }).populate('ownerId');
 
     const matchedProperties = [];
@@ -62,12 +66,18 @@ exports.findMatchingProperties = async (req, res) => {
         smokingAllowed: property.smokingAllowed
       };
 
-      const propertyMatchScore = calculateMatchScore(propertyPreferences, propertyData);
+      const propertyMatchScore = calculateMatchScore(
+        propertyPreferences || {},
+        propertyData
+      );
 
       // 2. Match tenant's profile with property's requirements
-      const tenantMatchScore = calculateMatchScore(property.tenantRequirements, clientProfile);
+      const tenantMatchScore = calculateMatchScore(
+        property.tenantRequirements || {},
+        clientProfile || {}
+      );
 
-      if (propertyMatchScore >= MIN_MATCH_COUNT && tenantMatchScore >= MIN_MATCH_COUNT) {
+      if (propertyMatchScore >= minMatch && tenantMatchScore >= minMatch) {
         matchedProperties.push({
           property,
           propertyMatchScore,
