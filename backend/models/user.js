@@ -2,6 +2,22 @@ const mongoose = require("mongoose");
 
 // --- Subschemas ---
 
+// κοινά πεδία για requirements & preferences ώστε να ταιριάζουν
+const requirementFields = {
+  incomeMin: { type: Number, min: 0 },
+  incomeMax: { type: Number, min: 0 },
+  allowedOccupations: [{ type: String, trim: true }],
+  familyStatus: {
+    type: String,
+    enum: ["single", "couple", "family", "any"],
+    default: "any",
+  },
+  petsAllowed: { type: Boolean, default: true },
+  smokingAllowed: { type: Boolean, default: true },
+  workLocation: { type: String, trim: true },
+  preferredTenantRegion: { type: String, trim: true },
+};
+
 const preferencesSchema = new mongoose.Schema(
   {
     // Πρώτη βασική επιλογή: Ενοικίαση ή Αγορά
@@ -19,8 +35,6 @@ const preferencesSchema = new mongoose.Schema(
     floorMax: { type: Number },
 
     furnished: { type: Boolean, default: false },
-    petsAllowed: { type: Boolean, default: false },
-    smokingAllowed: { type: Boolean, default: false },
     elevator: { type: Boolean, default: false },
     parking: { type: Boolean, default: false },
 
@@ -34,27 +48,12 @@ const preferencesSchema = new mongoose.Schema(
     rentMax: { type: Number, min: 0 },
     saleMin: { type: Number, min: 0 },
     saleMax: { type: Number, min: 0 },
+    ...requirementFields,
   },
   { _id: false }
 );
 
-const requirementsSchema = new mongoose.Schema(
-  {
-    incomeMin: { type: Number, min: 0 },
-    incomeMax: { type: Number, min: 0 },
-    allowedOccupations: [{ type: String, trim: true }],
-    familyStatus: {
-      type: String,
-      enum: ["single", "couple", "family", "any"],
-      default: "any",
-    },
-    petsAllowed: { type: Boolean, default: true },
-    smokingAllowed: { type: Boolean, default: true },
-    workLocation: { type: String, trim: true },
-    preferredTenantRegion: { type: String, trim: true },
-  },
-  { _id: false }
-);
+const requirementsSchema = new mongoose.Schema(requirementFields, { _id: false });
 
 // --- Main schema ---
 

@@ -30,190 +30,6 @@ const extractImagesFromReq = (req) => {
   }
   return { images: [], floorPlanImage: undefined };
 };
-// Build aggregation stages to filter properties for a client
-const buildClientFilterStages = (user) => {
-  const salary = user.salary ?? 0;
-  const occupation = user.occupation || null;
-  const hasFamily = !!user.hasFamily;
-  const hasPets = !!user.hasPets;
-  const smoker = !!user.smoker;
-  const household = user.householdSize ?? 0;
-  const age = user.age ?? null;
-  const familyStatus = hasFamily
-    ? "family"
-    : household > 1
-    ? "couple"
-    : "single";
-
-  return [
-    {
-      $lookup: {
-        from: "users",
-        localField: "ownerId",
-        foreignField: "_id",
-        as: "ownerDoc",
-      },
-    },
-    { $unwind: "$ownerDoc" },
-    {
-      $match: {
-        $expr: {
-          $and: [
-            {
-              $or: [
-                { $eq: ["$tenantRequirements.minTenantSalary", null] },
-                { $lte: ["$tenantRequirements.minTenantSalary", salary] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$tenantRequirements.maxOccupants", null] },
-                { $gte: ["$tenantRequirements.maxOccupants", household] },
-              ],
-            },
-            {
-              $or: [
-                {
-                  $eq: [
-                    {
-                      $size: {
-                        $ifNull: ["$tenantRequirements.allowedOccupations", []],
-                      },
-                    },
-                    0,
-                  ],
-                },
-                {
-                  $in: [
-                    occupation,
-                    { $ifNull: ["$tenantRequirements.allowedOccupations", []] },
-                  ],
-                },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.requiresFamily", true] },
-                { $eq: [hasFamily, true] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.allowsPets", false] },
-                { $eq: [hasPets, false] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$tenantRequirements.allowsSmokers", false] },
-                { $eq: [smoker, false] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.incomeMin", null] },
-                { $lte: ["$ownerDoc.requirements.incomeMin", salary] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.incomeMax", null] },
-                { $gte: ["$ownerDoc.requirements.incomeMax", salary] },
-              ],
-            },
-            {
-              $or: [
-                {
-                  $eq: [
-                    {
-                      $size: {
-                        $ifNull: ["$ownerDoc.requirements.allowedOccupations", []],
-                      },
-                    },
-                    0,
-                  ],
-                },
-                {
-                  $in: [
-                    occupation,
-                    { $ifNull: ["$ownerDoc.requirements.allowedOccupations", []] },
-                  ],
-                },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$ownerDoc.requirements.petsAllowed", false] },
-                { $eq: [hasPets, false] },
-              ],
-            },
-            {
-              $or: [
-                { $ne: ["$ownerDoc.requirements.smokingAllowed", false] },
-                { $eq: [smoker, false] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.familyStatus", null] },
-                { $eq: ["$ownerDoc.requirements.familyStatus", "any"] },
-                { $eq: ["$ownerDoc.requirements.familyStatus", familyStatus] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.ageMin", null] },
-                { $lte: ["$ownerDoc.requirements.ageMin", age] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.ageMax", null] },
-                { $gte: ["$ownerDoc.requirements.ageMax", age] },
-              ],
-            },
-            {
-              $or: [
-                { $eq: ["$ownerDoc.requirements.maxHouseholdSize", null] },
-                { $gte: ["$ownerDoc.requirements.maxHouseholdSize", household] },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  ];
-};
-
-const clientMatchesRequirements = (user, property) => {
-  const tr = property.tenantRequirements || {};
-  const or = property.ownerId?.requirements || {};
-  const familyStatus = user.hasFamily
-    ? "family"
-    : user.householdSize > 1
-    ? "couple"
-    : "single";
-  if (tr.minTenantSalary != null && user.salary < tr.minTenantSalary) return false;
-  if (tr.allowedOccupations?.length && !tr.allowedOccupations.includes(user.occupation))
-    return false;
-  if (tr.requiresFamily && !user.hasFamily) return false;
-  if (tr.allowsPets === false && user.hasPets) return false;
-  if (tr.allowsSmokers === false && user.smoker) return false;
-  if (tr.maxOccupants != null && user.householdSize > tr.maxOccupants) return false;
-  if (or.incomeMin != null && user.salary < or.incomeMin) return false;
-  if (or.incomeMax != null && user.salary > or.incomeMax) return false;
-  if (or.allowedOccupations?.length && !or.allowedOccupations.includes(user.occupation))
-    return false;
-  if (or.petsAllowed === false && user.hasPets) return false;
-  if (or.smokingAllowed === false && user.smoker) return false;
-  if (or.familyStatus && or.familyStatus !== "any" && or.familyStatus !== familyStatus)
-    return false;
-  if (or.ageMin != null && user.age < or.ageMin) return false;
-  if (or.ageMax != null && user.age > or.ageMax) return false;
-  if (or.maxHouseholdSize != null && user.householdSize > or.maxHouseholdSize)
-    return false;
-  return true;
-};
 
 /* --------------------------- CREATE PROPERTY --------------------------- */
 exports.createProperty = async (req, res) => {
@@ -227,75 +43,39 @@ exports.createProperty = async (req, res) => {
     const { images, floorPlanImage } = extractImagesFromReq(req);
 
     const b = req.body;
-    const tenantReq = b.tenantRequirements||{};
-
+    
+    let requirements = [];
+    if (b.requirements) {
+      try {
+        requirements = JSON.parse(b.requirements);
+      } catch (e) {
+        console.error("Error parsing requirements JSON:", e);
+        return res
+          .status(400)
+          .json({ message: "Invalid requirements format. Expected a JSON string." });
+      }
+    }
     const newProperty = new Property({
-      /* required/basics */
+    
       ownerId,
       title: b.title,
-      location: b.location,
-      price: toNum(b.price, parseFloat),
-      type: b.type, // 'rent' | 'sale'
-
-      /* optional core */
       description: b.description,
+      location: b.location,
       address: b.address,
-      floor: toNum(b.floor, parseInt),
-      squareMeters: toNum(b.squareMeters, parseInt),
-      surface: toNum(b.surface, parseInt),
-      onTopFloor:
-        b.onTopFloor === true ||
-        b.onTopFloor === "true" ||
-        b.onTopFloor === "yes" ||
-        b.onTopFloor === "1",
-      levels: toNum(b.levels, parseInt),
-      bedrooms: toNum(b.bedrooms, parseInt),
-      bathrooms: toNum(b.bathrooms, parseInt),
-      wc: toNum(b.wc, parseInt),
-      kitchens: toNum(b.kitchens, parseInt),
-      livingRooms: toNum(b.livingRooms, parseInt),
+      price: toNum(b.price, parseFloat),
 
-      /* extended attributes (αν υπάρχουν στο schema σου θα αποθηκευτούν) */
+      type: b.type,
+      status: b.status,
+      images,
+      floorPlanImage,
+
+      squareMeters: toNum(b.squareMeters, parseInt),
+      
       plotSize: toNum(b.plotSize, parseFloat),
       yearBuilt: toNum(b.yearBuilt, parseInt),
-      condition: b.condition, // e.g. 'new', 'excellent', ...
-      hasElevator: b.hasElevator === "true" || b.hasElevator === true,
-      hasStorage: b.hasStorage === "true" || b.hasStorage === true,
-      furnished: b.furnished === "true" || b.furnished === true,
-      heating: b.heating, // e.g. 'natural_gas', 'heat_pump', ...
-      energyClass: b.energyClass, // A+..G
-      orientation: b.orientation, // N/E/S/W/SE,...
-      petsAllowed: b.petsAllowed === "true" || b.petsAllowed === true,
-      smokingAllowed: b.smokingAllowed === "true" || b.smokingAllowed === true,
-      parkingSpaces: toNum(b.parkingSpaces, parseInt),
-      monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
-      view: b.view, // 'sea','park',...
-      insulation: b.insulation === "true" || b.insulation === true,
-      ownerNotes: b.ownerNotes,
+      
 
-       tenantRequirements: {
-        minTenantSalary: toNum(tenantReq.minTenantSalary, parseFloat),
-        allowedOccupations: Array.isArray(tenantReq.allowedOccupations)
-          ? tenantReq.allowedOccupations
-          : tenantReq.allowedOccupations
-          ? [tenantReq.allowedOccupations]
-          : [],
-        requiresFamily:
-          tenantReq.requiresFamily === true ||
-          tenantReq.requiresFamily === "true" ||
-          tenantReq.requiresFamily === "1",
-        allowsSmokers:
-          tenantReq.allowsSmokers === true ||
-          tenantReq.allowsSmokers === "true" ||
-          tenantReq.allowsSmokers === "1",
-        allowsPets:
-          tenantReq.allowsPets === true ||
-          tenantReq.allowsPets === "true" ||
-          tenantReq.allowsPets === "1",
-        maxOccupants: toNum(tenantReq.maxOccupants, parseInt),
-      },
-
-      /* arrays */
+     requirements, 
       features: Array.isArray(b["features[]"])
         ? b["features[]"]
         : Array.isArray(b.features)
@@ -304,13 +84,9 @@ exports.createProperty = async (req, res) => {
         ? [b.features]
         : [],
 
-      /* geo */
-      latitude: toNum(b.latitude, Number),
-      longitude: toNum(b.longitude, Number),
+        ownerNotes: b.ownerNotes,
 
-      /* media */
-      images,
-      ...(floorPlanImage ? { floorPlanImage } : {}),
+
     });
 
     await newProperty.save();
@@ -325,20 +101,15 @@ exports.createProperty = async (req, res) => {
 exports.getAllProperties = async (req, res) => {
   try {
     const {
-      q,                    // text in title/location
-      type,                 // rent|sale
-      minPrice, maxPrice,
-      minSqm, maxSqm,
-      minBedrooms, maxBedrooms,
-      minBathrooms, maxBathrooms,
-      bedrooms, bathrooms,
-      yearFrom, yearTo,
-      furnished, petsAllowed, hasElevator, hasStorage,
-      energyClass, heating, orientation, view,
-      sort = "relevance",   // relevance | newest | price_asc | price_desc | likes
-      lat, lng,
+       q, // text in title/location
+      type, // rent|sale
+      minPrice,
+      maxPrice,
+      sort = "relevance", // relevance | newest | price_asc | price_desc | likes
       page = 1,
       limit = 24,
+       filters, // JSON string of filters
+      minMatchCount, // number of filters that must match
     } = req.query;
 
     const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
@@ -347,7 +118,7 @@ exports.getAllProperties = async (req, res) => {
 
     const match = {};
 
-    // free text
+    // free text search 
     if (hasValue(q)) {
       const rx = new RegExp(`${q}`.trim(), "i");
       match.$or = [{ title: rx }, { location: rx }, { address: rx }];
@@ -361,114 +132,59 @@ exports.getAllProperties = async (req, res) => {
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
+ const pipeline = [{ $match: match }];
 
-// bedrooms/bathrooms range or exact
-      const numRange = (field, minV, maxV) => {
-        if (!hasValue(minV) && !hasValue(maxV)) return null;
-        const r = {};
-        if (hasValue(minV)) r.$gte = parseInt(minV);
-        if (hasValue(maxV)) r.$lte = parseInt(maxV);
-        return { [field]: r };
-      };
-
-      if (hasValue(bedrooms)) match.bedrooms = parseInt(bedrooms);
-      if (hasValue(bathrooms)) match.bathrooms = parseInt(bathrooms);
-
-      Object.assign(
-        match,
-        numRange("bedrooms", minBedrooms, maxBedrooms) || {},
-        numRange("bathrooms", minBathrooms, maxBathrooms) || {}
-      );
-    // year built
-    if (hasValue(yearFrom) || hasValue(yearTo)) {
-      match.yearBuilt = {};
-      if (hasValue(yearFrom)) match.yearBuilt.$gte = parseInt(yearFrom);
-      if (hasValue(yearTo)) match.yearBuilt.$lte = parseInt(yearTo);
-    }
-
-    // simple flags
-    const boolEq = (key, val) =>
-      hasValue(val)
-        ? { [key]: val === "true" || val === true || val === "1" }
-        : null;
-
-    Object.assign(
-      match,
-      boolEq("furnished", furnished) || {},
-      boolEq("petsAllowed", petsAllowed) || {},
-      boolEq("hasElevator", hasElevator) || {},
-      boolEq("hasStorage", hasStorage) || {}
-    );
-
-    // enums/text equals
-    if (hasValue(energyClass)) match.energyClass = energyClass;
-    if (hasValue(heating)) match.heating = heating;
-    if (hasValue(orientation)) match.orientation = orientation;
-    if (hasValue(view)) match.view = view;
-
-    // sqm filter via $expr to tolerate stringy data
-    let sqmMatchStage = null;
-    if (hasValue(minSqm) || hasValue(maxSqm)) {
-      const min = hasValue(minSqm) ? parseInt(minSqm) : undefined;
-      const max = hasValue(maxSqm) ? parseInt(maxSqm) : undefined;
-      const sqrExpr = [];
-      const surfExpr = [];
-      if (min !== undefined) {
-        sqrExpr.push({
-          $gte: [{ $toDouble: "$squareMeters" }, min],
-        });
-        surfExpr.push({
-          $gte: [{ $toDouble: "$surface" }, min],
-        });
+    // Requirements matching logic
+    if (filters) {
+      let parsedFilters = [];
+      try {
+        parsedFilters = JSON.parse(filters);
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid filters format." });
       }
-      if (max !== undefined) {
-        sqrExpr.push({
-          $lte: [{ $toDouble: "$squareMeters" }, max],
-        });
-        surfExpr.push({
-          $lte: [{ $toDouble: "$surface" }, max],
-        });
-      }
-      sqmMatchStage = {
-        $match: {
-          $or: [{ $expr: { $and: sqrExpr } }, { $expr: { $and: surfExpr } }],
-        },
-      };
-    }
 
-    // coords
-    const hasCoords = hasValue(lat) && hasValue(lng);
-    const userLat = hasCoords ? Number(lat) : null;
-    const userLng = hasCoords ? Number(lng) : null;
-    const distanceExpr = hasCoords
-      ? {
-          $multiply: [
-            111.32,
-            {
-              $sqrt: {
-                $add: [
-                  { $pow: [{ $subtract: [{ $toDouble: "$latitude" }, userLat] }, 2] },
-                  {
-                    $pow: [
-                      {
-                        $multiply: [
-                          { $cos: [{ $degreesToRadians: userLat }] },
-                          { $subtract: [{ $toDouble: "$longitude" }, userLng] },
+      if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
+        const minMatches = parseInt(minMatchCount) || 1;
+
+        pipeline.push(
+          {
+            $addFields: {
+              matchCount: {
+                $size: {
+                  $filter: {
+                    input: "$requirements",
+                    as: "req",
+                    cond: {
+                      $anyElementTrue: {
+                        $map: {
+                          input: parsedFilters,
+                          as: "filter",
+                          in: {
+                            $and: [
+                              { $eq: ["$$req.name", "$$filter.name"] },
+                              // Add more complex comparison logic here if needed
+                              { $eq: ["$$req.value", "$$filter.value"] },
+
                         ],
+                        },
                       },
-                      2,
-                    ],
+                    },
                   },
-                ],
+                },
               },
             },
-          ],
-        }
-      : null;
+          }, 
+          
+            $match: {
+              matchCount: { $gte: minMatches },
+            },
+          }
+        );
+      }
+    }
 
-    const pipeline = [
-      ...(sqmMatchStage ? [sqmMatchStage] : []),
-      { $match: match },
+    // Add other stages like lookups, sorting, etc.
+    pipeline.push(
       {
         $lookup: {
           from: "favorites",
@@ -477,14 +193,10 @@ exports.getAllProperties = async (req, res) => {
           as: "favDocs",
         },
       },
-      { $addFields: { favoritesCount: { $size: "$favDocs" } } },
-      ...(hasCoords ? [{ $addFields: { distanceKm: distanceExpr } }] : []),
-    ];
-       if (req.user?.role === "client" && req.currentUser) {
-      pipeline.push(...buildClientFilterStages(req.currentUser));
-    }
+    { $addFields: { favoritesCount: { $size: "$favDocs" } } }
+    );
 
-    // sorting
+    // Sorting
     if (sort === "newest") {
       pipeline.push({ $sort: { createdAt: -1 } });
     } else if (sort === "price_asc") {
@@ -494,17 +206,12 @@ exports.getAllProperties = async (req, res) => {
     } else if (sort === "likes") {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     } else {
-      pipeline.push({
-        $sort: hasCoords
-          ? { distanceKm: 1, favoritesCount: -1, createdAt: -1 }
-          : { favoritesCount: -1, createdAt: -1 },
-      });
+      pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     }
 
     // pagination
     pipeline.push({ $skip: skip }, { $limit: numericLimit });
-  const projectFields = { favDocs: 0 };
-
+  pipeline.push({ $project: { favDocs: 0 } });
   const properties = await Property.aggregate(pipeline);
 
   res.json(properties);
@@ -560,11 +267,7 @@ exports.getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId).populate("ownerId");
     if (!property) return res.status(404).json({ message: "Property not found" });
-        if (req.user?.role === "client" && req.currentUser) {
-      if (!clientMatchesRequirements(req.currentUser, property)) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-    }
+        
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
@@ -584,69 +287,33 @@ exports.updateProperty = async (req, res) => {
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // strings
+  //updated fields 
     property.title = b.title ?? property.title;
+    property.description = b.description ?? property.description;
     property.location = b.location ?? property.location;
+     property.address = b.address ?? property.address;
+    property.price = setIfProvided(property.price, b.price, parseFloat);
     property.type = b.type ?? property.type;
     property.status = b.status ?? property.status;
-    property.description = b.description ?? property.description;
-    property.address = b.address ?? property.address;
-    property.condition = b.condition ?? property.condition;
-    property.heating = b.heating ?? property.heating;
-    property.energyClass = b.energyClass ?? property.energyClass;
-    property.orientation = b.orientation ?? property.orientation;
-    property.view = b.view ?? property.view;
-    property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
-
-    // numbers
-    property.price = setIfProvided(property.price, b.price, parseFloat);
-    property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
-    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) => parseInt(v));
-    property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));
-    property.levels = setIfProvided(property.levels, b.levels, (v) => parseInt(v));
-    property.bedrooms = setIfProvided(property.bedrooms, b.bedrooms, (v) => parseInt(v));
-    property.bathrooms = setIfProvided(property.bathrooms, b.bathrooms, (v) => parseInt(v));
-    property.wc = setIfProvided(property.wc, b.wc, (v) => parseInt(v));
-    property.kitchens = setIfProvided(property.kitchens, b.kitchens, (v) => parseInt(v));
-    property.livingRooms = setIfProvided(property.livingRooms, b.livingRooms, (v) => parseInt(v));
-    property.parkingSpaces = setIfProvided(property.parkingSpaces, b.parkingSpaces, (v) => parseInt(v));
-    property.monthlyMaintenanceFee = setIfProvided(
-      property.monthlyMaintenanceFee,
-      b.monthlyMaintenanceFee,
-      (v) => parseFloat(v)
+    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) =>
+      parseInt(v)
     );
     property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
-    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) => parseInt(v));
-
-    // geo
-    property.latitude = setIfProvided(property.latitude, b.latitude, Number);
-    property.longitude = setIfProvided(property.longitude, b.longitude, Number);
-
-    // booleans
-    if (b.onTopFloor !== undefined) {
-      property.onTopFloor =
-        b.onTopFloor === true ||
-        b.onTopFloor === "true" ||
-        b.onTopFloor === "yes" ||
-        b.onTopFloor === "1";
-    }
-    if (b.hasElevator !== undefined) {
-      property.hasElevator = b.hasElevator === "true" || b.hasElevator === true;
-    }
-    if (b.hasStorage !== undefined) {
-      property.hasStorage = b.hasStorage === "true" || b.hasStorage === true;
-    }
-    if (b.furnished !== undefined) {
-      property.furnished = b.furnished === "true" || b.furnished === true;
-    }
-    if (b.petsAllowed !== undefined) {
-      property.petsAllowed = b.petsAllowed === "true" || b.petsAllowed === true;
-    }
-    if (b.smokingAllowed !== undefined) {
-      property.smokingAllowed = b.smokingAllowed === "true" || b.smokingAllowed === true;
-    }
-    if (b.insulation !== undefined) {
-      property.insulation = b.insulation === "true" || b.insulation === true;
+ property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) =>
+      parseInt(v)
+    );
+    property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
+    
+     // Update requirements
+    if (b.requirements) {
+      try {
+        property.requirements = JSON.parse(b.requirements);
+      } catch (e) {
+        console.error("Error parsing requirements JSON:", e);
+        return res
+          .status(400)
+          .json({ message: "Invalid requirements format. Expected a JSON string." });
+      }
     }
 
     // features

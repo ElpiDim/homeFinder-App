@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import RequirementsForm from '../components/RequirementsForm';
+
 
 export default function AddProperty() {
   const { user } = useAuth();
@@ -17,16 +19,10 @@ export default function AddProperty() {
     type: 'rent',
     status: 'available',
     squareMeters: '',
-    bedrooms: '',
-    bathrooms: '',
-    // tenant requirements
-    minTenantSalary: '',
-    allowedOccupations: '',
-    requiresFamily: false,
-    allowsSmokers: true,
-    allowsPets: true,
-    maxOccupants: '',
   });
+
+  const [requirements, setRequirements] = useState({});
+    
   const [images, setImages] = useState([]);
   const [floorPlan, setFloorPlan] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -53,22 +49,12 @@ export default function AddProperty() {
       fd.append('type', form.type);
       fd.append('status', form.status);
       if (form.squareMeters) fd.append('squareMeters', form.squareMeters);
-      if (form.bedrooms) fd.append('bedrooms', form.bedrooms);
-      if (form.bathrooms) fd.append('bathrooms', form.bathrooms);
 
-      // tenant requirements (flat fields expected by controller)
-      if (form.minTenantSalary) fd.append('minTenantSalary', form.minTenantSalary);
-      if (form.allowedOccupations) {
-        form.allowedOccupations
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean)
-          .forEach(v => fd.append('allowedOccupations[]', v));
+       // requirements
+      const reqsAsArray = Object.entries(requirements).map(([name, value]) => ({ name, value }));
+      if (reqsAsArray.length > 0) {
+        fd.append('requirements', JSON.stringify(reqsAsArray));
       }
-      fd.append('requiresFamily', form.requiresFamily ? 'true' : 'false');
-      fd.append('allowsSmokers', form.allowsSmokers ? 'true' : 'false');
-      fd.append('allowsPets', form.allowsPets ? 'true' : 'false');
-      if (form.maxOccupants) fd.append('maxOccupants', form.maxOccupants);
 
       // files
       images.forEach(f => fd.append('images', f));
@@ -135,36 +121,8 @@ export default function AddProperty() {
           <textarea className="form-control" rows={3} name="description" value={form.description} onChange={onChange} />
         </div>
 
-        <h5 className="mt-3">Tenant requirements</h5>
-        <div className="row g-3">
-          <div className="col-sm-4">
-            <label className="form-label">Min tenant salary (€)</label>
-            <input type="number" className="form-control" name="minTenantSalary" value={form.minTenantSalary} onChange={onChange} />
-          </div>
-          <div className="col-sm-4">
-            <label className="form-label">Allowed occupations (comma separated)</label>
-            <input className="form-control" name="allowedOccupations" value={form.allowedOccupations} onChange={onChange} placeholder="student, engineer" />
-          </div>
-          <div className="col-sm-4">
-            <label className="form-label">Max occupants</label>
-            <input type="number" className="form-control" name="maxOccupants" value={form.maxOccupants} onChange={onChange} />
-          </div>
-        </div>
-
-        <div className="d-flex gap-4 my-2">
-          <div className="form-check">
-            <input className="form-check-input" type="checkbox" id="reqFamily" name="requiresFamily" checked={form.requiresFamily} onChange={onChange} />
-            <label className="form-check-label" htmlFor="reqFamily">Requires family</label>
-          </div>
-          <div className="form-check">
-            <input className="form-check-input" type="checkbox" id="allowSmoke" name="allowsSmokers" checked={form.allowsSmokers} onChange={onChange} />
-            <label className="form-check-label" htmlFor="allowSmoke">Allows smokers</label>
-          </div>
-          <div className="form-check">
-            <input className="form-check-input" type="checkbox" id="allowPets" name="allowsPets" checked={form.allowsPets} onChange={onChange} />
-            <label className="form-check-label" htmlFor="allowPets">Allows pets</label>
-          </div>
-        </div>
+       <h5 className="mt-3">Property Details</h5>
+        <RequirementsForm values={requirements} setValues={setRequirements} />
 
         <div className="mb-3">
           <label className="form-label">Images</label>

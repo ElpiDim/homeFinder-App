@@ -9,10 +9,12 @@ module.exports = async function optionalAuth(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId)
+      .select('-password')
+      .lean();
     if (user) {
       req.user = { userId: user._id.toString(), role: user.role };
-      req.currentUser = user;
+      req.currentUser = user; // plain object with user data
     }
   } catch (err) {
     // ignore invalid token
