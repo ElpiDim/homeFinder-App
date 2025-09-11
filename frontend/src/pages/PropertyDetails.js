@@ -185,6 +185,13 @@ Could we schedule a viewing? Thanks!`;
 
   const boolTick = (v) => (v ? 'Yes' : 'No');
 
+    const reqs = Array.isArray(property.requirements)
+    ? property.requirements.reduce((acc, r) => {
+        acc[r.name] = r.value;
+        return acc;
+      }, {})
+    : {};
+
   const areaForPpsm = Number(property.squareMeters || property.surface || 0);
   const pricePerSqm =
     areaForPpsm > 0 && property.price != null
@@ -214,8 +221,6 @@ Could we schedule a viewing? Thanks!`;
               }>
                 {property.status}
               </Badge>
-              {property.energyClass && <Badge bg="dark">Energy {property.energyClass}</Badge>}
-              {property.yearBuilt ? <Badge bg="light" text="dark">Year {property.yearBuilt}</Badge> : null}
             </div>
             <div className="text-muted mt-2">
               <span>📍 {property.address || property.location}</span>
@@ -365,30 +370,14 @@ Could we schedule a viewing? Thanks!`;
         <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
           <div className="col"><strong>Type:</strong> {property.type}</div>
           <div className="col"><strong>Status:</strong> {property.status}</div>
-          <div className="col"><strong>Floor:</strong> {property.floor ?? '—'}</div>
-          <div className="col"><strong>Top Floor:</strong> {boolTick(property.onTopFloor)}</div>
-          <div className="col"><strong>Levels:</strong> {property.levels ?? '—'}</div>
-          <div className="col"><strong>Square Meters:</strong> {property.squareMeters ?? property.surface ?? '—'} m²</div>
-          <div className="col"><strong>Bedrooms:</strong> {property.bedrooms ?? 0}</div>
-          <div className="col"><strong>Bathrooms:</strong> {property.bathrooms ?? 0}</div>
-          <div className="col"><strong>WC:</strong> {property.wc ?? 0}</div>
-          <div className="col"><strong>Kitchens:</strong> {property.kitchens ?? 0}</div>
-          <div className="col"><strong>Living Rooms:</strong> {property.livingRooms ?? 0}</div>
-          <div className="col"><strong>Parking Spaces:</strong> {property.parkingSpaces ?? 0}</div>
-          <div className="col"><strong>Monthly Fee:</strong> {property.monthlyMaintenanceFee != null ? `€${money(property.monthlyMaintenanceFee)}` : '—'}</div>
-          <div className="col"><strong>Year Built:</strong> {property.yearBuilt ?? '—'}</div>
-          <div className="col"><strong>Condition:</strong> {property.condition || '—'}</div>
-          <div className="col"><strong>Heating:</strong> {property.heating || '—'}</div>
-          <div className="col"><strong>Energy Class:</strong> {property.energyClass || '—'}</div>
-          <div className="col"><strong>Orientation:</strong> {property.orientation || '—'}</div>
-          <div className="col"><strong>View:</strong> {property.view || '—'}</div>
-          <div className="col"><strong>Plot Size:</strong> {property.plotSize ? `${property.plotSize} m²` : '—'}</div>
-          <div className="col"><strong>Furnished:</strong> {boolTick(property.furnished)}</div>
-          <div className="col"><strong>Pets Allowed:</strong> {boolTick(property.petsAllowed)}</div>
-          <div className="col"><strong>Smoking Allowed:</strong> {boolTick(property.smokingAllowed)}</div>
-          <div className="col"><strong>Elevator:</strong> {boolTick(property.hasElevator)}</div>
-          <div className="col"><strong>Storage:</strong> {boolTick(property.hasStorage)}</div>
-          <div className="col"><strong>Insulation:</strong> {boolTick(property.insulation)}</div>
+          <div className="col"><strong>Square Meters:</strong> {property.squareMeters ?? '—'} m²</div>
+          <div className="col"><strong>Bedrooms:</strong> {reqs.bedrooms ?? '—'}</div>
+          <div className="col"><strong>Bathrooms:</strong> {reqs.bathrooms ?? '—'}</div>
+          <div className="col"><strong>Parking:</strong> {boolTick(reqs.parking)}</div>
+          <div className="col"><strong>Furnished:</strong> {boolTick(reqs.furnished)}</div>
+          <div className="col"><strong>Pets Allowed:</strong> {boolTick(reqs.petsAllowed)}</div>
+          <div className="col"><strong>Smoking Allowed:</strong> {boolTick(reqs.smokingAllowed)}</div>
+          <div className="col"><strong>Heating:</strong> {reqs.heating || '—'}</div>
         </div>
 
         {/* Floor Plan */}
