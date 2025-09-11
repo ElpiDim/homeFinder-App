@@ -28,11 +28,14 @@ function RequireOnboarding({ children }) {
   const { user } = useAuth();
   const location = useLocation();
 
+  const isClient = user?.role === 'client';
   // υποστηρίζει και παλιά ονομασία hasCompletedOnboarding
   const onboardingCompleted =
-    user?.onboardingCompleted ?? user?.hasCompletedOnboarding ?? false;
+    user?.onboardingCompleted ??
+    user?.hasCompletedOnboarding ??
+    !isClient;
 
-  if (user && !onboardingCompleted && location.pathname !== '/onboarding') {
+    if (user && isClient && !onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
   return children;
