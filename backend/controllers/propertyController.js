@@ -124,40 +124,54 @@ exports.getAllProperties = async (req, res) => {
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
- const pipeline = [{ $match: match }];
-
+    const pipeline = [{ $match: match }];
+    let parsedFilters = [];
     // Requirements matching logic
     if (filters) {
-      let parsedFilters = [];
       try {
         parsedFilters = JSON.parse(filters);
       } catch (e) {
         return res.status(400).json({ message: "Invalid filters format." });
       }
 
-      if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
-        const minMatches = parseInt(minMatchCount) || 1;
+        } else if (req.user?.role === "client" && req.currentUser?.preferences) {
+      const requirementKeys = [
+        "incomeMin",
+        "incomeMax",
+        "allowedOccupations",
+        "familyStatus",
+        "petsAllowed",
+        "smokingAllowed",
+        "workLocation",
+        "preferredTenantRegion",
+      ];
 
-        pipeline.push(
-          {
-            $addFields: {
-              matchCount: {
-                $size: {
-                  $filter: {
-                    input: "$requirements",
-                    as: "req",
-                    cond: {
-                      $anyElementTrue: {
-                        $map: {
-                          input: parsedFilters,
-                          as: "filter",
-                          in: {
-                            $and: [
-                              { $eq: ["$$req.name", "$$filter.name"] },
-                              // Add more complex comparison logic here if needed
-                              { $eq: ["$$req.value", "$$filter.value"] },
+      parsedFilters = Object.entries(req.currentUser.preferences)
+        .filter(([name, v]) => requirementKeys.includes(name) && hasValue(v))
+        .map(([name, value]) => ({ name, value }));
+    }
 
-                        ],
+    if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
+      const minMatches = parseInt(minMatchCount) || parsedFilters.length;
+
+      pipeline.push(
+        {
+          $addFields: {
+            matchCount: {
+              $size: {
+                $filter: {
+                  input: "$requirements",
+                  as: "req",
+                  cond: {
+                    $anyElementTrue: {
+                      $map: {
+                        input: parsedFilters,
+                        as: "filter",
+                        in: {
+                          $and: [
+                            { $eq: ["$$req.name", "$$filter.name"] },
+                            { $eq: ["$$req.value", "$$filter.value"] },
+                          ],
                         },
                       },
                     },
@@ -165,14 +179,10 @@ exports.getAllProperties = async (req, res) => {
                 },
               },
             },
-          }, 
-          
-            $match: {
-              matchCount: { $gte: minMatches },
-            },
-          }
-        );
-      }
+          },
+        },
+        { $match: { matchCount: { $gte: minMatches } } }
+      );
     }
 
     // Add other stages like lookups, sorting, etc.
