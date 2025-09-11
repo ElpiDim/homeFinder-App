@@ -10,7 +10,6 @@ import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import MatchClients from './pages/MatchClients';
-import MatchProperties from './pages/MatchProperties';
 import Notifications from './pages/Notifications';
 import EditProfile from './pages/EditProfile';
 import AddProperty from './pages/AddProperty';
@@ -126,16 +125,6 @@ function App() {
             </OnboardingProtected>
           }
         />
-
-        <Route
-          path="/match/properties"
-          element={
-            <OnboardingProtected>
-              <MatchProperties />
-            </OnboardingProtected>
-          }
-        />
-
         <Route
           path="/notifications"
           element={

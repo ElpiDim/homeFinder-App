@@ -174,8 +174,8 @@ const pageGradient = useMemo(() => ({
           page: 1,
           limit: 9999,
         };
-
-        const res = await api.get('/properties', { params });
+        const endpoint = user?.role === 'client' ? '/match/properties' : '/properties';
+        const res = await api.get(endpoint, { params });
         const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
 
         setAllProperties(items);
@@ -209,6 +209,7 @@ const pageGradient = useMemo(() => ({
       maxSqm,
       userLat,
       userLng,
+      user,
       limit,
     ]
   );
@@ -789,20 +790,6 @@ const pageGradient = useMemo(() => ({
                     Suggested Tenants
                   </Link>
                 </>
-              )}
-              {user?.role === 'client' && (
-                <Link
-                  to="/match/properties"
-                  className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                  style={{
-                    background: 'linear-gradient(135deg,#006400,#90ee90)',
-                    color: '#fff',
-                    fontWeight: 600,
-                    border: 'none',
-                  }}
-                >
-                  Suggested Homes
-                </Link>
               )}
               {/* Toggle: All / Sale / Rent */}
               <div className="d-flex ms-auto">
