@@ -22,24 +22,6 @@ function getMapsApiKey() {
   );
 }
 
-const featureOptions = [
-  'Parking spot',
-  'Elevator',
-  'Secure door',
-  'Alarm',
-  'Furnished',
-  'Storage space',
-  'Fireplace',
-  'Balcony',
-  'Internal staircase',
-  'Garden',
-  'Swimming pool',
-  'Playroom',
-  'Attic',
-  'View',
-  'Solar water heating',
-];
-
 function EditProperty() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
@@ -68,8 +50,6 @@ function EditProperty() {
 
     yearBuilt: '',
     ownerNotes: '',
-    features: [],
-    
   });
    const [requirements, setRequirements] = useState({});
 
@@ -144,7 +124,6 @@ function EditProperty() {
           plotSize: p.plotsize ?? '',
           yearBuilt: p.yearBuilt ?? '',
           ownerNotes: p.ownerNotes || '',
-          features: Array.isArray(p.features) ? p.features : [],
         });
         if (Array.isArray(p.requirements)) {
           const reqs = p.requirements.reduce((acc, req) => {
@@ -176,18 +155,7 @@ function EditProperty() {
   }, [propertyId]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-
-    if (type === 'checkbox' && name === 'features') {
-      setFormData(prev => ({
-        ...prev,
-        features: checked
-          ? [...prev.features, value]
-          : prev.features.filter(f => f !== value)
-      }));
-      return;
-    }
-
+    const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -196,7 +164,7 @@ function EditProperty() {
     const token = localStorage.getItem('token');
     const data = new FormData();
 
-    Object.entries(fromData).forEach(([k,v])=>{ 
+    Object.entries(formData).forEach(([k, v]) => {
       if (v !== undefined && v !== null && v !== '') data.append(k, v);
     });
 
@@ -204,14 +172,6 @@ function EditProperty() {
     if (reqsAsArray.length > 0) {
       data.append('requirements', JSON.stringify(reqsAsArray));
     }
-    // features
-    if (formData.features && formData.features.length) {
-      formData.features.forEach((f) => data.append('features[]', f));
-    } else {
-
-      data.append('features[]', '');
-    }
-
     // geo
     if (latLng) {
       data.append('latitude', String(latLng.lat));
@@ -345,27 +305,6 @@ function EditProperty() {
           <hr className="my-3" />
            <h5 className="fw-bold">Property Details</h5>
           <RequirementsForm values={requirements} setValues={setRequirements} />
-          
-          {/* FEATURE TAGS */}
-          <h5 className="mt-4">Features</h5>
-          <div className="d-flex flex-wrap gap-3">
-            {featureOptions.map((feature) => (
-              <div key={feature} className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  name="features"
-                  value={feature}
-                  onChange={handleChange}
-                  id={feature}
-                  checked={formData.features.includes(feature)}
-                />
-                <label className="form-check-label" htmlFor={feature}>
-                  {feature}
-                </label>
-              </div>
-            ))}
-          </div>
 
           {/* EXISTING MEDIA */}
           <hr className="my-4" />

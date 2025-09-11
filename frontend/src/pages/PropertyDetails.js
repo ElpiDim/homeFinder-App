@@ -191,11 +191,6 @@ Could we schedule a viewing? Thanks!`;
       ? Math.round(Number(property.price) / areaForPpsm)
       : null;
 
-  const featureChips = (arr) =>
-    (arr || []).map((f, i) => (
-      <span key={i} className="badge bg-light text-dark border me-2 mb-2">{f}</span>
-    ));
-
   return (
     <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '1000px' }}>
@@ -363,9 +358,9 @@ Could we schedule a viewing? Thanks!`;
           )}
         </div>
 
-        {/* Facts & Features */}
+        {/* Facts */}
         <hr />
-        <h5 className="fw-bold">Facts & features</h5>
+        <h5 className="fw-bold">Facts</h5>
 
         <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
           <div className="col"><strong>Type:</strong> {property.type}</div>
@@ -395,16 +390,6 @@ Could we schedule a viewing? Thanks!`;
           <div className="col"><strong>Storage:</strong> {boolTick(property.hasStorage)}</div>
           <div className="col"><strong>Insulation:</strong> {boolTick(property.insulation)}</div>
         </div>
-
-        {/* Feature tags */}
-        {Array.isArray(property.features) && property.features.length > 0 && (
-          <>
-            <h6 className="fw-bold mt-3">Features</h6>
-            <div className="d-flex flex-wrap mt-1">
-              {featureChips(property.features)}
-            </div>
-          </>
-        )}
 
         {/* Floor Plan */}
         {property.floorPlanImage && (

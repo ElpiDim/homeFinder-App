@@ -56,12 +56,10 @@ const mongoose = require("mongoose");
       value: { type: mongoose.Schema.Types.Mixed, required: true },
     },
   ],
- 
-  features: [{ type: String }],
- 
-   ownerNotes: {
-     type: String,
-   },
+
+  ownerNotes: {
+    type: String,
+  },
 
    createdAt: {
      type: Date,

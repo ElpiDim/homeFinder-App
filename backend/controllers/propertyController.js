@@ -75,15 +75,7 @@ exports.createProperty = async (req, res) => {
       yearBuilt: toNum(b.yearBuilt, parseInt),
       
 
-     requirements, 
-      features: Array.isArray(b["features[]"])
-        ? b["features[]"]
-        : Array.isArray(b.features)
-        ? b.features
-        : b.features
-        ? [b.features]
-        : [],
-
+     requirements,
         ownerNotes: b.ownerNotes,
 
 
@@ -314,17 +306,6 @@ exports.updateProperty = async (req, res) => {
           .status(400)
           .json({ message: "Invalid requirements format. Expected a JSON string." });
       }
-    }
-
-    // features
-    if (b["features[]"] !== undefined || b.features !== undefined) {
-      property.features = Array.isArray(b["features[]"])
-        ? b["features[]"]
-        : Array.isArray(b.features)
-        ? b.features
-        : b.features
-        ? [b.features]
-        : [];
     }
 
     // images
