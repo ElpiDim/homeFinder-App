@@ -85,18 +85,24 @@ export default function AddProperty() {
 
       <form onSubmit={submit}>
         <div className="mb-3">
-          <label className="form-label">Title</label>
+            <label className="form-label">
+            Title <span className="badge bg-danger ms-2">Required</span>
+          </label>
           <input className="form-control" name="title" value={form.title} onChange={onChange} required />
         </div>
 
         <div className="mb-3">
-          <label className="form-label">Location</label>
+            <label className="form-label">
+            Location <span className="badge bg-danger ms-2">Required</span>
+          </label>
           <input className="form-control" name="location" value={form.location} onChange={onChange} required />
         </div>
 
         <div className="row g-3">
           <div className="col-sm-4">
-            <label className="form-label">Price (€)</label>
+            <label className="form-label">
+              Price (€) <span className="badge bg-danger ms-2">Required</span>
+            </label>
             <input type="number" className="form-control" name="price" value={form.price} onChange={onChange} required />
           </div>
           <div className="col-sm-4">

@@ -85,17 +85,23 @@ function Register() {
 
           <form onSubmit={handleRegister}>
             <div className="mb-3">
-                <label className="form-label">Email</label>
+                  <label className="form-label">
+                  Email <span className="badge bg-danger ms-2">Required</span>
+                </label>
                 <input type="email" className="form-control" name="email" required onChange={handleChange} />
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Password</label>
+             <label className="form-label">
+                Password <span className="badge bg-danger ms-2">Required</span>
+              </label>
               <input type="password" className="form-control" name="password" required onChange={handleChange} />
             </div>
 
             <div className="mb-3">
-              <label className="form-label">Role</label>
+               <label className="form-label">
+                Role <span className="badge bg-danger ms-2">Required</span>
+              </label>
               <select
                 className="form-select"
                 name="role"
