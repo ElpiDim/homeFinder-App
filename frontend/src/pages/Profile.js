@@ -58,9 +58,11 @@ function Profile() {
               <div>
                 <Card.Title className="mb-0">
                   {user.name || user.email}
-                  <Badge bg={user.onboardingCompleted ? 'success' : 'warning'} className="ms-2">
-                    {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
-                  </Badge>
+                   {isClient && (
+                    <Badge bg={user.onboardingCompleted ? 'success' : 'warning'} className="ms-2">
+                      {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
+                    </Badge>
+                  )}
                 </Card.Title>
                 <Card.Subtitle className="text-muted">Joined in {joinedDate}</Card.Subtitle>
               </div>

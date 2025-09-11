@@ -39,7 +39,8 @@ function Login() {
 
       // Αν δεν έχει ολοκληρώσει onboarding -> /onboarding, αλλιώς /dashboard
       const completed = user?.onboardingCompleted ?? user?.hasCompletedOnboarding ?? false;
-      navigate(completed ? '/dashboard' : '/onboarding', { replace: true });
+       const needsOnboarding = user?.role === 'client' && !completed;
+      navigate(needsOnboarding ? '/onboarding' : '/dashboard', { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.message || 'Login error';
       setMessage(msg);

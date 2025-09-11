@@ -5,7 +5,7 @@ import { registerUser } from '../services/authService';
 import Logo from '../components/Logo';
 
 function Register() {
-  const [formData, setFormData] = useState({
+   const [formData, setFormData] = useState({
     email: '',
     password: '',
     role: '',
@@ -30,7 +30,10 @@ function Register() {
     e.preventDefault();
     try {
       const { token, user } = await registerUser(formData);
-      setMessage('Registration successful! Redirecting to onboarding...');
+      const isClient = user?.role === 'client';
+      setMessage(
+        `Registration successful! Redirecting to ${isClient ? 'onboarding' : 'dashboard'}...`
+      );
 
       // Update auth context and local storage
       setToken(token);
@@ -38,7 +41,8 @@ function Register() {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      setTimeout(() => navigate('/onboarding'), 1500);
+      const target = isClient ? '/onboarding' : '/dashboard';
+      setTimeout(() => navigate(target), 1500);
     } catch (err) {
       setMessage(err.response?.data?.message || 'Error while registering');
     }

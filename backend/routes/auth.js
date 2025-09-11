@@ -39,6 +39,7 @@ router.post("/register", async (req, res) => {
        email,
        password: hashedPassword,
        role, 
+       onboardingCompleted: role === 'owner'
      });
  
     const payload = {
@@ -70,36 +71,39 @@ router.post("/register", async (req, res) => {
  // @route   POST /api/auth/login
  // @desc    Authenticate user & get token
  // @access  Public
- router.post("/login", async (req, res) => {
-   const { email, password, role, occupation, salary } = req.body;
- 
-   try {
-     const user = await User.findOne({ email });
-     if (!user) {
-       return res.status(400).json({ message: "Invalid email or password" });
-     }
- 
-     const isMatch = await bcrypt.compare(password, user.password);
-     if (!isMatch) {
-       return res.status(400).json({ message: "Invalid email or password" });
-     }
- 
-     const payload = {
-       userId: user._id,
+router.post("/login", async (req, res) => {
+  const { email, password, role, occupation, salary } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    if (user.role === 'owner' && user.onboardingCompleted === false) {
+      user.onboardingCompleted = true;
+      await user.save();
+    }
+    const payload = {
+      userId: user._id,
       role: user.role,
      };
- 
-     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-
+const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "7d",
      });
-     res.json({
-       token,
-       user: {
-         id: user._id,
-         name: user.name,
-         email: user.email,
-         role: user.role,
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+
         onboardingCompleted: user.onboardingCompleted,
         age: user.age,
         householdSize: user.householdSize,
@@ -113,12 +117,12 @@ router.post("/register", async (req, res) => {
         profilePicture: user.profilePicture,
         preferences: user.preferences,
       },
-     });
-
-   } catch (err) {
-     console.error(err);
-     res.status(500).json({ message: "Server error" });
-   }
- });
+      });
+      
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
  
  module.exports = router;
