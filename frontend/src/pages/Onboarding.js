@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
+import RequirementsForm from '../components/RequirementsForm';
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -49,15 +50,14 @@ export default function Onboarding() {
       sqmMax: user?.preferences?.sqmMax ?? '',
       bedrooms: user?.preferences?.bedrooms ?? '',
       bathrooms: user?.preferences?.bathrooms ?? '',
-      furnished: !!user?.preferences?.furnished,
+      parking: !!user?.preferences?.parking,
       petsAllowed: !!user?.preferences?.petsAllowed,
       smokingAllowed: !!user?.preferences?.smokingAllowed,
-      yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
-      heatingType: user?.preferences?.heatingType || '',
+      furnished: !!user?.preferences?.furnished,
+      heating: user?.preferences?.heating || '',
     }),
     [user]
   );
-
 
   const [personal, setPersonal] = useState(initPersonal);
   const [prefs, setPrefs] = useState(initPrefs);
@@ -84,7 +84,7 @@ export default function Onboarding() {
         salary: personal.salary ? Number(personal.salary) : undefined,
         isWillingToHaveRoommate: personal.isWillingToHaveRoommate,
       });
-          const prefsClean = clean({
+      const prefsClean = clean({
         location: prefs.location,
         rentMin: prefs.rentMin ? Number(prefs.rentMin) : undefined,
         rentMax: prefs.rentMax ? Number(prefs.rentMax) : undefined,
@@ -92,11 +92,11 @@ export default function Onboarding() {
         sqmMax: prefs.sqmMax ? Number(prefs.sqmMax) : undefined,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
+        parking: !! prefs.parking,
         furnished: !!prefs.furnished,
         petsAllowed: !!prefs.petsAllowed,
         smokingAllowed: !!prefs.smokingAllowed,
-        yearBuiltMin: prefs.yearBuiltMin ? Number(prefs.yearBuiltMin) : undefined,
-        heatingType: prefs.heatingType || undefined, // enum: autonomous|central|ac|none
+        heating: prefs.heating ||undefined
       });
 
       const payload = {...personalClean, preferences:prefsClean};
@@ -232,54 +232,10 @@ export default function Onboarding() {
                       <Form.Control type="number" name="sqmMax" value={prefs.sqmMax} onChange={onChange(setPrefs)} />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Bedrooms</Form.Label>
-                      <Form.Control type="number" name="bedrooms" value={prefs.bedrooms} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Bathrooms</Form.Label>
-                      <Form.Control type="number" name="bathrooms" value={prefs.bathrooms} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
                 </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Furnished" name="furnished" checked={prefs.furnished} onChange={onChange(setPrefs)} />
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Pets allowed" name="petsAllowed" checked={prefs.petsAllowed} onChange={onChange(setPrefs)} />
-                  </Col>
-                  <Col md={3} className="d-flex align-items-end">
-                    <Form.Check label="Smoking allowed" name="smokingAllowed" checked={prefs.smokingAllowed} onChange={onChange(setPrefs)} />
-                  </Col>
-                </Row>
-
-                <Row className="g-3 mt-0">
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Year Built Min</Form.Label>
-                      <Form.Control type="number" name="yearBuiltMin" value={prefs.yearBuiltMin} onChange={onChange(setPrefs)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label>Heating Type</Form.Label>
-                      <Form.Select name="heatingType" value={prefs.heatingType} onChange={onChange(setPrefs)}>
-                        <option value="">Select</option>
-                        <option value="autonomous">Autonomous</option>
-                        <option value="central">Central</option>
-                        <option value="ac">AC</option>
-                        <option value="none">None</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                </Row>
+                <RequirementsForm values={prefs} setValues={setPrefs} />
               </>
-              
+
             <div className="mt-4 d-flex justify-content-end">
               <Button type="submit" disabled={saving}>
                 {saving ? 'Saving...' : 'Save & Continue'}
