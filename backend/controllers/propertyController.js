@@ -100,7 +100,7 @@ exports.getAllProperties = async (req, res) => {
       sort = "relevance", // relevance | newest | price_asc | price_desc | likes
       page = 1,
       limit = 24,
-       filters, // JSON string of filters
+      filters, // JSON string of filters
       minMatchCount, // number of filters that must match
     } = req.query;
 
@@ -110,7 +110,7 @@ exports.getAllProperties = async (req, res) => {
 
     const match = {};
 
-    // free text search 
+    // free text search
     if (hasValue(q)) {
       const rx = new RegExp(`${q}`.trim(), "i");
       match.$or = [{ title: rx }, { location: rx }, { address: rx }];
@@ -118,41 +118,87 @@ exports.getAllProperties = async (req, res) => {
 
     if (type) match.type = type;
 
-    // price range
+    // price range from query params  
     if (hasValue(minPrice) || hasValue(maxPrice)) {
       match.price = {};
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
+
+    // Apply logged-in user's preferences directly as property filters
+    if (req.user?.role === "client" && req.currentUser?.preferences) {
+      const p = req.currentUser.preferences;
+
+      if (hasValue(p.location)) {
+        match.location = new RegExp(`${p.location}`.trim(), "i");
+      }
+
+      if (hasValue(p.dealType)) match.type = p.dealType;
+
+      const prefMinPrice =
+        p.dealType === "sale" ? p.saleMin : p.rentMin;
+      const prefMaxPrice =
+        p.dealType === "sale" ? p.saleMax : p.rentMax;
+      if (hasValue(prefMinPrice) || hasValue(prefMaxPrice)) {
+        match.price = match.price || {};
+        if (hasValue(prefMinPrice)) match.price.$gte = parseFloat(prefMinPrice);
+        if (hasValue(prefMaxPrice)) match.price.$lte = parseFloat(prefMaxPrice);
+      }
+
+      if (hasValue(p.sqmMin) || hasValue(p.sqmMax)) {
+        match.squareMeters = match.squareMeters || {};
+        if (hasValue(p.sqmMin)) match.squareMeters.$gte = parseInt(p.sqmMin);
+        if (hasValue(p.sqmMax)) match.squareMeters.$lte = parseInt(p.sqmMax);
+      }
+
+      if (hasValue(p.bedrooms)) {
+        match.bedrooms = { $gte: parseInt(p.bedrooms) };
+      }
+
+      if (hasValue(p.bathrooms)) {
+        match.bathrooms = { $gte: parseInt(p.bathrooms) };
+      }
+
+      if (hasValue(p.floorMin) || hasValue(p.floorMax)) {
+        match.floor = {};
+        if (hasValue(p.floorMin)) match.floor.$gte = parseInt(p.floorMin);
+        if (hasValue(p.floorMax)) match.floor.$lte = parseInt(p.floorMax);
+      }
+
+      [
+        "furnished",
+        "elevator",
+        "parking",
+        "petsAllowed",
+        "smokingAllowed",
+      ].forEach((key) => {
+        if (p[key] !== undefined) match[key] = p[key];
+      });
+
+      if (hasValue(p.yearBuiltMin)) {
+        match.yearBuilt = match.yearBuilt || {};
+        match.yearBuilt.$gte = parseInt(p.yearBuiltMin);
+      }
+
+      if (hasValue(p.heatingType) && p.heatingType !== "none") {
+        match.heatingType = p.heatingType;
+      }
+    }
+
     const pipeline = [{ $match: match }];
     let parsedFilters = [];
-    // Requirements matching logic
+    // Requirements matching logic (query filters only)
     if (filters) {
       try {
         parsedFilters = JSON.parse(filters);
       } catch (e) {
         return res.status(400).json({ message: "Invalid filters format." });
       }
-
-        } else if (req.user?.role === "client" && req.currentUser?.preferences) {
-      const requirementKeys = [
-        "incomeMin",
-        "incomeMax",
-        "allowedOccupations",
-        "familyStatus",
-        "petsAllowed",
-        "smokingAllowed",
-        "workLocation",
-        "preferredTenantRegion",
-      ];
-
-      parsedFilters = Object.entries(req.currentUser.preferences)
-        .filter(([name, v]) => requirementKeys.includes(name) && hasValue(v))
-        .map(([name, value]) => ({ name, value }));
     }
 
+     
     if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
-      const minMatches = parseInt(minMatchCount) || parsedFilters.length;
+       const minMatches = parseInt(minMatchCount) || 0;
 
       pipeline.push(
         {
