@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test":"jest --runInBand"
-    
+    "test": "jest"
   },
-  
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -27,6 +25,4 @@
     "mongodb-memory-server": "^10.2.0",
     "supertest": "^7.1.4"
   }
-
-  
 }

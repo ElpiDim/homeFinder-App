@@ -1,27 +1,31 @@
+// backend/routes/properties.js
 const express = require("express");
 const router = express.Router();
+
 const verifyToken = require("../middlewares/authMiddleware");
-const { uploadImages } = require("../middlewares/uploadMiddleware");
-const propertyController = require("../controllers/propertyController");
-const Property = require("../models/property");
 const optionalAuth = require("../middlewares/optionalAuth");
 
-// get all (public, αλλά αν έχει token κάνει και filtering)
+// ⬇︎ χρησιμοποιούμε fields (images + floorPlanImage)
+const { uploadFields } = require("../middlewares/uploadMiddleware");
+
+const propertyController = require("../controllers/propertyController");
+
+// GET all (public; αν υπάρχει token το optionalAuth γεμίζει req.currentUser για matching)
 router.get("/", optionalAuth, propertyController.getAllProperties);
 
-// get my properties
+// GET my properties (owner only)
 router.get("/mine", verifyToken, propertyController.getMyProperties);
 
-// create property
-router.post("/", verifyToken, uploadImages, propertyController.createProperty);
+// CREATE property (owner + uploads)
+router.post("/", verifyToken, uploadFields, propertyController.createProperty);
 
-// get by id (🔑 προσθέσαμε optionalAuth εδώ)
+// GET by id (public με optionalAuth για client rules αν χρειαστεί)
 router.get("/:propertyId", optionalAuth, propertyController.getPropertyById);
 
-// delete property
+// DELETE property (owner)
 router.delete("/:propertyId", verifyToken, propertyController.deleteProperty);
 
-// edit property
-router.put("/:propertyId", verifyToken, uploadImages, propertyController.updateProperty);
+// UPDATE property (owner + uploads)
+router.put("/:propertyId", verifyToken, uploadFields, propertyController.updateProperty);
 
 module.exports = router;

@@ -5,13 +5,30 @@ const Notification = require("../models/notification");
 const Interest = require("../models/interests");
 const User = require("../models/user");
 
+const { computeMatchScore } = require("../utils/matching");
+
 /* ----------------------------- helpers ----------------------------- */
-const hasValue = (v) => v !== undefined && v !== null && `${v}`.trim() !== "";
+const hasValue = (v) =>
+  v !== undefined && v !== null && String(v).trim() !== "";
 const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
 const setIfProvided = (current, incoming, parser = (x) => x) =>
   hasValue(incoming) ? parser(incoming) : current;
 
-// read files from either upload.array('images') OR upload.fields([{name:'images'},{name:'floorPlanImage'}])
+// Map user.preferences -> keys που περιμένει το matching
+const mapClientPrefs = (p = {}) => ({
+  maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax,
+  minSqm: p.minSqm ?? p.sqmMin,
+  minBedrooms: p.minBedrooms ?? p.bedrooms,
+  minBathrooms: p.minBathrooms ?? p.bathrooms,
+  furnished: p.furnished,
+  parking: p.parking,
+  elevator: p.elevator ?? p.hasElevator,
+  pets: p.pets ?? p.petsAllowed,
+  smoker: p.smoker ?? p.smokingAllowed,
+  familyStatus: p.familyStatus,
+});
+
+// Διαβάζει αρχεία από upload.array('images') Ή upload.fields([...])
 const extractImagesFromReq = (req) => {
   // array mode (images only)
   if (Array.isArray(req.files) && req.files.length) {
@@ -22,7 +39,9 @@ const extractImagesFromReq = (req) => {
   }
   // fields mode
   if (req.files && typeof req.files === "object") {
-    const images = (req.files.images || []).map((f) => `/uploads/${f.filename}`);
+    const images = (req.files.images || []).map(
+      (f) => `/uploads/${f.filename}`
+    );
     const floorPlanImage = req.files.floorPlanImage?.[0]
       ? `/uploads/${req.files.floorPlanImage[0].filename}`
       : undefined;
@@ -41,48 +60,52 @@ exports.createProperty = async (req, res) => {
 
   try {
     const { images, floorPlanImage } = extractImagesFromReq(req);
-
     const b = req.body;
-    
+
+    // requirements: array JSON string -> array
     let requirements = [];
     if (b.requirements) {
       try {
         requirements = JSON.parse(b.requirements);
       } catch (e) {
         console.error("Error parsing requirements JSON:", e);
-        return res
-          .status(400)
-          .json({ message: "Invalid requirements format. Expected a JSON string." });
+        return res.status(400).json({
+          message: "Invalid requirements format. Expected a JSON string.",
+        });
       }
     }
+
+    // Συγχρόνισε και price/rent αν θες συμβατότητα με παλιό schema
+    const priceNum = toNum(b.price ?? b.rent, parseFloat);
+
     const newProperty = new Property({
-    
       ownerId,
       title: b.title,
       description: b.description,
       location: b.location,
       address: b.address,
-      price: toNum(b.price, parseFloat),
 
-      type: b.type,
+      price: priceNum,
+      rent: priceNum, // αν το schema σου δεν έχει rent, απλά αγνοείται
+
+      type: b.type, // 'rent'|'sale'
       status: b.status,
+
       images,
       floorPlanImage,
 
-      squareMeters: toNum(b.squareMeters, parseInt),
-      
+      squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
       plotSize: toNum(b.plotSize, parseFloat),
       yearBuilt: toNum(b.yearBuilt, parseInt),
-      
 
-     requirements,
-        ownerNotes: b.ownerNotes,
-
-
+      requirements,
+      ownerNotes: b.ownerNotes,
     });
 
     await newProperty.save();
-    res.status(201).json({ message: "Property created", property: newProperty });
+    res
+      .status(201)
+      .json({ message: "Property created", property: newProperty });
   } catch (err) {
     console.error("❌ createProperty error:", err);
     res.status(500).json({ message: "Server error" });
@@ -93,14 +116,14 @@ exports.createProperty = async (req, res) => {
 exports.getAllProperties = async (req, res) => {
   try {
     const {
-       q, // text in title/location
+      q, // text in title/location
       type, // rent|sale
       minPrice,
       maxPrice,
       sort = "relevance", // relevance | newest | price_asc | price_desc | likes
       page = 1,
       limit = 24,
-      filters, // JSON string of filters
+      filters, // JSON string of filters (για απλή requirements αντιστοίχιση)
       minMatchCount, // number of filters that must match
     } = req.query;
 
@@ -112,82 +135,23 @@ exports.getAllProperties = async (req, res) => {
 
     // free text search
     if (hasValue(q)) {
-      const rx = new RegExp(`${q}`.trim(), "i");
+      const rx = new RegExp(String(q).trim(), "i");
       match.$or = [{ title: rx }, { location: rx }, { address: rx }];
     }
 
     if (type) match.type = type;
 
-    // price range from query params  
+    // price range from query params
     if (hasValue(minPrice) || hasValue(maxPrice)) {
       match.price = {};
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
       if (hasValue(maxPrice)) match.price.$lte = parseFloat(maxPrice);
     }
 
-    // Apply logged-in user's preferences directly as property filters
-    if (req.user?.role === "client" && req.currentUser?.preferences) {
-      const p = req.currentUser.preferences;
-
-      if (hasValue(p.location)) {
-        match.location = new RegExp(`${p.location}`.trim(), "i");
-      }
-
-      if (hasValue(p.dealType)) match.type = p.dealType;
-
-      const prefMinPrice =
-        p.dealType === "sale" ? p.saleMin : p.rentMin;
-      const prefMaxPrice =
-        p.dealType === "sale" ? p.saleMax : p.rentMax;
-      if (hasValue(prefMinPrice) || hasValue(prefMaxPrice)) {
-        match.price = match.price || {};
-        if (hasValue(prefMinPrice)) match.price.$gte = parseFloat(prefMinPrice);
-        if (hasValue(prefMaxPrice)) match.price.$lte = parseFloat(prefMaxPrice);
-      }
-
-      if (hasValue(p.sqmMin) || hasValue(p.sqmMax)) {
-        match.squareMeters = match.squareMeters || {};
-        if (hasValue(p.sqmMin)) match.squareMeters.$gte = parseInt(p.sqmMin);
-        if (hasValue(p.sqmMax)) match.squareMeters.$lte = parseInt(p.sqmMax);
-      }
-
-      if (hasValue(p.bedrooms)) {
-        match.bedrooms = { $gte: parseInt(p.bedrooms) };
-      }
-
-      if (hasValue(p.bathrooms)) {
-        match.bathrooms = { $gte: parseInt(p.bathrooms) };
-      }
-
-      if (hasValue(p.floorMin) || hasValue(p.floorMax)) {
-        match.floor = {};
-        if (hasValue(p.floorMin)) match.floor.$gte = parseInt(p.floorMin);
-        if (hasValue(p.floorMax)) match.floor.$lte = parseInt(p.floorMax);
-      }
-
-      [
-        "furnished",
-        "elevator",
-        "parking",
-        "petsAllowed",
-        "smokingAllowed",
-      ].forEach((key) => {
-        if (p[key] !== undefined) match[key] = p[key];
-      });
-
-      if (hasValue(p.yearBuiltMin)) {
-        match.yearBuilt = match.yearBuilt || {};
-        match.yearBuilt.$gte = parseInt(p.yearBuiltMin);
-      }
-
-      if (hasValue(p.heatingType) && p.heatingType !== "none") {
-        match.heatingType = p.heatingType;
-      }
-    }
-
     const pipeline = [{ $match: match }];
-    let parsedFilters = [];
+
     // Requirements matching logic (query filters only)
+    let parsedFilters = [];
     if (filters) {
       try {
         parsedFilters = JSON.parse(filters);
@@ -196,9 +160,8 @@ exports.getAllProperties = async (req, res) => {
       }
     }
 
-     
     if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
-       const minMatches = parseInt(minMatchCount) || 0;
+      const minMatches = parseInt(minMatchCount) || 0;
 
       pipeline.push(
         {
@@ -231,7 +194,7 @@ exports.getAllProperties = async (req, res) => {
       );
     }
 
-    // Add other stages like lookups, sorting, etc.
+    // favorites lookup & computed count
     pipeline.push(
       {
         $lookup: {
@@ -241,7 +204,7 @@ exports.getAllProperties = async (req, res) => {
           as: "favDocs",
         },
       },
-    { $addFields: { favoritesCount: { $size: "$favDocs" } } }
+      { $addFields: { favoritesCount: { $size: "$favDocs" } } }
     );
 
     // Sorting
@@ -257,12 +220,57 @@ exports.getAllProperties = async (req, res) => {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     }
 
-    // pagination
-    pipeline.push({ $skip: skip }, { $limit: numericLimit });
-  pipeline.push({ $project: { favDocs: 0 } });
-  const properties = await Property.aggregate(pipeline);
+    // Για clients: θα κάνουμε pagination ΜΕΤΑ το matching
+    pipeline.push({ $project: { favDocs: 0 } });
 
-  res.json(properties);
+    // Για public/owner ροές, κάνε pagination στην aggregation
+    const roleFromTokenAgg = req.user?.role;
+    const roleFromDocAgg = req.currentUser?.role;
+    const isClientAgg =
+      (roleFromTokenAgg === "client" || roleFromDocAgg === "client") &&
+      !!req.currentUser?.preferences;
+
+    if (!isClientAgg) {
+      pipeline.push({ $skip: skip }, { $limit: numericLimit });
+    }
+
+    let properties = await Property.aggregate(pipeline);
+
+    // --- Client-only matching >= 0.5 ---
+    const roleFromToken = req.user?.role;
+    const roleFromDoc = req.currentUser?.role;
+    const hasPrefs = !!req.currentUser?.preferences;
+    const isClient =
+      (roleFromToken === "client" || roleFromDoc === "client") && hasPrefs;
+
+    if (isClient) {
+      const rawPrefs = req.currentUser.preferences || {};
+      const prefs = mapClientPrefs(rawPrefs);
+
+      // αν θέλεις "μόνο rent" όταν το δηλώνει ο client
+      if (rawPrefs.dealType) {
+        properties = properties.filter((p) => p.type === rawPrefs.dealType);
+      }
+
+      const filtered = [];
+      for (const p of properties) {
+        const ownerReqs = p.requirements || p.tenantRequirements || {};
+        const { score, hardFails } = computeMatchScore(prefs, ownerReqs, p);
+        if (!hardFails?.length && score >= 0.5) {
+          filtered.push({ ...p, matchScore: score });
+        }
+      }
+
+      // pagination ΜΕΤΑ το matching
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const lim = Math.max(1, Math.min(100, parseInt(limit) || 24));
+      const start = (pageNum - 1) * lim;
+
+      return res.json(filtered.slice(start, start + lim));
+    }
+
+    // public/owner ροές
+    return res.json(properties);
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
     res.status(500).json({ message: "Server error" });
@@ -273,7 +281,9 @@ exports.getAllProperties = async (req, res) => {
 exports.getMyProperties = async (req, res) => {
   try {
     if (req.user.role !== "owner") {
-      return res.status(403).json({ message: "Only owners can view their properties" });
+      return res
+        .status(403)
+        .json({ message: "Only owners can view their properties" });
     }
 
     const properties = await Property.find({ ownerId: req.user.userId });
@@ -292,7 +302,9 @@ exports.getMyProperties = async (req, res) => {
       ]);
 
       const favMap = new Map(favoritesAgg.map((f) => [String(f._id), f.count]));
-      const interestMap = new Map(interestsAgg.map((i) => [String(i._id), i.count]));
+      const interestMap = new Map(
+        interestsAgg.map((i) => [String(i._id), i.count])
+      );
 
       const withStats = properties.map((p) => ({
         ...p.toObject(),
@@ -313,9 +325,11 @@ exports.getMyProperties = async (req, res) => {
 /* --------------------------- GET PROPERTY BY ID --------------------------- */
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.propertyId).populate("ownerId");
+    const property = await Property.findById(req.params.propertyId).populate(
+      "ownerId"
+    );
     if (!property) return res.status(404).json({ message: "Property not found" });
-        
+
     res.json(property);
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
@@ -335,32 +349,42 @@ exports.updateProperty = async (req, res) => {
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-  //updated fields 
+    // updated fields
     property.title = b.title ?? property.title;
     property.description = b.description ?? property.description;
     property.location = b.location ?? property.location;
-     property.address = b.address ?? property.address;
-    property.price = setIfProvided(property.price, b.price, parseFloat);
+    property.address = b.address ?? property.address;
+
+    const priceNum = toNum(b.price ?? b.rent, parseFloat);
+    if (hasValue(priceNum)) {
+      property.price = priceNum;
+      property.rent = priceNum;
+    }
+
     property.type = b.type ?? property.type;
     property.status = b.status ?? property.status;
-    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters, (v) =>
-      parseInt(v)
+    property.squareMeters = setIfProvided(
+      property.squareMeters,
+      b.squareMeters ?? b.sqm,
+      (v) => parseInt(v)
     );
     property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
- property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) =>
-      parseInt(v)
+    property.yearBuilt = setIfProvided(
+      property.yearBuilt,
+      b.yearBuilt,
+      (v) => parseInt(v)
     );
     property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
-    
-     // Update requirements
+
+    // Update requirements
     if (b.requirements) {
       try {
         property.requirements = JSON.parse(b.requirements);
       } catch (e) {
         console.error("Error parsing requirements JSON:", e);
-        return res
-          .status(400)
-          .json({ message: "Invalid requirements format. Expected a JSON string." });
+        return res.status(400).json({
+          message: "Invalid requirements format. Expected a JSON string.",
+        });
       }
     }
 

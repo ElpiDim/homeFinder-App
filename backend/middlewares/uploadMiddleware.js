@@ -1,36 +1,48 @@
-const multer = require('multer');
-const path = require('path');
+// backend/middlewares/uploadMiddleware.js
+const multer = require("multer");
+const path = require("path");
 
-// Πού θα αποθηκεύονται οι εικόνες
+// --- Storage config ---
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // φάκελος όπου θα μπαίνουν οι εικόνες
+  destination: function (_req, _file, cb) {
+    cb(null, "uploads/"); // φάκελος αποθήκευσης
   },
-  filename: function (req, file, cb) {
+  filename: function (_req, file, cb) {
     const ext = path.extname(file.originalname);
     cb(null, Date.now() + ext); // π.χ. 16925555664.jpg
-  }
+  },
 });
 
-const fileFilter = (req, file, cb) => {
-  // Επιτρέπει μόνο εικόνες
-  if (file.mimetype.startsWith('image/')) {
+// --- Only allow images ---
+const fileFilter = (_req, file, cb) => {
+  if (file.mimetype && file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new Error('Only images are allowed'), false);
+    cb(new Error("Only images are allowed"), false);
   }
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
-    fileSize: 2 * 1024 * 1024 // 2MB όριο
-  }
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB όριο
 });
 
-// Separate middlewares for different field names
-const uploadImages = upload.array('images', 5);
-const uploadProfilePicture = upload.single('profilePicture');
+// ----- Middlewares -----
+// πολλές εικόνες (μέχρι 5)
+const uploadImages = upload.array("images", 5);
 
-module.exports = { uploadImages, uploadProfilePicture };
+// profile picture
+const uploadProfilePicture = upload.single("profilePicture");
+
+// ✅ images + floorPlanImage (η νέα που χρειάζεσαι)
+const uploadFields = upload.fields([
+  { name: "images", maxCount: 20 },        // gallery
+  { name: "floorPlanImage", maxCount: 1 }, // κάτοψη
+]);
+
+module.exports = {
+  uploadImages,
+  uploadProfilePicture,
+  uploadFields, // <-- πρόσθεσε αυτό για create/update property
+};
