@@ -55,12 +55,12 @@ const createUserAndToken = async (role = "owner", overrides = {}) => {
 
 describe("Property controller", () => {
   describe("POST /api/properties", () => {
-    test("creates a property for owners and parses requirements JSON", async () => {
+    test("creates a property for owners and normalizes requirements importance", async () => {
       const { user: owner, token } = await createUserAndToken("owner");
 
       const requirements = [
-        { name: "furnished", value: true },
-        { name: "familyStatus", value: "couple" },
+        { name: "furnished", value: true, importance: "high" },
+        { name: "familyStatus", value: "couple", importance: "medium" },
       ];
 
       const res = await request(app)
@@ -78,9 +78,18 @@ describe("Property controller", () => {
       expect(res.body.property.ownerId).toBe(String(owner._id));
       expect(res.body.property.price).toBe(950);
       expect(res.body.property.rent ?? res.body.property.price).toBe(950);
-      expect(res.body.property.requirements).toEqual(
-        requirements.map((r) => expect.objectContaining(r))
-      );
+      expect(res.body.property.requirements).toEqual([
+        expect.objectContaining({
+          name: "furnished",
+          value: true,
+          importance: "high",
+        }),
+        expect.objectContaining({
+          name: "familyStatus",
+          value: "couple",
+          importance: "low",
+        }),
+      ]);
 
       const saved = await Property.findOne({ title: "Stylish Loft" }).lean();
       expect(saved.title).toBe("Stylish Loft");
@@ -90,9 +99,18 @@ describe("Property controller", () => {
       expect(saved.type).toBe("rent");
       expect(saved.squareMeters).toBe(78);
       expect(String(saved.ownerId)).toBe(String(owner._id));
-      expect(saved.requirements).toEqual(
-        requirements.map((r) => expect.objectContaining(r))
-      );
+      expect(saved.requirements).toEqual([
+        expect.objectContaining({
+          name: "furnished",
+          value: true,
+          importance: "high",
+        }),
+        expect.objectContaining({
+          name: "familyStatus",
+          value: "couple",
+          importance: "low",
+        }),
+      ]);
     });
 
     test("rejects creation when the authenticated user is not an owner", async () => {
@@ -125,7 +143,7 @@ describe("Property controller", () => {
         .expect(400);
 
       expect(res.body).toEqual({
-        message: "Invalid requirements format. Expected a JSON string.",
+        message: "Invalid requirements format. Expected a JSON array.",
       });
       expect(await Property.countDocuments()).toBe(0);
     });

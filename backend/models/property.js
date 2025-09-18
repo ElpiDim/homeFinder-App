@@ -54,6 +54,11 @@ const mongoose = require("mongoose");
     {
       name: { type: String, required: true },
       value: { type: mongoose.Schema.Types.Mixed, required: true },
+      importance: {
+        type: String,
+        enum: ["high", "medium", "low"],
+        default: "low",
+      },
     },
   ],
 

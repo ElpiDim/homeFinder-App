@@ -26,7 +26,7 @@ afterAll(async () => {
   await mongo.stop();
 });
 
-test("client sees only properties with score ≥ 0.5 (hard-fail budget excluded, low-score excluded)", async () => {
+test("client sees properties only when high requirements pass and soft score ≥ 0.5", async () => {
   // 1) Δημιουργία client με preferences
   const client = await User.create({
     email: "client@test.com",
@@ -34,13 +34,15 @@ test("client sees only properties with score ≥ 0.5 (hard-fail budget excluded,
     role: "client",
     preferences: {
       dealType: "rent",
-      maxPrice: 1000,   // budget threshold
-      minSqm: 70,       // min sqm
-      minBedrooms: 2,   // min bedrooms
-      // προτιμήσεις για soft criteria
+      maxPrice: 1000,
+      minSqm: 70,
+      minBedrooms: 2,
+      minBathrooms: 1,
       furnished: true,
       parking: true,
       elevator: true,
+      pets: true,
+      smoker: true,
       familyStatus: "single",
     },
   });
@@ -57,45 +59,45 @@ test("client sees only properties with score ≥ 0.5 (hard-fail budget excluded,
     squareMeters: 80,
     bedrooms: 2,
     bathrooms: 1,
-    // owner requirements που ταιριάζουν με του client
     requirements: [
-      { name: "furnished", value: true },
-      { name: "parking", value: true },
-      { name: "hasElevator", value: true },
-      { name: "familyStatus", value: "Single" },
+      { name: "familyStatus", value: "single", importance: "high" },
+      { name: "pets", value: true, importance: "high" },
+      { name: "furnished", value: true, importance: "low" },
+      { name: "parking", value: true, importance: "low" },
+      { name: "hasElevator", value: true, importance: "low" },
     ],
   });
 
-  // 2b) HARD FAIL (budget) — ΔΕΝ πρέπει να εμφανιστεί
+  // 2b) HARD FAIL ON HIGH REQUIREMENT — ΔΕΝ πρέπει να εμφανιστεί
   await Property.create({
-    title: "Too Expensive",
-    location: "Athens",
-    price: 1200,
-    rent: 1200,     // > client.maxPrice => hard fail
-    type: "rent",
-    squareMeters: 85,
-    bedrooms: 2,
-    bathrooms: 1,
-    requirements: [{ name: "furnished", value: true }],
-  });
-
-  // 2c) LOW SCORE (< 50%) — ΔΕΝ πρέπει να εμφανιστεί
-  // εντός budget/sqm, αλλά ο owner απαιτεί πολλά που ο client δεν καλύπτει → χαμηλό score
-  await Property.create({
-    title: "Low Score Apt",
+    title: "No Pets Allowed",
     location: "Athens",
     price: 950,
     rent: 950,
     type: "rent",
-    squareMeters: 75,
+    squareMeters: 82,
     bedrooms: 2,
     bathrooms: 1,
     requirements: [
-      { name: "furnished", value: true },
-      { name: "parking", value: true },
-      { name: "hasElevator", value: true },
-      { name: "familyStatus", value: "Family" }, // client = Single
-      // 4 soft criteria → αν δεν ταιριάξουν τουλάχιστον 2, score < 0.5
+      { name: "familyStatus", value: "single", importance: "high" },
+      { name: "pets", value: false, importance: "high" },
+    ],
+  });
+
+  // 2c) LOW SCORE (< 50%) — ΔΕΝ πρέπει να εμφανιστεί
+  await Property.create({
+    title: "Low Score Apt",
+    location: "Athens",
+    price: 900,
+    rent: 900,
+    type: "rent",
+    squareMeters: 78,
+    bedrooms: 2,
+    bathrooms: 1,
+    requirements: [
+      { name: "familyStatus", value: "single", importance: "high" },
+      { name: "parking", value: false, importance: "low" },
+      { name: "hasElevator", value: false, importance: "low" },
     ],
   });
 
@@ -108,6 +110,6 @@ test("client sees only properties with score ≥ 0.5 (hard-fail budget excluded,
   // 4) Έλεγχοι: μόνο το "Match Apt" πρέπει να υπάρχει
   const titles = res.body.map((p) => p.title);
   expect(titles).toContain("Match Apt");
-  expect(titles).not.toContain("Too Expensive");
+  expect(titles).not.toContain("No Pets Allowed");
   expect(titles).not.toContain("Low Score Apt");
 });

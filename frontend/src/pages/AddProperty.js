@@ -22,6 +22,7 @@ export default function AddProperty() {
   });
 
   const [requirements, setRequirements] = useState({});
+  const [requirementsImportance, setRequirementsImportance] = useState({});
     
   const [images, setImages] = useState([]);
   const [floorPlan, setFloorPlan] = useState(null);
@@ -51,7 +52,12 @@ export default function AddProperty() {
       if (form.squareMeters) fd.append('squareMeters', form.squareMeters);
 
        // requirements
-      const reqsAsArray = Object.entries(requirements).map(([name, value]) => ({ name, value }));
+      const reqsAsArray = Object.entries(requirements).map(([name, value]) => ({
+        name,
+        value,
+        importance:
+          requirementsImportance?.[name] === 'high' ? 'high' : 'low',
+      }));
       if (reqsAsArray.length > 0) {
         fd.append('requirements', JSON.stringify(reqsAsArray));
       }
@@ -128,7 +134,12 @@ export default function AddProperty() {
         </div>
 
        <h5 className="mt-3">Property Details</h5>
-        <RequirementsForm values={requirements} setValues={setRequirements} />
+        <RequirementsForm
+          values={requirements}
+          setValues={setRequirements}
+          importanceValues={requirementsImportance}
+          setImportanceValues={setRequirementsImportance}
+        />
 
         <div className="mb-3">
           <label className="form-label">Images</label>
