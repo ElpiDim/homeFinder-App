@@ -64,15 +64,13 @@ function Dashboard() {
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // filters (κρατιούνται για μελλοντικό panel)
+  // filters
   const [locationFilter, setLocationFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -85,7 +83,6 @@ function Dashboard() {
 
   // refs
   const dropdownRef = useRef(null);
-  const profileMenuRef = useRef(null);
 
   const profileImg = user?.profilePicture
     ? (user.profilePicture.startsWith('http')
@@ -136,105 +133,100 @@ function Dashboard() {
   };
 
   const fetchAllProperties = useCallback(
-  async (overrides = {}) => {
-    try {
-      const minPriceParam = toNum(overrides.minPrice ?? minPrice);
-      const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
-      const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
-      const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
+    async (overrides = {}) => {
+      try {
+        const minPriceParam = toNum(overrides.minPrice ?? minPrice);
+        const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
+        const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
+        const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
-      // If client: respect their dealType; If owner: ignore and load only their properties
-      const isOwner = user?.role === 'owner';
-      const prefType =
-        !isOwner && user?.role === 'client'
-          ? (user?.preferences?.dealType || undefined)
-          : undefined;
+        const isOwner = user?.role === 'owner';
+        const prefType =
+          !isOwner && user?.role === 'client'
+            ? (user?.preferences?.dealType || undefined)
+            : undefined;
 
-      const desiredType = overrides.type ?? prefType;
+        const desiredType = overrides.type ?? prefType;
 
-      // 1) Fetch
-      let items = [];
-      if (isOwner) {
-        // only my properties
-        const res = await api.get('/properties/mine', { params: { includeStats: 1 } });
-        items = Array.isArray(res.data) ? res.data : [];
-      } else {
-        // public/client flow
-        const params = {
-          sort: 'relevance',
-          q: overrides.q ?? (searchTerm || locationFilter || ''),
-          type: desiredType, // rent/sale only if client asked for it
-          minPrice: minPriceParam,
-          maxPrice: maxPriceParam,
-          minSqm: minSqmParam,
-          maxSqm: maxSqmParam,
-          lat: overrides.lat ?? (userLat ?? undefined),
-          lng: overrides.lng ?? (userLng ?? undefined),
-          page: 1,
-          limit: 9999,
-        };
-        const res = await api.get('/properties', { params });
-        items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        // 1) Fetch
+        let items = [];
+        if (isOwner) {
+          const res = await api.get('/properties/mine', { params: { includeStats: 1 } });
+          items = Array.isArray(res.data) ? res.data : [];
+        } else {
+          const params = {
+            sort: 'relevance',
+            q: overrides.q ?? (searchTerm || locationFilter || ''),
+            type: desiredType,
+            minPrice: minPriceParam,
+            maxPrice: maxPriceParam,
+            minSqm: minSqmParam,
+            maxSqm: maxSqmParam,
+            lat: overrides.lat ?? (userLat ?? undefined),
+            lng: overrides.lng ?? (userLng ?? undefined),
+            page: 1,
+            limit: 9999,
+          };
+          const res = await api.get('/properties', { params });
+          items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        }
+
+        // 2) Client-side filter
+        const q = (overrides.q ?? searchTerm ?? '').trim().toLowerCase();
+        const locFilter = (locationFilter || '').trim().toLowerCase();
+
+        const filtered = items.filter((p) => {
+          const text = `${p.title || ''} ${p.location || ''} ${p.address || ''}`.toLowerCase();
+          const matchesQ   = q ? text.includes(q) : true;
+          const matchesLoc = locFilter ? text.includes(locFilter) : true;
+
+          const price = typeof p.price === 'number' ? p.price : (typeof p.rent === 'number' ? p.rent : undefined);
+          const sqm   = typeof p.squareMeters === 'number' ? p.squareMeters : (typeof p.sqm === 'number' ? p.sqm : undefined);
+
+          const priceOk =
+            (minPriceParam === undefined || (price !== undefined && price >= minPriceParam)) &&
+            (maxPriceParam === undefined || (price !== undefined && price <= maxPriceParam));
+
+          const sqmOk =
+            (minSqmParam === undefined || (sqm !== undefined && sqm >= minSqmParam)) &&
+            (maxSqmParam === undefined || (sqm !== undefined && sqm <= maxSqmParam));
+
+          return matchesQ && matchesLoc && priceOk && sqmOk;
+        });
+
+        // 3) Paginate client-side
+        const total = filtered.length;
+        const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
+        const currentPage = overrides.page ?? 1;
+        const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
+        const start = (safePage - 1) * limit;
+        const paginated = filtered.slice(start, start + limit);
+
+        setAllProperties(filtered);
+        setPage(safePage);
+        setProperties(paginated);
+        setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
+      } catch (err) {
+        console.error('Error fetching properties:', err);
+        setAllProperties([]);
+        setProperties([]);
+        setMeta({ total: 0, totalPages: 1, limit, page: 1 });
       }
-
-      // 2) Client-side filter (works for both owner & client)
-      const q = (overrides.q ?? searchTerm ?? '').trim().toLowerCase();
-      const locFilter = (locationFilter || '').trim().toLowerCase();
-
-      const filtered = items.filter((p) => {
-        // text matches (title / location / address)
-        const text = `${p.title || ''} ${p.location || ''} ${p.address || ''}`.toLowerCase();
-        const matchesQ   = q ? text.includes(q) : true;
-        const matchesLoc = locFilter ? text.includes(locFilter) : true;
-
-        // numeric matches (using price & sqm if present)
-        const price = typeof p.price === 'number' ? p.price : (typeof p.rent === 'number' ? p.rent : undefined);
-        const sqm   = typeof p.squareMeters === 'number' ? p.squareMeters : (typeof p.sqm === 'number' ? p.sqm : undefined);
-
-        const priceOk =
-          (minPriceParam === undefined || (price !== undefined && price >= minPriceParam)) &&
-          (maxPriceParam === undefined || (price !== undefined && price <= maxPriceParam));
-
-        const sqmOk =
-          (minSqmParam === undefined || (sqm !== undefined && sqm >= minSqmParam)) &&
-          (maxSqmParam === undefined || (sqm !== undefined && sqm <= maxSqmParam));
-
-        return matchesQ && matchesLoc && priceOk && sqmOk;
-      });
-
-      // 3) Paginate client-side
-      const total = filtered.length;
-      const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
-      const currentPage = overrides.page ?? 1;
-      const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
-      const start = (safePage - 1) * limit;
-      const paginated = filtered.slice(start, start + limit);
-
-      setAllProperties(filtered);
-      setPage(safePage);
-      setProperties(paginated);
-      setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
-    } catch (err) {
-      console.error('Error fetching properties:', err);
-      setAllProperties([]);
-      setProperties([]);
-      setMeta({ total: 0, totalPages: 1, limit, page: 1 });
-    }
-  },
-  [
-    searchTerm,
-    locationFilter,
-    minPrice,
-    maxPrice,
-    minSqm,
-    maxSqm,
-    userLat,
-    userLng,
-    user?.role,
-    user?.preferences?.dealType,
-    limit,
-  ]
-);
+    },
+    [
+      searchTerm,
+      locationFilter,
+      minPrice,
+      maxPrice,
+      minSqm,
+      maxSqm,
+      userLat,
+      userLng,
+      user?.role,
+      user?.preferences?.dealType,
+      limit,
+    ]
+  );
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -336,18 +328,15 @@ function Dashboard() {
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
 
-  // close popovers on outside click + Esc
+  // close notifications popover on outside click + Esc
   useEffect(() => {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
-      const outsideProfile = profileMenuRef.current && !profileMenuRef.current.contains(e.target);
       if (outsideNotifications) setShowNotifications(false);
-      if (outsideProfile) setShowProfileMenu(false);
     };
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         setShowNotifications(false);
-        setShowProfileMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -528,7 +517,9 @@ function Dashboard() {
               </span>
             )}
           </Link>
-          <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
+         {user?.role !== 'owner' && (
+          <Link to="/favorites" className= "text-dark text-decoration-none"> Favorites</Link>
+         )}
 
           {/* Notifications */}
           <div ref={dropdownRef} className="position-relative">
@@ -583,81 +574,28 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Profile */}
-          {user?.role === 'owner' ? (
-            <div ref={profileMenuRef} className="position-relative">
-              <button
-                type="button"
-                onClick={() => setShowProfileMenu(v => !v)}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-                className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                aria-haspopup="true"
-                aria-expanded={showProfileMenu ? 'true' : 'false'}
-                style={{
-                  background: '#fff',
-                  color: '#111827',
-                  border: '1px solid #e5e7eb',
-                  fontWeight: 500,
-                  transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-                }}
-              >
-                <img
-                  src={profileImg}
-                  alt="Profile"
-                  className="rounded-circle"
-                  style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-                />
-                <span className="small">{user?.name || 'Profile'}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="ms-1" viewBox="0 0 16 16">
-                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1 0-.708z"/>
-                </svg>
-              </button>
-
-              {showProfileMenu && (
-                <div
-                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                  style={{ minWidth: 220, zIndex: 6500 }}
-                  role="menu"
-                >
-                  <ul className="list-group list-group-flush mb-0">
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/profile');
-                      }}
-                    >
-                      Profile
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              to="/profile"
-              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-              style={{
-                background: '#fff',
-                color: '#111827',
-                border: '1px solid #e5e7eb',
-                fontWeight: 500,
-                transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-              }}
-            >
-              <img
-                src={profileImg}
-                alt="Profile"
-                className="rounded-circle"
-                style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-              />
-              <span className="small">{user?.name || 'Profile'}</span>
-            </Link>
-          )}
+          {/* Profile — simple redirect (no dropdown) */}
+          <Link
+            to="/profile"
+            className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
+            style={{
+              background: '#fff',
+              color: '#111827',
+              border: '1px solid #e5e7eb',
+              fontWeight: 500,
+              transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
+            }}
+          >
+            <img
+              src={profileImg}
+              alt="Profile"
+              className="rounded-circle"
+              style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
+            />
+            <span className="small">{user?.name || 'Profile'}</span>
+          </Link>
 
           <button className="btn btn-outline-danger rounded-pill px-3" onClick={handleLogout}>
             Logout
@@ -704,74 +642,8 @@ function Dashboard() {
                     Search
                   </button>
                 </div>
-
-                {/* Filters toggle */}
-                <button
-                  className="btn btn-filters stick px-4"
-                  type="button"
-                  onClick={() => setShowFilters(v => !v)}
-                >
-                  {showFilters ? 'Filters' : 'Filters'}
-                </button>
               </div>
             </div>
-
-            {showFilters && (
-              <div className="card border-0 shadow-sm p-3 mt-2 mx-auto" style={{ maxWidth: 920 }}>
-                <div className="row g-2">
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Location"
-                      value={locationFilter}
-                      onChange={(e) => setLocationFilter(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Min Price"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Max Price"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Min Sqm"
-                      value={minSqm}
-                      onChange={(e) => setMinSqm(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Max Sqm"
-                      value={maxSqm}
-                      onChange={(e) => setMaxSqm(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4 d-flex align-items-end">
-                    <button className="btn btn-brand w-100" onClick={handleSearch}>
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
         
@@ -808,7 +680,6 @@ function Dashboard() {
                   </Link>
                 </>
               )}
-              {/* 🔥 Αφαιρέθηκε το All / Sale / Rent toggle */}
             </div>
             {!Array.isArray(properties) || properties.length === 0 ? (
               <p className="text-muted">No properties found.</p>
@@ -819,8 +690,9 @@ function Dashboard() {
                     <div className="col-sm-6" key={prop._id}>
                       <PropertyCard
                         prop={prop}
-                        isFavorite={favorites.includes(prop._id)}
-                        onToggleFavorite={() => handleFavorite(prop._id)}
+                        isFavorite={user?.role !== 'owner' && favorites.includes(prop._id)}
+                        onToggleFavorite={user?.role !== 'owner' ? () => handleFavorite(prop._id) : undefined}
+                        showFavorite={user?.role !== 'owner'}
                         imgUrl={imgUrl}
                         onOpen={() => navigate(`/property/${prop._id}`)}
                       />

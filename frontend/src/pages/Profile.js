@@ -29,30 +29,20 @@ function Profile() {
   const isClient = user.role === 'client';
   const profilePicture = user.profilePicture || '/default-avatar.jpg';
   const joinedDate = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+      })
     : 'Unknown';
 
   const bool = (v) => (v ? 'Yes' : 'No');
   const orDash = (v) => (v === 0 || v ? v : '-');
 
   const p = user.preferences || {};
-  const r = user.requirements || {};
 
   return (
     <div style={pageGradient} className="py-4">
       <div className="container">
-        {/* Top bar: Back to Dashboard */}
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <Button
-            variant="outline-secondary"
-            className="rounded-pill px-3"
-            onClick={() => navigate('/dashboard')}
-          >
-            ← Back to Dashboard
-          </Button>
-          <div />
-        </div>
-
         {/* Header */}
         <Card className="mb-4">
           <Card.Body className="d-flex align-items-center justify-content-between">
@@ -71,12 +61,17 @@ function Profile() {
                 <Card.Title className="mb-0">
                   {user.name || user.email}
                   {isClient && (
-                    <Badge bg={user.onboardingCompleted ? 'success' : 'warning'} className="ms-2">
+                    <Badge
+                      bg={user.onboardingCompleted ? 'success' : 'warning'}
+                      className="ms-2"
+                    >
                       {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
                     </Badge>
                   )}
                 </Card.Title>
-                <Card.Subtitle className="text-muted">Joined in {joinedDate}</Card.Subtitle>
+                <Card.Subtitle className="text-muted">
+                  Joined in {joinedDate}
+                </Card.Subtitle>
               </div>
             </div>
             <div>
@@ -88,7 +83,7 @@ function Profile() {
         </Card>
 
         {/* === CLIENT VIEW: Personal + Preferences === */}
-        {isClient && (
+        {isClient ? (
           <>
             {/* Personal Information */}
             <Card className="mb-4">
@@ -158,7 +153,11 @@ function Profile() {
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Willing to Have Roommate</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(user.isWillingToHaveRoommate)} />
+                      <Form.Control
+                        plaintext
+                        readOnly
+                        value={bool(user.isWillingToHaveRoommate)}
+                      />
                     </Form.Group>
                   </Col>
                 </Row>
@@ -270,55 +269,22 @@ function Profile() {
               </Card.Body>
             </Card>
           </>
-        )}
-
-        {/* === OWNER VIEW: ONLY Requirements === */}
-        {!isClient && (
+        ) : (
+          /* === OWNER VIEW: ONLY personal info (no requirements) === */
           <Card className="mb-4">
-            <Card.Header as="h5">Requirements</Card.Header>
+            <Card.Header as="h5">Owner Information</Card.Header>
             <Card.Body>
               <Row>
-                <Col md={3}>
+                <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Income Min (€)</Form.Label>
-                    <Form.Control plaintext readOnly value={orDash(r.incomeMin)} />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Income Max (€)</Form.Label>
-                    <Form.Control plaintext readOnly value={orDash(r.incomeMax)} />
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control plaintext readOnly value={user.name || ''} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Allowed Occupations</Form.Label>
-                    <Form.Control
-                      plaintext
-                      readOnly
-                      value={(r.allowedOccupations || []).join(', ') || '-'}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Family Status</Form.Label>
-                    <Form.Control plaintext readOnly value={r.familyStatus || '-'} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Pets Allowed</Form.Label>
-                    <Form.Control plaintext readOnly value={bool(r.petsAllowed)} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Smoking Allowed</Form.Label>
-                    <Form.Control plaintext readOnly value={bool(r.smokingAllowed)} />
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control plaintext readOnly value={user.email} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -326,14 +292,14 @@ function Profile() {
               <Row>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Work Location</Form.Label>
-                    <Form.Control plaintext readOnly value={r.workLocation || '-'} />
+                    <Form.Label>Phone</Form.Label>
+                    <Form.Control plaintext readOnly value={user.phone || '-'} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Preferred Tenant Region</Form.Label>
-                    <Form.Control plaintext readOnly value={r.preferredTenantRegion || '-'} />
+                    <Form.Label>Joined</Form.Label>
+                    <Form.Control plaintext readOnly value={joinedDate} />
                   </Form.Group>
                 </Col>
               </Row>
