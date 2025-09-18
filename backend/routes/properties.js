@@ -5,27 +5,30 @@ const router = express.Router();
 const verifyToken = require("../middlewares/authMiddleware");
 const optionalAuth = require("../middlewares/optionalAuth");
 
-// ⬇︎ χρησιμοποιούμε fields (images + floorPlanImage)
+// uploads: images[] + floorPlanImage (multer fields)
 const { uploadFields } = require("../middlewares/uploadMiddleware");
 
 const propertyController = require("../controllers/propertyController");
 
-// GET all (public; αν υπάρχει token το optionalAuth γεμίζει req.currentUser για matching)
+// ------------------------------------------------------------------
+// Public listing (optional auth: αν υπάρχει token, γεμίζει req.currentUser
+// ώστε να δουλέψει το client matching στον controller)
 router.get("/", optionalAuth, propertyController.getAllProperties);
 
-// GET my properties (owner only)
+// Owner: τα properties μου (+stats με ?includeStats=1)
 router.get("/mine", verifyToken, propertyController.getMyProperties);
 
-// CREATE property (owner + uploads)
+// Create (owner + uploads)
 router.post("/", verifyToken, uploadFields, propertyController.createProperty);
 
-// GET by id (public με optionalAuth για client rules αν χρειαστεί)
+// Public: get by id (optional auth για μελλοντικούς κανόνες/visibility)
 router.get("/:propertyId", optionalAuth, propertyController.getPropertyById);
 
-// DELETE property (owner)
-router.delete("/:propertyId", verifyToken, propertyController.deleteProperty);
-
-// UPDATE property (owner + uploads)
+// Update (owner + uploads) — full update (PUT) ή partial (PATCH)
 router.put("/:propertyId", verifyToken, uploadFields, propertyController.updateProperty);
+router.patch("/:propertyId", verifyToken, uploadFields, propertyController.updateProperty);
+
+// Delete (owner)
+router.delete("/:propertyId", verifyToken, propertyController.deleteProperty);
 
 module.exports = router;

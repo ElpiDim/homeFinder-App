@@ -1,5 +1,5 @@
 // src/pages/PropertyDetails.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
@@ -22,20 +22,24 @@ function PropertyDetails() {
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
-  const token = localStorage.getItem('token');
-
-  const pageGradient = {
+  const pageGradient = useMemo(() => ({
     minHeight: '100vh',
     background:
       'linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)',
-  };
+  }), []);
 
-  const baseUrl = 'http://localhost:5000';
-  const getImageUrl = (path) => {
-    if (!path) return 'https://placehold.co/1200x800?text=No+Image';
-    if (path.startsWith('http')) return path;
-    return `${baseUrl}${path}`;
+  // --- image URL helpers (no localhost hardcode) ---
+  const API_ORIGIN =
+    (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const normalizeUploadPath = (src) => {
+    if (!src) return '';
+    if (src.startsWith('http')) return src;
+    const clean = src.replace(/^\/+/, '');
+    return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
   };
+  const getImageUrl = (path) =>
+    path ? `${API_ORIGIN}${normalizeUploadPath(path)}` : 'https://placehold.co/1200x800?text=No+Image';
 
   // default prefilled message for "I'm Interested"
   const getDefaultInterestMsg = () => {
@@ -64,10 +68,12 @@ Could we schedule a viewing? Thanks!`;
 
     const checkFavorite = async () => {
       try {
-        const res = await api.get('/favorites', {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await api.get('/favorites');
+        const list = Array.isArray(res.data) ? res.data : [];
+        const fav = list.find((f) => {
+          const pid = (f.propertyId && typeof f.propertyId === 'object') ? f.propertyId._id : f.propertyId;
+          return String(pid) === String(propertyId);
         });
-        const fav = res.data.find((f) => (f.propertyId?._id || f.propertyId) === propertyId);
         if (mounted) setIsFavorite(!!fav);
       } catch (err) {
         console.error('Error fetching favorites:', err);
@@ -75,26 +81,18 @@ Could we schedule a viewing? Thanks!`;
     };
 
     fetchProperty();
-    if (user && token) checkFavorite();
+    if (user) checkFavorite();
 
-    return () => {
-      mounted = false;
-    };
-  }, [propertyId, user, token]);
+    return () => { mounted = false; };
+  }, [propertyId, user]);
 
   const handleFavorite = async () => {
     try {
       if (!isFavorite) {
-        await api.post(
-          '/favorites',
-          { propertyId },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await api.post('/favorites', { propertyId }, { headers: { 'Content-Type': 'application/json' } });
         setIsFavorite(true);
       } else {
-        await api.delete(`/favorites/${propertyId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.delete(`/favorites/${propertyId}`);
         setIsFavorite(false);
       }
     } catch (err) {
@@ -105,11 +103,7 @@ Could we schedule a viewing? Thanks!`;
   const handleInterestSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post(
-        '/interests',
-        { propertyId, message: interestMessage },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/interests', { propertyId, message: interestMessage });
       setShowInterestModal(false);
       alert('Your interest has been sent to the owner!');
     } catch (err) {
@@ -121,9 +115,7 @@ Could we schedule a viewing? Thanks!`;
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this property?')) return;
     try {
-      await api.delete(`/properties/${propertyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/properties/${propertyId}`);
       navigate('/dashboard');
     } catch (err) {
       console.error('Error deleting property:', err);
@@ -185,12 +177,18 @@ Could we schedule a viewing? Thanks!`;
 
   const boolTick = (v) => (v ? 'Yes' : 'No');
 
-    const reqs = Array.isArray(property.requirements)
-    ? property.requirements.reduce((acc, r) => {
-        acc[r.name] = r.value;
+  // requirements can be an object or an array in older records
+  const reqs = (() => {
+    const r = property.requirements;
+    if (!r) return {};
+    if (Array.isArray(r)) {
+      return r.reduce((acc, item) => {
+        if (item && item.name) acc[item.name] = item.value;
         return acc;
-      }, {})
-    : {};
+      }, {});
+    }
+    return r; // assume object
+  })();
 
   const areaForPpsm = Number(property.squareMeters || property.surface || 0);
   const pricePerSqm =
@@ -253,7 +251,7 @@ Could we schedule a viewing? Thanks!`;
               <Button
                 variant="success"
                 className="rounded-pill px-4"
-                onClick={() => navigate(`/messages/property/${propertyId}/user/${property.ownerId._id}`)}
+                onClick={() => navigate(`/messages/property/${propertyId}/user/${property.ownerId._id || property.ownerId}`)}
               >
                 Contact Owner
               </Button>
@@ -317,7 +315,7 @@ Could we schedule a viewing? Thanks!`;
                 key={i}
                 type="button"
                 className="p-0 border-0 bg-transparent"
-                onClick={() => { setCurrentImageIndex(i); openGalleryAt(i); }}
+                onClick={() => { setCurrentImageIndex(i); setShowGallery(true); setGalleryIndex(i); }}
                 title={`Image ${i + 1}`}
               >
                 <img
@@ -373,10 +371,10 @@ Could we schedule a viewing? Thanks!`;
           <div className="col"><strong>Square Meters:</strong> {property.squareMeters ?? '—'} m²</div>
           <div className="col"><strong>Bedrooms:</strong> {reqs.bedrooms ?? '—'}</div>
           <div className="col"><strong>Bathrooms:</strong> {reqs.bathrooms ?? '—'}</div>
-          <div className="col"><strong>Parking:</strong> {boolTick(reqs.parking)}</div>
-          <div className="col"><strong>Furnished:</strong> {boolTick(reqs.furnished)}</div>
-          <div className="col"><strong>Pets Allowed:</strong> {boolTick(reqs.petsAllowed)}</div>
-          <div className="col"><strong>Smoking Allowed:</strong> {boolTick(reqs.smokingAllowed)}</div>
+          <div className="col"><strong>Parking:</strong> {reqs.parking != null ? boolTick(reqs.parking) : '—'}</div>
+          <div className="col"><strong>Furnished:</strong> {reqs.furnished != null ? boolTick(reqs.furnished) : '—'}</div>
+          <div className="col"><strong>Pets Allowed:</strong> {reqs.petsAllowed != null ? boolTick(reqs.petsAllowed) : '—'}</div>
+          <div className="col"><strong>Smoking Allowed:</strong> {reqs.smokingAllowed != null ? boolTick(reqs.smokingAllowed) : '—'}</div>
           <div className="col"><strong>Heating:</strong> {reqs.heating || '—'}</div>
         </div>
 
@@ -449,10 +447,10 @@ Could we schedule a viewing? Thanks!`;
           />
         </Modal.Body>
         {property.images?.length > 1 && (
-          <Modal.Footer className="d-flex justify-content-between">
+          <Modal.Footers className="d-flex justify-content-between">
             <Button variant="light" className="rounded-pill px-4" onClick={prevImage}>◀ Prev</Button>
             <Button variant="light" className="rounded-pill px-4" onClick={nextImage}>Next ▶</Button>
-          </Modal.Footer>
+          </Modal.Footers>
         )}
       </Modal>
 

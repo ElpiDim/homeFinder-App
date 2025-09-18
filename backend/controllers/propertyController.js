@@ -8,11 +8,33 @@ const User = require("../models/user");
 const { computeMatchScore } = require("../utils/matching");
 
 /* ----------------------------- helpers ----------------------------- */
-const hasValue = (v) =>
-  v !== undefined && v !== null && String(v).trim() !== "";
+const hasValue = (v) => v !== undefined && v !== null && String(v).trim() !== "";
+
 const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
+
 const setIfProvided = (current, incoming, parser = (x) => x) =>
   hasValue(incoming) ? parser(incoming) : current;
+
+const toBool = (v) => {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v === "true" || v === "1" || v.toLowerCase() === "yes";
+  if (typeof v === "number") return v === 1;
+  return undefined;
+};
+
+const toArray = (v) => {
+  // Accept arrays, repeated fields (features[]), CSV strings, JSON strings
+  if (Array.isArray(v)) return v.map(String).map((s) => s.trim()).filter(Boolean);
+  if (!hasValue(v)) return [];
+  const str = String(v).trim();
+  try {
+    const parsed = JSON.parse(str);
+    if (Array.isArray(parsed)) return parsed.map(String).map((s) => s.trim()).filter(Boolean);
+  } catch (_) {
+    /* not json -> fall back to csv */
+  }
+  return str.split(",").map((s) => s.trim()).filter(Boolean);
+};
 
 // Map user.preferences -> keys που περιμένει το matching
 const mapClientPrefs = (p = {}) => ({
@@ -39,9 +61,7 @@ const extractImagesFromReq = (req) => {
   }
   // fields mode
   if (req.files && typeof req.files === "object") {
-    const images = (req.files.images || []).map(
-      (f) => `/uploads/${f.filename}`
-    );
+    const images = (req.files.images || []).map((f) => `/uploads/${f.filename}`);
     const floorPlanImage = req.files.floorPlanImage?.[0]
       ? `/uploads/${req.files.floorPlanImage[0].filename}`
       : undefined;
@@ -62,21 +82,22 @@ exports.createProperty = async (req, res) => {
     const { images, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // requirements: array JSON string -> array
-    let requirements = [];
-    if (b.requirements) {
-      try {
-        requirements = JSON.parse(b.requirements);
-      } catch (e) {
-        console.error("Error parsing requirements JSON:", e);
-        return res.status(400).json({
-          message: "Invalid requirements format. Expected a JSON string.",
-        });
-      }
+    // canonical price with backward-compat (accepts 'price' or 'rent')
+    const priceNum = toNum(b.price ?? b.rent, parseFloat);
+    if (!hasValue(b.title) || !hasValue(b.location) || !hasValue(priceNum) || Number(priceNum) <= 0) {
+      return res.status(400).json({ message: "title, location and positive price are required." });
     }
 
-    // Συγχρόνισε και price/rent αν θες συμβατότητα με παλιό schema
-    const priceNum = toNum(b.price ?? b.rent, parseFloat);
+    // Arrays
+    const features = toArray(b["features[]"] ?? b.features);
+    const allowedOccupations = toArray(b["allowedOccupations[]"] ?? b.allowedOccupations);
+
+    // Tenant reqs
+    const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
+
+    // Geo
+    const latitude = toNum(b.latitude, parseFloat);
+    const longitude = toNum(b.longitude, parseFloat);
 
     const newProperty = new Property({
       ownerId,
@@ -85,27 +106,63 @@ exports.createProperty = async (req, res) => {
       location: b.location,
       address: b.address,
 
-      price: priceNum,
-      rent: priceNum, // αν το schema σου δεν έχει rent, απλά αγνοείται
+      price: priceNum, // canonical
 
       type: b.type, // 'rent'|'sale'
       status: b.status,
 
+      // basic metrics
+      squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
+      surface: toNum(b.surface, parseInt),
+      floor: toNum(b.floor, parseInt),
+      levels: toNum(b.levels, parseInt),
+      bedrooms: toNum(b.bedrooms, parseInt),
+      bathrooms: toNum(b.bathrooms, parseInt),
+      wc: toNum(b.wc, parseInt),
+      kitchens: toNum(b.kitchens, parseInt),
+      livingRooms: toNum(b.livingRooms, parseInt),
+      onTopFloor: toBool(b.onTopFloor) ?? false,
+
+      // extras
+      yearBuilt: toNum(b.yearBuilt, parseInt),
+      condition: b.condition,
+      heating: b.heating,
+      energyClass: b.energyClass,
+      orientation: b.orientation,
+      furnished: toBool(b.furnished) ?? false,
+      petsAllowed: toBool(b.petsAllowed) ?? false,
+      smokingAllowed: toBool(b.smokingAllowed) ?? false,
+      hasElevator: toBool(b.hasElevator) ?? false,
+      hasStorage: toBool(b.hasStorage) ?? false,
+      parkingSpaces: toNum(b.parkingSpaces, parseInt),
+      monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
+      view: b.view,
+      insulation: toBool(b.insulation) ?? false,
+      plotSize: toNum(b.plotSize, parseFloat),
+
+      // media
       images,
       floorPlanImage,
 
-      squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
-      plotSize: toNum(b.plotSize, parseFloat),
-      yearBuilt: toNum(b.yearBuilt, parseInt),
+      // features
+      features,
 
-      requirements,
+      // geo
+      latitude,
+      longitude,
+
+      // owner notes
       ownerNotes: b.ownerNotes,
+
+      // tenant requirements
+      tenantRequirements: {
+        minTenantSalary,
+        allowedOccupations,
+      },
     });
 
     await newProperty.save();
-    res
-      .status(201)
-      .json({ message: "Property created", property: newProperty });
+    res.status(201).json({ message: "Property created", property: newProperty });
   } catch (err) {
     console.error("❌ createProperty error:", err);
     res.status(500).json({ message: "Server error" });
@@ -123,7 +180,7 @@ exports.getAllProperties = async (req, res) => {
       sort = "relevance", // relevance | newest | price_asc | price_desc | likes
       page = 1,
       limit = 24,
-      filters, // JSON string of filters (για απλή requirements αντιστοίχιση)
+      filters, // JSON string of filters (legacy)
       minMatchCount, // number of filters that must match
     } = req.query;
 
@@ -141,7 +198,7 @@ exports.getAllProperties = async (req, res) => {
 
     if (type) match.type = type;
 
-    // price range from query params
+    // price range
     if (hasValue(minPrice) || hasValue(maxPrice)) {
       match.price = {};
       if (hasValue(minPrice)) match.price.$gte = parseFloat(minPrice);
@@ -150,7 +207,7 @@ exports.getAllProperties = async (req, res) => {
 
     const pipeline = [{ $match: match }];
 
-    // Requirements matching logic (query filters only)
+    // (Legacy) Requirements filters block – kept for backwards-compat (no-op for the new schema)
     let parsedFilters = [];
     if (filters) {
       try {
@@ -169,7 +226,7 @@ exports.getAllProperties = async (req, res) => {
             matchCount: {
               $size: {
                 $filter: {
-                  input: "$requirements",
+                  input: { $ifNull: ["$requirements", []] }, // property.requirements δεν υπάρχει στο νέο schema
                   as: "req",
                   cond: {
                     $anyElementTrue: {
@@ -220,7 +277,6 @@ exports.getAllProperties = async (req, res) => {
       pipeline.push({ $sort: { favoritesCount: -1, createdAt: -1 } });
     }
 
-    // Για clients: θα κάνουμε pagination ΜΕΤΑ το matching
     pipeline.push({ $project: { favDocs: 0 } });
 
     // Για public/owner ροές, κάνε pagination στην aggregation
@@ -247,7 +303,6 @@ exports.getAllProperties = async (req, res) => {
       const rawPrefs = req.currentUser.preferences || {};
       const prefs = mapClientPrefs(rawPrefs);
 
-      // αν θέλεις "μόνο rent" όταν το δηλώνει ο client
       if (rawPrefs.dealType) {
         properties = properties.filter((p) => p.type === rawPrefs.dealType);
       }
@@ -349,46 +404,71 @@ exports.updateProperty = async (req, res) => {
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // updated fields
+    // core
     property.title = b.title ?? property.title;
     property.description = b.description ?? property.description;
     property.location = b.location ?? property.location;
     property.address = b.address ?? property.address;
 
+    // price (canonical) — accepts rent for backward-compat
     const priceNum = toNum(b.price ?? b.rent, parseFloat);
     if (hasValue(priceNum)) {
       property.price = priceNum;
-      property.rent = priceNum;
     }
 
+    // type/status
     property.type = b.type ?? property.type;
     property.status = b.status ?? property.status;
-    property.squareMeters = setIfProvided(
-      property.squareMeters,
-      b.squareMeters ?? b.sqm,
-      (v) => parseInt(v)
-    );
-    property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
-    property.yearBuilt = setIfProvided(
-      property.yearBuilt,
-      b.yearBuilt,
-      (v) => parseInt(v)
-    );
-    property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
 
-    // Update requirements
-    if (b.requirements) {
-      try {
-        property.requirements = JSON.parse(b.requirements);
-      } catch (e) {
-        console.error("Error parsing requirements JSON:", e);
-        return res.status(400).json({
-          message: "Invalid requirements format. Expected a JSON string.",
-        });
-      }
+    // metrics
+    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters ?? b.sqm, (v) => parseInt(v));
+    property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));
+    property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
+    property.levels = setIfProvided(property.levels, b.levels, (v) => parseInt(v));
+    property.bedrooms = setIfProvided(property.bedrooms, b.bedrooms, (v) => parseInt(v));
+    property.bathrooms = setIfProvided(property.bathrooms, b.bathrooms, (v) => parseInt(v));
+    property.wc = setIfProvided(property.wc, b.wc, (v) => parseInt(v));
+    property.kitchens = setIfProvided(property.kitchens, b.kitchens, (v) => parseInt(v));
+    property.livingRooms = setIfProvided(property.livingRooms, b.livingRooms, (v) => parseInt(v));
+    if (hasValue(b.onTopFloor)) property.onTopFloor = toBool(b.onTopFloor) ?? property.onTopFloor;
+
+    // extras
+    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) => parseInt(v));
+    property.condition = hasValue(b.condition) ? b.condition : property.condition;
+    property.heating = hasValue(b.heating) ? b.heating : property.heating;
+    property.energyClass = hasValue(b.energyClass) ? b.energyClass : property.energyClass;
+    property.orientation = hasValue(b.orientation) ? b.orientation : property.orientation;
+    if (hasValue(b.furnished)) property.furnished = toBool(b.furnished) ?? property.furnished;
+    if (hasValue(b.petsAllowed)) property.petsAllowed = toBool(b.petsAllowed) ?? property.petsAllowed;
+    if (hasValue(b.smokingAllowed)) property.smokingAllowed = toBool(b.smokingAllowed) ?? property.smokingAllowed;
+    if (hasValue(b.hasElevator)) property.hasElevator = toBool(b.hasElevator) ?? property.hasElevator;
+    if (hasValue(b.hasStorage)) property.hasStorage = toBool(b.hasStorage) ?? property.hasStorage;
+    property.parkingSpaces = setIfProvided(property.parkingSpaces, b.parkingSpaces, (v) => parseInt(v));
+    property.monthlyMaintenanceFee = setIfProvided(property.monthlyMaintenanceFee, b.monthlyMaintenanceFee, parseFloat);
+    property.view = hasValue(b.view) ? b.view : property.view;
+    if (hasValue(b.insulation)) property.insulation = toBool(b.insulation) ?? property.insulation;
+    property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
+    property.ownerNotes = hasValue(b.ownerNotes) ? b.ownerNotes : property.ownerNotes;
+
+    // features (replace set if provided)
+    const incomingFeatures = b["features[]"] ?? b.features;
+    if (hasValue(incomingFeatures) || Array.isArray(incomingFeatures)) {
+      property.features = toArray(incomingFeatures);
     }
 
-    // images
+    // geo
+    if (hasValue(b.latitude)) property.latitude = toNum(b.latitude, parseFloat);
+    if (hasValue(b.longitude)) property.longitude = toNum(b.longitude, parseFloat);
+
+    // tenant requirements
+    const incomingOcc = b["allowedOccupations[]"] ?? b.allowedOccupations;
+    const occArray = toArray(incomingOcc);
+    const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
+    if (!property.tenantRequirements) property.tenantRequirements = {};
+    if (occArray.length) property.tenantRequirements.allowedOccupations = occArray;
+    if (hasValue(minTenantSalary)) property.tenantRequirements.minTenantSalary = minTenantSalary;
+
+    // images / floorplan
     if (newImages.length) {
       property.images = [...(property.images || []), ...newImages];
     }

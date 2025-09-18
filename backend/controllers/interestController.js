@@ -6,7 +6,7 @@ const Notification = require("../models/notification");
 const STATUS = Object.freeze({
   PENDING: "pending",
   ACCEPTED: "accepted",
-  DECLINED: "declined", // ← matches schema enum
+  DECLINED: "declined", // schema enum
 });
 
 // helper to create notifications
@@ -62,7 +62,7 @@ exports.submitInterest = async (req, res) => {
       message: `New interest on "${property.title || "your property"}".`,
     });
 
-    res.status(200).json({ message: "Interest submitted successfully", interestId: interest._id });
+    res.status(201).json({ message: "Interest submitted successfully", interestId: interest._id });
   } catch (err) {
     console.error("❌ Submit interest error:", err);
     res.status(500).json({ message: "Server error" });
@@ -81,6 +81,12 @@ exports.getInterestById = async (req, res) => {
 
     if (!interest) return res.status(404).json({ message: "Interest not found" });
 
+    // Optionally enforce access (tenant or owning owner) – uncomment if needed:
+    // const uid = String(req.user.userId);
+    // const isOwner = interest.propertyId && String(interest.propertyId.ownerId) === uid;
+    // const isTenant = String(interest.tenantId?._id || interest.tenantId) === uid;
+    // if (!isOwner && !isTenant) return res.status(403).json({ message: "Forbidden" });
+
     res.json(interest);
   } catch (err) {
     console.error("❌ Get interest error:", err);
@@ -93,7 +99,6 @@ exports.getInterestById = async (req, res) => {
  * POST /api/interests/:id/proposals
  * body: { dates: string[] }
  */
-
 exports.proposeDates = async (req, res) => {
   try {
     const { dates } = req.body || {};
@@ -122,7 +127,7 @@ exports.proposeDates = async (req, res) => {
       return res.status(400).json({ message: "No valid dates provided" });
     }
 
-     // ensure array exists for interests created before this field
+    // ensure array exists for interests created before this field
     interest.proposedDates = interest.proposedDates || [];
 
     const existing = new Set(interest.proposedDates.map((d) => +d));
@@ -152,21 +157,15 @@ exports.proposeDates = async (req, res) => {
   }
 };
 
-
 /**
  * Owner updates interest status (+ optional preferredDate)
- * Supports BOTH:
- *   PUT   /api/interests/:interestId
- *   PATCH /api/interests/:id/status
+ * PATCH /api/interests/:id/status
  * body: { status: 'accepted' | 'declined' | 'pending', preferredDate?: Date|string|null }
  * Notifies tenant on accepted/declined.
  */
-
-
 exports.updateInterestStatus = async (req, res) => {
-  
   try {
-    const interestId = req.params.interestId || req.params.id;
+    const interestId = req.params.id;
     if (!interestId) return res.status(400).json({ message: "Missing interest id" });
 
     let { status, preferredDate } = req.body;
@@ -184,7 +183,6 @@ exports.updateInterestStatus = async (req, res) => {
     const interest = await Interest.findById(interestId).populate("propertyId");
     if (!interest) return res.status(404).json({ message: "Interest not found" });
 
-    
     if (String(interest.propertyId.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
@@ -209,10 +207,7 @@ exports.updateInterestStatus = async (req, res) => {
 
     // notify tenant when accepted/declined
     if (status === STATUS.ACCEPTED || status === STATUS.DECLINED) {
-            // NOTE: Notification model + frontend expect "interest_rejected"
-      // for declined interests. Using a mismatched type caused
-      // validation errors and missing notifications. Keep naming
-      // consistent across backend and frontend.
+      // keep naming consistent across backend and frontend
       const type =
         status === STATUS.ACCEPTED ? "interest_accepted" : "interest_rejected";
 

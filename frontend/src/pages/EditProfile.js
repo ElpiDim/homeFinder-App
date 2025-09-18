@@ -22,7 +22,7 @@ export default function EditProfile() {
 
   const isClient = user?.role === 'client';
 
-  // --- initial state from user ---
+  // --- initial state from user (safe fallbacks) ---
   const [personal, setPersonal] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -69,8 +69,33 @@ export default function EditProfile() {
     setter((s) => ({ ...s, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
+
+  const validateClient = () => {
+    const rMin = toNumOrUndef(prefs.rentMin);
+    const rMax = toNumOrUndef(prefs.rentMax);
+    if (rMin !== undefined && rMax !== undefined && rMin > rMax) {
+      alert('Rent Min cannot be greater than Rent Max.');
+      return false;
+    }
+    const sMin = toNumOrUndef(prefs.sqmMin);
+    const sMax = toNumOrUndef(prefs.sqmMax);
+    if (sMin !== undefined && sMax !== undefined && sMin > sMax) {
+      alert('Sqm Min cannot be greater than Sqm Max.');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      alert('You need to be logged in.');
+      return;
+    }
+
+    if (isClient && !validateClient()) return;
+
     setSaving(true);
     try {
       let payload;
@@ -79,39 +104,39 @@ export default function EditProfile() {
         const personalClean = clean({
           name: personal.name,
           phone: personal.phone,
-          age: personal.age ? Number(personal.age) : undefined,
-          householdSize: personal.householdSize ? Number(personal.householdSize) : undefined,
+          age: toNumOrUndef(personal.age),
+          householdSize: toNumOrUndef(personal.householdSize),
           hasFamily: personal.hasFamily,
           hasPets: personal.hasPets,
           smoker: personal.smoker,
           occupation: personal.occupation,
-          salary: personal.salary ? Number(personal.salary) : undefined,
+          salary: toNumOrUndef(personal.salary),
           isWillingToHaveRoommate: personal.isWillingToHaveRoommate,
         });
 
         const prefsClean = clean({
           location: prefs.location,
-          rentMin: prefs.rentMin ? Number(prefs.rentMin) : undefined,
-          rentMax: prefs.rentMax ? Number(prefs.rentMax) : undefined,
-          sqmMin: prefs.sqmMin ? Number(prefs.sqmMin) : undefined,
-          sqmMax: prefs.sqmMax ? Number(prefs.sqmMax) : undefined,
-          bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
-          bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
+          rentMin: toNumOrUndef(prefs.rentMin),
+          rentMax: toNumOrUndef(prefs.rentMax),
+          sqmMin: toNumOrUndef(prefs.sqmMin),
+          sqmMax: toNumOrUndef(prefs.sqmMax),
+          bedrooms: toNumOrUndef(prefs.bedrooms),
+          bathrooms: toNumOrUndef(prefs.bathrooms),
           furnished: !!prefs.furnished,
           petsAllowed: !!prefs.petsAllowed,
           smokingAllowed: !!prefs.smokingAllowed,
-          yearBuiltMin: prefs.yearBuiltMin ? Number(prefs.yearBuiltMin) : undefined,
+          yearBuiltMin: toNumOrUndef(prefs.yearBuiltMin),
           heatingType: prefs.heatingType || undefined, // enum: autonomous|central|ac|none
         });
 
-        payload = { ...personalClean, preferences: prefsClean };
+        payload = clean({ ...personalClean, preferences: prefsClean });
       } else {
         const reqsClean = clean({
-          incomeMin: reqs.incomeMin ? Number(reqs.incomeMin) : undefined,
-          incomeMax: reqs.incomeMax ? Number(reqs.incomeMax) : undefined,
+          incomeMin: toNumOrUndef(reqs.incomeMin),
+          incomeMax: toNumOrUndef(reqs.incomeMax),
           allowedOccupations: reqs.allowedOccupations
             ? reqs.allowedOccupations.split(',').map((o) => o.trim()).filter(Boolean)
-            : [],
+            : [], // στέλνουμε [] αν είναι κενό (ή μπορείς να το κάνεις undefined αν θες να μην αλλάζει)
           familyStatus: reqs.familyStatus || undefined,
           petsAllowed: !!reqs.petsAllowed,
           smokingAllowed: !!reqs.smokingAllowed,
@@ -119,7 +144,7 @@ export default function EditProfile() {
           preferredTenantRegion: reqs.preferredTenantRegion || undefined,
         });
 
-        payload = { requirements: reqsClean };
+        payload = clean({ requirements: reqsClean });
       }
 
       // same endpoint for both, different payload
@@ -146,6 +171,16 @@ export default function EditProfile() {
     }),
     []
   );
+
+  if (!user) {
+    return (
+      <div style={pageGradient} className="py-4">
+        <div className="container" style={{ maxWidth: 960 }}>
+          <Card><Card.Body>Loading…</Card.Body></Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={pageGradient} className="py-4">

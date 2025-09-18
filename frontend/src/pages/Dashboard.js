@@ -7,9 +7,8 @@ import GoogleMapView from '../components/GoogleMapView';
 import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
-import Logo from '../components/Logo'; 
+import Logo from '../components/Logo';
 import { getMessages } from '../services/messagesService';
-
 
 /* ---------- helpers (notifications) ---------- */
 const iconForType = (t) => {
@@ -61,7 +60,7 @@ function Dashboard() {
   const [limit] = useState(8);
   const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
 
-  const [searchTerm, setSearchTerm] = useState(''); // (κρατιέται σε περίπτωση που ξαναβάλεις input)
+  const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -72,7 +71,8 @@ function Dashboard() {
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  // filters (υπάρχουν για μελλοντική χρήση, δεν προβάλλεται panel)
+
+  // filters (κρατιούνται για μελλοντικό panel)
   const [locationFilter, setLocationFilter] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -88,23 +88,19 @@ function Dashboard() {
   const dropdownRef = useRef(null);
   const profileMenuRef = useRef(null);
 
-  const token = localStorage.getItem('token');
-
   const profileImg = user?.profilePicture
-    ? user.profilePicture.startsWith('http')
-      ? user.profilePicture
-      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
+    ? (user.profilePicture.startsWith('http')
+        ? user.profilePicture
+        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
 
   /* ---------- utils ---------- */
-// pastel, airy background
-const pageGradient = useMemo(() => ({
-  minHeight: '100vh',
-  background:
-    // soft radial highlight + very light green gradient
-    'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-     linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-}), []);
+  const pageGradient = useMemo(() => ({
+    minHeight: '100vh',
+    background:
+      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
+       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+  }), []);
 
   const imgUrl = (src) => {
     if (!src) return 'https://via.placeholder.com/400x225?text=No+Image';
@@ -131,21 +127,10 @@ const pageGradient = useMemo(() => ({
   const handleFavorite = async (propertyId) => {
     try {
       if (favorites.includes(propertyId)) {
-        await api.delete(`/favorites/${propertyId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.delete(`/favorites/${propertyId}`);
         setFavorites((prev) => prev.filter((id) => id !== propertyId));
       } else {
-        await api.post(
-          '/favorites',
-          { propertyId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        await api.post('/favorites', { propertyId }, { headers: { 'Content-Type': 'application/json' } });
         setFavorites((prev) => [...prev, propertyId]);
       }
     } catch (err) {
@@ -174,7 +159,7 @@ const pageGradient = useMemo(() => ({
           page: 1,
           limit: 9999,
         };
-        const endpoint = user?.role === 'client' ? '/match/properties' : '/properties';
+        const endpoint = '/properties';
         const res = await api.get(endpoint, { params });
         const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
 
@@ -209,33 +194,33 @@ const pageGradient = useMemo(() => ({
       maxSqm,
       userLat,
       userLng,
-      user,
+      user?.role,
       limit,
     ]
   );
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await api.get('/notifications', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/notifications');
       const list = Array.isArray(res.data) ? res.data : [];
       setNotifications(list);
-      setUnreadCount(list.filter((n) => !n.read).length);
+      // Use readAt if present; fallback to read boolean
+      setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setNotifications([]);
       setUnreadCount(0);
     }
-  }, [token]);
- const fetchUnreadMessages = useCallback(async () => {
+  }, []);
+
+  const fetchUnreadMessages = useCallback(async () => {
     try {
       const msgs = await getMessages();
       const lastCheck = localStorage.getItem('lastMessageCheck');
       const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
       const count = msgs.filter(
         (m) =>
-          m.receiverId?._id === user?.id &&
+          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
           new Date(m.timeStamp) > lastDate
       ).length;
       setUnreadMessages(count);
@@ -243,7 +228,7 @@ const pageGradient = useMemo(() => ({
       console.error('Error fetching messages:', err);
       setUnreadMessages(0);
     }
-  }, [user]);
+  }, [user?.id]);
 
   /* ---------- effects ---------- */
   useEffect(() => {
@@ -263,10 +248,18 @@ const pageGradient = useMemo(() => ({
     fetchAllProperties({ page: 1 });
     fetchUnreadMessages();
 
-    api.get('/favorites', { headers: { Authorization: `Bearer ${token}` } })
+    // Load favorites → map to property IDs (supports populated or plain refs)
+    api.get('/favorites')
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
-        const ids = arr.map((fav) => fav._id || fav.propertyId || fav.id).filter(Boolean);
+        const ids = arr
+          .map((fav) => {
+            const pid = (fav.propertyId && typeof fav.propertyId === 'object')
+              ? fav.propertyId._id
+              : fav.propertyId;
+            return pid || null;
+          })
+          .filter(Boolean);
         setFavorites(ids);
       })
       .catch(() => setFavorites([]));
@@ -274,14 +267,14 @@ const pageGradient = useMemo(() => ({
     fetchNotifications();
 
     const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
-    api.get(endpoint, { headers: { Authorization: `Bearer ${token}` } })
+    api.get(endpoint)
       .then((res) => {
         const appts = Array.isArray(res.data) ? res.data : [];
         const confirmed = appts.filter((appt) => appt.status === 'confirmed');
         setHasAppointments(confirmed.length > 0);
       })
       .catch(() => setHasAppointments(false));
-  }, [user, token, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
+  }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
 
   // client-side σελιδοποίηση όταν αλλάζει η σελίδα
   useEffect(() => {
@@ -299,7 +292,8 @@ const pageGradient = useMemo(() => ({
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
-   // messages polling
+
+  // messages polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchUnreadMessages, 30000);
@@ -333,17 +327,17 @@ const pageGradient = useMemo(() => ({
     const nextOpen = !showNotifications;
     setShowNotifications(nextOpen);
     if (nextOpen) {
-      const unread = notifications.filter((n) => !n.read);
+      const unread = notifications.filter((n) => !n.readAt && !n.read);
       if (unread.length) {
         try {
           await Promise.all(
-            unread.map((n) =>
-              api.patch(`/notifications/${n._id}/read`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-            )
+            unread.map((n) => api.patch(`/notifications/${n._id}/read`))
           );
-          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+          // reflect both read + readAt locally
+          const now = new Date().toISOString();
+          setNotifications((prev) => prev.map((n) =>
+            unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n
+          ));
           setUnreadCount(0);
         } catch (err) {
           console.error('Failed to mark notifications as read:', err);
@@ -374,19 +368,20 @@ const pageGradient = useMemo(() => ({
   };
 
   // pagination helpers
+  const totalPagesNum = totalPages;
   const canPrev = page > 1;
-  const canNext = page < totalPages;
+  const canNext = page < totalPagesNum;
   const goPrev = () => { if (!canPrev) return; setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goNext = () => { if (!canNext) return; setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goPage = (p) => { if (p === page) return; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const renderPager = () => {
     if (!properties || properties.length === 0) return null;
-    if (!(totalPages && totalPages > 1)) return null;
+    if (!(totalPagesNum && totalPagesNum > 1)) return null;
 
     const windowSize = 5;
     const start = Math.max(1, page - Math.floor(windowSize / 2));
-    const end = Math.min(totalPages, start + windowSize - 1);
+    const end = Math.min(totalPagesNum, start + windowSize - 1);
 
     const pages = [];
     for (let i = start; i <= end; i++) pages.push(i);
@@ -424,15 +419,15 @@ const pageGradient = useMemo(() => ({
             </button>
           ))}
 
-          {end < totalPages && (
+          {end < totalPagesNum && (
             <>
-              {end < totalPages - 1 && <Ellipsis />}
+              {end < totalPagesNum - 1 && <Ellipsis />}
               <button
                 type="button"
-                className={`btn page-btn ${page === totalPages ? 'page-btn-active' : ''}`}
-                onClick={() => goPage(totalPages)}
+                className={`btn page-btn ${page === totalPagesNum ? 'page-btn-active' : ''}`}
+                onClick={() => goPage(totalPagesNum)}
               >
-                {totalPages}
+                {totalPagesNum}
               </button>
             </>
           )}
@@ -443,7 +438,7 @@ const pageGradient = useMemo(() => ({
         </div>
 
         <p className="text-center text-muted small mb-0 mt-2">
-          Page {page} of {totalPages}
+          Page {page} of {totalPagesNum}
         </p>
       </div>
     );
@@ -487,7 +482,7 @@ const pageGradient = useMemo(() => ({
             </Link>
           )}
           <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
-           <Link to="/messages" className="text-dark text-decoration-none position-relative">
+          <Link to="/messages" className="text-dark text-decoration-none position-relative">
             Messages
             {unreadMessages > 0 && (
               <span
@@ -530,7 +525,7 @@ const pageGradient = useMemo(() => ({
                         <li
                           key={note._id}
                           className="list-group-item list-group-item-action d-flex gap-2"
-                          style={{ cursor: 'pointer', background: note.read ? '#fff' : '#f8fafc' }}
+                          style={{ cursor: 'pointer', background: note.readAt || note.read ? '#fff' : '#f8fafc' }}
                           onClick={() => handleNotificationClick(note)}
                         >
                           <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
@@ -559,7 +554,7 @@ const pageGradient = useMemo(() => ({
               <button
                 type="button"
                 onClick={() => setShowProfileMenu(v => !v)}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
                 className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                 aria-haspopup="true"
@@ -580,7 +575,7 @@ const pageGradient = useMemo(() => ({
                 />
                 <span className="small">{user?.name || 'Profile'}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="ms-1" viewBox="0 0 16 16">
-                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1 0-.708z"/>
                 </svg>
               </button>
 
@@ -619,7 +614,7 @@ const pageGradient = useMemo(() => ({
             <Link
               to="/profile"
               className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-               onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
               style={{
                 background: '#fff',
@@ -647,13 +642,12 @@ const pageGradient = useMemo(() => ({
 
       {/* CONTENT: list (left) + sticky map (right) */}
       <div className="container-fluid pt-3">
-        {/* INSERT: centered searchbar */}
-              {/* Centered searchbar row (slimmer + Filters on same line) */}
+        {/* Centered searchbar row */}
         <div className="row">
           <div className="col-12">
             <div className="mx-auto mb-3" style={{ maxWidth: 920 }}>
               <div className="search-group">
-                 {/* Search – rounded, flat right to attach */}
+                {/* Search */}
                 <div className="search-pill stick-right d-flex align-items-center flex-grow-1">
                   <span className="icon text-muted">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -686,18 +680,16 @@ const pageGradient = useMemo(() => ({
                   </button>
                 </div>
 
-                {/* Filters – flat left, rounded right, same height, attached */}
+                {/* Filters toggle */}
                 <button
                   className="btn btn-filters stick px-4"
                   type="button"
                   onClick={() => setShowFilters(v => !v)}
                 >
-                  {showFilters ? 'Filters' :'Filters'}
+                  {showFilters ? 'Filters' : 'Filters'}
                 </button>
               </div>
             </div>
-
-
 
             {showFilters && (
               <div className="card border-0 shadow-sm p-3 mt-2 mx-auto" style={{ maxWidth: 920 }}>
@@ -761,7 +753,7 @@ const pageGradient = useMemo(() => ({
         <div className="row g-4">
           {/* LEFT: Properties list */}
           <div className="col-lg-7">
-              <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
+            <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
               <h4 className="fw-bold mb-0">Featured Properties</h4>
               {user?.role === 'owner' && (
                 <>
@@ -797,13 +789,13 @@ const pageGradient = useMemo(() => ({
                   <div className="toggle-options">
                     <button
                       className={`toggle-btn ${viewType === '' ? 'active' : ''}`}
-                         onClick={() => {
+                      onClick={() => {
                         setViewType('');
                         setPage(1);
                         fetchAllProperties({ type: undefined, page: 1 });
                       }}
                     >
-                     All
+                      All
                     </button>
                     <button
                       className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}

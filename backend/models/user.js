@@ -41,19 +41,27 @@ const preferencesSchema = new mongoose.Schema(
     yearBuiltMin: { type: Number, min: 0 },
 
     // Θέρμανση / Κλιματισμός
-    heatingType: { type: String, enum: ["autonomous", "central", "ac", "none"], default: "none" },
+    heatingType: {
+      type: String,
+      enum: ["autonomous", "central", "ac", "none"],
+      default: "none",
+    },
 
     // Τιμές ανά τύπο συναλλαγής
     rentMin: { type: Number, min: 0 },
     rentMax: { type: Number, min: 0 },
     saleMin: { type: Number, min: 0 },
     saleMax: { type: Number, min: 0 },
+
+    // Επιπλέον constraints που “μοιράζονται” με requirements για matching
     ...requirementFields,
   },
   { _id: false }
 );
 
-const requirementsSchema = new mongoose.Schema(requirementFields, { _id: false });
+const requirementsSchema = new mongoose.Schema(requirementFields, {
+  _id: false,
+});
 
 // --- Main schema ---
 
@@ -61,7 +69,7 @@ const userSchema = new mongoose.Schema(
   {
     // Προσωπικά στοιχεία
     name: { type: String, trim: true },
-    phone: { type: String, trim: true }, // ΝΕΟ: για τη φόρμα onboarding
+    phone: { type: String, trim: true }, // για τη φόρμα onboarding
 
     email: {
       type: String,
@@ -100,13 +108,6 @@ const userSchema = new mongoose.Schema(
     // Προτιμήσεις ενοικίασης/αγοράς + απαιτήσεις (ιδιοκτήτης)
     preferences: { type: preferencesSchema, default: () => ({}) },
     requirements: { type: requirementsSchema, default: () => ({}) },
-
-    favorites: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Property",
-      },
-    ],
   },
   { timestamps: true }
 );
