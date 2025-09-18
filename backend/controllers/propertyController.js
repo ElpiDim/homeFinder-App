@@ -14,6 +14,40 @@ const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
 const setIfProvided = (current, incoming, parser = (x) => x) =>
   hasValue(incoming) ? parser(incoming) : current;
 
+const normalizeRequirementsImportance = (importance) =>
+  String(importance).toLowerCase() === "high" ? "high" : "low";
+
+const parseRequirementsInput = (raw) => {
+  if (raw === undefined || raw === null || raw === "") return [];
+
+  let parsed = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      throw new Error("Invalid requirements format. Expected a JSON array.");
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error("Invalid requirements format. Expected a JSON array.");
+  }
+
+  return parsed
+    .filter(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        typeof item.name === "string" &&
+        Object.prototype.hasOwnProperty.call(item, "value")
+    )
+    .map((item) => ({
+      name: item.name,
+      value: item.value,
+      importance: normalizeRequirementsImportance(item.importance),
+    }));
+};
+
 // Map user.preferences -> keys που περιμένει το matching
 const mapClientPrefs = (p = {}) => ({
   maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax,
@@ -62,17 +96,14 @@ exports.createProperty = async (req, res) => {
     const { images, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
 
-    // requirements: array JSON string -> array
-    let requirements = [];
-    if (b.requirements) {
-      try {
-        requirements = JSON.parse(b.requirements);
-      } catch (e) {
-        console.error("Error parsing requirements JSON:", e);
-        return res.status(400).json({
-          message: "Invalid requirements format. Expected a JSON string.",
-        });
-      }
+    let requirements;
+    try {
+      requirements = parseRequirementsInput(b.requirements);
+    } catch (err) {
+      console.error("Error parsing requirements:", err);
+      return res
+        .status(400)
+        .json({ message: err.message || "Invalid requirements format." });
     }
 
     // Συγχρόνισε και price/rent αν θες συμβατότητα με παλιό schema
@@ -377,14 +408,14 @@ exports.updateProperty = async (req, res) => {
     property.ownerNotes = b.ownerNotes ?? property.ownerNotes;
 
     // Update requirements
-    if (b.requirements) {
+    if (b.requirements !== undefined) {
       try {
-        property.requirements = JSON.parse(b.requirements);
-      } catch (e) {
-        console.error("Error parsing requirements JSON:", e);
-        return res.status(400).json({
-          message: "Invalid requirements format. Expected a JSON string.",
-        });
+        property.requirements = parseRequirementsInput(b.requirements);
+      } catch (err) {
+        console.error("Error parsing requirements:", err);
+        return res
+          .status(400)
+          .json({ message: err.message || "Invalid requirements format." });
       }
     }
 

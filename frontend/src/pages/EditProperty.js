@@ -52,6 +52,7 @@ function EditProperty() {
     ownerNotes: '',
   });
    const [requirements, setRequirements] = useState({});
+   const [requirementsImportance, setRequirementsImportance] = useState({});
 
   // ---- Google Maps ----
   const apiKey = getMapsApiKey();
@@ -126,11 +127,21 @@ function EditProperty() {
           ownerNotes: p.ownerNotes || '',
         });
         if (Array.isArray(p.requirements)) {
-          const reqs = p.requirements.reduce((acc, req) => {
-            acc[req.name] = req.value;
-            return acc;
-          }, {});
-          setRequirements(reqs);
+          const { values: reqValues, importance: reqImportance } = p.requirements.reduce(
+            (acc, req) => {
+              if (req && typeof req.name === 'string') {
+                acc.values[req.name] = req.value;
+                acc.importance[req.name] = req.importance === 'high' ? 'high' : 'low';
+              }
+              return acc;
+            },
+            { values: {}, importance: {} }
+          );
+          setRequirements(reqValues);
+          setRequirementsImportance(reqImportance);
+        } else {
+          setRequirements({});
+          setRequirementsImportance({});
         }
 
 
@@ -168,7 +179,11 @@ function EditProperty() {
       if (v !== undefined && v !== null && v !== '') data.append(k, v);
     });
 
-    const reqsAsArray = Object.entries(requirements).map(([name, value]) => ({ name, value }));
+    const reqsAsArray = Object.entries(requirements).map(([name, value]) => ({
+      name,
+      value,
+      importance: requirementsImportance?.[name] === 'high' ? 'high' : 'low',
+    }));
     if (reqsAsArray.length > 0) {
       data.append('requirements', JSON.stringify(reqsAsArray));
     }
@@ -304,7 +319,12 @@ function EditProperty() {
           
           <hr className="my-3" />
            <h5 className="fw-bold">Property Details</h5>
-          <RequirementsForm values={requirements} setValues={setRequirements} />
+          <RequirementsForm
+            values={requirements}
+            setValues={setRequirements}
+            importanceValues={requirementsImportance}
+            setImportanceValues={setRequirementsImportance}
+          />
 
           {/* EXISTING MEDIA */}
           <hr className="my-4" />
