@@ -631,16 +631,6 @@ function Dashboard() {
                     >
                       Profile
                     </li>
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/my-properties');
-                      }}
-                    >
-                      My Properties
-                    </li>
                   </ul>
                 </div>
               )}

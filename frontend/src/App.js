@@ -16,7 +16,6 @@ import AddProperty from './pages/AddProperty';
 import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
-import MyProperties from './pages/MyProperties';
 import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 
@@ -170,16 +169,6 @@ function App() {
               </OnboardingProtected>
             }
           />
-
-          <Route
-            path="/my-properties"
-            element={
-              <OnboardingProtected>
-                <MyProperties />
-              </OnboardingProtected>
-            }
-          />
-
           <Route
             path="/edit-property/:propertyId"
             element={

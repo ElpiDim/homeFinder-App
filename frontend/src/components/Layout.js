@@ -161,13 +161,6 @@ function Layout({ children }) {
                         >
                           Profile
                         </button>
-                        <button
-                          type="button"
-                          className="dropdown-item w-100 text-start"
-                          onClick={() => { setShowProfileMenu(false); navigate('/my-properties'); }}
-                        >
-                          My Properties
-                        </button>
                       </div>
                     )}
                   </div>
