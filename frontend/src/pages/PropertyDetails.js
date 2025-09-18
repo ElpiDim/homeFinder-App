@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import { Modal, Button, Form, Badge } from 'react-bootstrap';
+import { Modal, Button, Badge } from 'react-bootstrap';
 import GoogleMapView from '../components/GoogleMapView';
 
 function PropertyDetails() {
@@ -15,8 +15,6 @@ function PropertyDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [isFavorite, setIsFavorite] = useState(false);
-  const [showInterestModal, setShowInterestModal] = useState(false);
-  const [interestMessage, setInterestMessage] = useState('');
 
   // Gallery
   const [showGallery, setShowGallery] = useState(false);
@@ -40,16 +38,6 @@ function PropertyDetails() {
   };
   const getImageUrl = (path) =>
     path ? `${API_ORIGIN}${normalizeUploadPath(path)}` : 'https://placehold.co/1200x800?text=No+Image';
-
-  // default prefilled message for "I'm Interested"
-  const getDefaultInterestMsg = () => {
-    const name = user?.name ? `Hi, I'm ${user.name}` : 'Hi';
-    const title = property?.title ? ` “${property.title}”` : '';
-    const area = property?.address || property?.location || '';
-    const where = area ? ` (${area})` : '';
-    return `${name}. I'm interested in your property${title}${where}.
-Could we schedule a viewing? Thanks!`;
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -97,18 +85,6 @@ Could we schedule a viewing? Thanks!`;
       }
     } catch (err) {
       console.error('Error toggling favorite:', err);
-    }
-  };
-
-  const handleInterestSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/interests', { propertyId, message: interestMessage });
-      setShowInterestModal(false);
-      alert('Your interest has been sent to the owner!');
-    } catch (err) {
-      console.error('Error sending interest:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to send interest.');
     }
   };
 
@@ -196,6 +172,8 @@ Could we schedule a viewing? Thanks!`;
       ? Math.round(Number(property.price) / areaForPpsm)
       : null;
 
+  const ownerIdForChat = property.ownerId?._id || property.ownerId;
+
   return (
     <div style={pageGradient} className="py-5">
       <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '1000px' }}>
@@ -207,7 +185,7 @@ Could we schedule a viewing? Thanks!`;
           ← Back to search
         </Button>
 
-        {/* Header row: Title + Badges + Favorite / Interest */}
+        {/* Header row: Title + Badges + Favorite / Contact */}
         <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
           <div>
             <h3 className="fw-bold mb-1">{property.title}</h3>
@@ -233,25 +211,13 @@ Could we schedule a viewing? Thanks!`;
             >
               {isFavorite ? '★ Favorited' : '☆ Add to Favorites'}
             </Button>
-            {!isOwner && user?.role === 'client' && (
-              <Button
-                variant="primary"
-                className="rounded-pill px-4"
-                onClick={() => {
-                  setInterestMessage((prev) =>
-                    prev && prev.trim().length > 0 ? prev : getDefaultInterestMsg()
-                  );
-                  setShowInterestModal(true);
-                }}
-              >
-                👋 I'm Interested
-              </Button>
-            )}
-            {!isOwner && user && (
+
+            {/* Contact Owner only (removed "I'm Interested") */}
+            {!isOwner && user && ownerIdForChat && (
               <Button
                 variant="success"
                 className="rounded-pill px-4"
-                onClick={() => navigate(`/messages/property/${propertyId}/user/${property.ownerId._id || property.ownerId}`)}
+                onClick={() => navigate(`/messages/property/${propertyId}/user/${ownerIdForChat}`)}
               >
                 Contact Owner
               </Button>
@@ -447,48 +413,11 @@ Could we schedule a viewing? Thanks!`;
           />
         </Modal.Body>
         {property.images?.length > 1 && (
-          <Modal.Footers className="d-flex justify-content-between">
+          <Modal.Footer className="d-flex justify-content-between">
             <Button variant="light" className="rounded-pill px-4" onClick={prevImage}>◀ Prev</Button>
             <Button variant="light" className="rounded-pill px-4" onClick={nextImage}>Next ▶</Button>
-          </Modal.Footers>
-        )}
-      </Modal>
-
-      {/* Interest Modal */}
-      <Modal show={showInterestModal} onHide={() => setShowInterestModal(false)}>
-        <Form onSubmit={handleInterestSubmit}>
-          <Modal.Header closeButton>
-            <Modal.Title>I'm Interested</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>Your message to the owner</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                required
-                value={interestMessage}
-                onChange={(e) => setInterestMessage(e.target.value)}
-              />
-              <Form.Text className="text-muted">
-                You can personalize this message before sending.
-              </Form.Text>
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="outline-secondary"
-              className="rounded-pill px-4"
-              onClick={() => setShowInterestModal(false)}
-              type="button"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" className="rounded-pill px-4">
-              Send Interest
-            </Button>
           </Modal.Footer>
-        </Form>
+        )}
       </Modal>
     </div>
   );
