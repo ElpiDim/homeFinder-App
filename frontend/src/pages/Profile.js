@@ -41,6 +41,18 @@ function Profile() {
   return (
     <div style={pageGradient} className="py-4">
       <div className="container">
+        {/* Top bar: Back to Dashboard */}
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <Button
+            variant="outline-secondary"
+            className="rounded-pill px-3"
+            onClick={() => navigate('/dashboard')}
+          >
+            ← Back to Dashboard
+          </Button>
+          <div />
+        </div>
+
         {/* Header */}
         <Card className="mb-4">
           <Card.Body className="d-flex align-items-center justify-content-between">
@@ -58,7 +70,7 @@ function Profile() {
               <div>
                 <Card.Title className="mb-0">
                   {user.name || user.email}
-                   {isClient && (
+                  {isClient && (
                     <Badge bg={user.onboardingCompleted ? 'success' : 'warning'} className="ms-2">
                       {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
                     </Badge>

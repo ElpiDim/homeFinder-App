@@ -136,7 +136,7 @@ export default function EditProfile() {
           incomeMax: toNumOrUndef(reqs.incomeMax),
           allowedOccupations: reqs.allowedOccupations
             ? reqs.allowedOccupations.split(',').map((o) => o.trim()).filter(Boolean)
-            : [], // στέλνουμε [] αν είναι κενό (ή μπορείς να το κάνεις undefined αν θες να μην αλλάζει)
+            : [],
           familyStatus: reqs.familyStatus || undefined,
           petsAllowed: !!reqs.petsAllowed,
           smokingAllowed: !!reqs.smokingAllowed,
@@ -147,10 +147,9 @@ export default function EditProfile() {
         payload = clean({ requirements: reqsClean });
       }
 
-      // same endpoint for both, different payload
       const { data } = await api.patch('/users/me', payload);
 
-      setUser(data); // controller updateMe επιστρέφει τον updated user
+      setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       navigate('/profile', { replace: true });
     } catch (err) {
@@ -187,9 +186,20 @@ export default function EditProfile() {
       <div className="container" style={{ maxWidth: 960 }}>
         <Card>
           <Card.Body>
-            <Card.Title className="mb-3">
-              {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Requirements'}
-            </Card.Title>
+            {/* Top bar with Back button + Title */}
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <Button
+                variant="outline-secondary"
+                className="rounded-pill px-3"
+                onClick={() => navigate('/dashboard')}
+              >
+                ← Back to Dashboard
+              </Button>
+              <Card.Title className="mb-0">
+                {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Requirements'}
+              </Card.Title>
+              <div style={{ width: 158 }} />{/* spacer to balance layout */}
+            </div>
 
             <Form onSubmit={handleSubmit}>
               {isClient ? (

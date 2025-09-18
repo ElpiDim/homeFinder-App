@@ -78,7 +78,6 @@ function Dashboard() {
   const [maxPrice, setMaxPrice] = useState('');
   const [minSqm, setMinSqm] = useState('');
   const [maxSqm, setMaxSqm] = useState('');
-  const [viewType, setViewType] = useState(''); // '' | 'sale' | 'rent'
 
   // geolocation
   const [userLat, setUserLat] = useState(null);
@@ -109,8 +108,6 @@ function Dashboard() {
     return `${API_ORIGIN}${rel}`;
   };
 
-  const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
-
   const toNum = (v) => {
     const s = String(v ?? '').replace(/\D+/g, '');
     if (!s) return undefined;
@@ -139,17 +136,34 @@ function Dashboard() {
   };
 
   const fetchAllProperties = useCallback(
-    async (overrides = {}) => {
-      try {
-        const minPriceParam = toNum(overrides.minPrice ?? minPrice);
-        const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
-        const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
-        const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
+  async (overrides = {}) => {
+    try {
+      const minPriceParam = toNum(overrides.minPrice ?? minPrice);
+      const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
+      const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
+      const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
+      // If client: respect their dealType; If owner: ignore and load only their properties
+      const isOwner = user?.role === 'owner';
+      const prefType =
+        !isOwner && user?.role === 'client'
+          ? (user?.preferences?.dealType || undefined)
+          : undefined;
+
+      const desiredType = overrides.type ?? prefType;
+
+      // 1) Fetch
+      let items = [];
+      if (isOwner) {
+        // only my properties
+        const res = await api.get('/properties/mine', { params: { includeStats: 1 } });
+        items = Array.isArray(res.data) ? res.data : [];
+      } else {
+        // public/client flow
         const params = {
           sort: 'relevance',
           q: overrides.q ?? (searchTerm || locationFilter || ''),
-          type: overrides.type ?? (viewType || undefined),
+          type: desiredType, // rent/sale only if client asked for it
           minPrice: minPriceParam,
           maxPrice: maxPriceParam,
           minSqm: minSqmParam,
@@ -159,52 +173,74 @@ function Dashboard() {
           page: 1,
           limit: 9999,
         };
-        const endpoint = '/properties';
-        const res = await api.get(endpoint, { params });
-        const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
-
-        setAllProperties(items);
-
-        // client-side pagination
-        const total = items.length;
-        const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
-
-        const currentPage = overrides.page ?? 1;
-        const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
-        const start = (safePage - 1) * limit;
-        const paginated = items.slice(start, start + limit);
-
-        setPage(safePage);
-        setProperties(paginated);
-        setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
-      } catch (err) {
-        console.error('Error fetching properties:', err);
-        setAllProperties([]);
-        setProperties([]);
-        setMeta({ total: 0, totalPages: 1, limit, page: 1 });
+        const res = await api.get('/properties', { params });
+        items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
       }
-    },
-    [
-      searchTerm,
-      locationFilter,
-      viewType,
-      minPrice,
-      maxPrice,
-      minSqm,
-      maxSqm,
-      userLat,
-      userLng,
-      user?.role,
-      limit,
-    ]
-  );
+
+      // 2) Client-side filter (works for both owner & client)
+      const q = (overrides.q ?? searchTerm ?? '').trim().toLowerCase();
+      const locFilter = (locationFilter || '').trim().toLowerCase();
+
+      const filtered = items.filter((p) => {
+        // text matches (title / location / address)
+        const text = `${p.title || ''} ${p.location || ''} ${p.address || ''}`.toLowerCase();
+        const matchesQ   = q ? text.includes(q) : true;
+        const matchesLoc = locFilter ? text.includes(locFilter) : true;
+
+        // numeric matches (using price & sqm if present)
+        const price = typeof p.price === 'number' ? p.price : (typeof p.rent === 'number' ? p.rent : undefined);
+        const sqm   = typeof p.squareMeters === 'number' ? p.squareMeters : (typeof p.sqm === 'number' ? p.sqm : undefined);
+
+        const priceOk =
+          (minPriceParam === undefined || (price !== undefined && price >= minPriceParam)) &&
+          (maxPriceParam === undefined || (price !== undefined && price <= maxPriceParam));
+
+        const sqmOk =
+          (minSqmParam === undefined || (sqm !== undefined && sqm >= minSqmParam)) &&
+          (maxSqmParam === undefined || (sqm !== undefined && sqm <= maxSqmParam));
+
+        return matchesQ && matchesLoc && priceOk && sqmOk;
+      });
+
+      // 3) Paginate client-side
+      const total = filtered.length;
+      const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
+      const currentPage = overrides.page ?? 1;
+      const safePage = Math.min(Math.max(1, currentPage), totalPagesCalc);
+      const start = (safePage - 1) * limit;
+      const paginated = filtered.slice(start, start + limit);
+
+      setAllProperties(filtered);
+      setPage(safePage);
+      setProperties(paginated);
+      setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
+    } catch (err) {
+      console.error('Error fetching properties:', err);
+      setAllProperties([]);
+      setProperties([]);
+      setMeta({ total: 0, totalPages: 1, limit, page: 1 });
+    }
+  },
+  [
+    searchTerm,
+    locationFilter,
+    minPrice,
+    maxPrice,
+    minSqm,
+    maxSqm,
+    userLat,
+    userLng,
+    user?.role,
+    user?.preferences?.dealType,
+    limit,
+  ]
+);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications');
       const list = Array.isArray(res.data) ? res.data : [];
       setNotifications(list);
-      // Use readAt if present; fallback to read boolean
       setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -248,7 +284,7 @@ function Dashboard() {
     fetchAllProperties({ page: 1 });
     fetchUnreadMessages();
 
-    // Load favorites → map to property IDs (supports populated or plain refs)
+    // Load favorites
     api.get('/favorites')
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
@@ -276,7 +312,7 @@ function Dashboard() {
       .catch(() => setHasAppointments(false));
   }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
 
-  // client-side σελιδοποίηση όταν αλλάζει η σελίδα
+  // client-side pagination όταν αλλάζει η σελίδα
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -300,7 +336,7 @@ function Dashboard() {
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
 
-  // close popovers on outside click + Esc (notifications, profile)
+  // close popovers on outside click + Esc
   useEffect(() => {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
@@ -333,7 +369,6 @@ function Dashboard() {
           await Promise.all(
             unread.map((n) => api.patch(`/notifications/${n._id}/read`))
           );
-          // reflect both read + readAt locally
           const now = new Date().toISOString();
           setNotifications((prev) => prev.map((n) =>
             unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n
@@ -368,7 +403,7 @@ function Dashboard() {
   };
 
   // pagination helpers
-  const totalPagesNum = totalPages;
+  const totalPagesNum = meta.totalPages || 1;
   const canPrev = page > 1;
   const canNext = page < totalPagesNum;
   const goPrev = () => { if (!canPrev) return; setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -458,7 +493,7 @@ function Dashboard() {
         }}
       >
         <div className="d-flex align-items-center gap-2">
-          <Link to="/" className="text-decoration-none">
+          <Link to="/dashboard" className="text-decoration-none">
             <Logo as="h5" className="mb-0 logo-in-nav" />
           </Link>
         </div>
@@ -783,44 +818,7 @@ function Dashboard() {
                   </Link>
                 </>
               )}
-              {/* Toggle: All / Sale / Rent */}
-              <div className="d-flex ms-auto">
-                <div className="toggle-container">
-                  <div className="toggle-options">
-                    <button
-                      className={`toggle-btn ${viewType === '' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('');
-                        setPage(1);
-                        fetchAllProperties({ type: undefined, page: 1 });
-                      }}
-                    >
-                      All
-                    </button>
-                    <button
-                      className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('sale');
-                        setPage(1);
-                        fetchAllProperties({ type: 'sale', page: 1 });
-                      }}
-                    >
-                      Sale
-                    </button>
-                    <button
-                      className={`toggle-btn ${viewType === 'rent' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('rent');
-                        setPage(1);
-                        fetchAllProperties({ type: 'rent', page: 1 });
-                      }}
-                    >
-                      Rent
-                    </button>
-                    <div className={`slider ${viewType || 'all'}`}></div>
-                  </div>
-                </div>
-              </div>
+              {/* 🔥 Αφαιρέθηκε το All / Sale / Rent toggle */}
             </div>
             {!Array.isArray(properties) || properties.length === 0 ? (
               <p className="text-muted">No properties found.</p>
