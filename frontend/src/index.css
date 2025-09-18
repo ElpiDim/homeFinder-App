@@ -1,270 +1,518 @@
-/* Baloo 2 για το καινούριο logo */
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
-
 /* ================================
-   Global tokens & base styles
+   Modern HomeFinder UI Theme
    ================================ */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bs-primary: #006400;
-  --bs-primary-rgb: 0, 100, 0;
-
   /* Brand palette */
-  --brand-start: #006400;
-  --brand-end:   #90ee90;
-  --brand-grad:  linear-gradient(135deg, var(--brand-start), var(--brand-end));
+  --brand-50:  #effaf5;
+  --brand-100: #dff3ea;
+  --brand-200: #bce6d5;
+  --brand-300: #8cd4ba;
+  --brand-400: #5abb9d;
+  --brand-500: #2ba987;
+  --brand-600: #1f8f73;
+  --brand-700: #187461;
+  --brand-800: #135c4f;
+  --brand-900: #0f4b42;
 
-  /* UI tokens */
-  --ui-bg: rgba(255,255,255,.72);
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
+  --brand-gradient: linear-gradient(135deg, #1f8f73 0%, #48c796 50%, #a5ffd6 100%);
+  --brand-gradient-soft: linear-gradient(135deg, rgba(31,143,115,.12) 0%, rgba(72,199,150,.06) 50%, rgba(165,255,214,.2) 100%);
+
+  /* Neutrals */
+  --text-900: #101828;
+  --text-700: #475467;
+  --text-500: #667085;
+  --text-200: #d0d5dd;
+  --border-color: rgba(15, 75, 66, 0.14);
+  --border-strong: rgba(15, 75, 66, 0.28);
+
+  /* Surfaces */
+  --surface-base: rgba(255, 255, 255, 0.72);
+  --surface-elevated: rgba(255, 255, 255, 0.86);
+  --surface-muted: rgba(255, 255, 255, 0.45);
+
+  /* Shadows */
+  --shadow-sm: 0 8px 18px rgba(15, 75, 66, 0.08);
+  --shadow-md: 0 14px 30px rgba(15, 75, 66, 0.12);
+  --shadow-lg: 0 24px 60px rgba(15, 75, 66, 0.16);
+
+  /* Radii */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-pill: 9999px;
+
+  /* Transitions */
+  --tr-fast: all 0.18s ease;
+  --tr-base: all 0.25s ease;
+
+  --bs-primary: #1f8f73;
+  --bs-primary-rgb: 31, 143, 115;
+
+  --app-gradient:
+    radial-gradient(800px circle at 15% 10%, rgba(255,255,255,0.35), rgba(255,255,255,0) 55%),
+    radial-gradient(900px circle at 85% 15%, rgba(165,255,214,0.25), rgba(165,255,214,0) 60%),
+    linear-gradient(135deg, #effaf5 0%, #f0fffb 35%, #f8fff4 70%, #ffffff 100%);
 }
 
 html, body, #root { height: 100%; }
 
 body {
   margin: 0;
-  color: var(--text);
+  color: var(--text-900);
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--app-gradient);
+  background-attachment: fixed;
 }
 
-code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace; }
+#root {
+  min-height: 100%;
+  backdrop-filter: blur(2px);
+}
+
+a {
+  color: var(--brand-700);
+  text-decoration: none;
+  transition: var(--tr-fast);
+}
+
+a:hover,
+a:focus {
+  color: var(--brand-800);
+  text-decoration: underline;
+}
+
+::selection {
+  color: #fff;
+  background: var(--brand-500);
+}
 
 /* ================================
-   Brand Logo  (Baloo 2)
+   Surface & Layout helpers
    ================================ */
-
-/* Default logo: γεμάτο gradient, ΧΩΡΙΣ περίγραμμα */
-.logo-word{
-  display:inline-block;
-  font-family:'Baloo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-weight:800;
-  font-size:clamp(48px, 9vw, 120px);
-  line-height:1;
-  letter-spacing:.3px;
-  text-transform:lowercase;
-
-  /* Smooth dark → light green gradient */
-  background: linear-gradient(135deg,
-              #006400 0%,
-              #228b22 30%,
-              #32cd32 65%,
-              #90ee90 100%);
-  -webkit-background-clip:text;
-  background-clip:text;
-  -webkit-text-fill-color:transparent;
-  color:transparent;
-
-  /* Διακριτικό βάθος μόνο */
-  text-shadow: 0 8px 24px rgba(0,0,0,.10);
+.app-shell,
+.brand-page-bg {
+  min-height: 100vh;
+  background: var(--app-gradient);
+  background-attachment: fixed;
+  padding-bottom: 64px;
 }
 
-.logo-wrap{ display:inline-block; padding:.2rem .6rem; border-radius:16px; }
-
-/* Λευκή εκδοχή (όπου τη χρειαστείς σε σκουρό φόντο) */
-.logo-white .logo-word{
-  background:none !important;
-  -webkit-background-clip:initial; background-clip:initial;
-  -webkit-text-fill-color:#fff !important; color:#fff !important;
-  text-shadow:
-    0 1px 0 rgba(0,0,0,.35),
-    0 4px 8px rgba(0,0,0,.35),
-    0 12px 24px rgba(0,0,0,.25);
+.glass-bg,
+.surface-glass {
+  background: var(--surface-base) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
+
+.surface-elevated {
+  background: var(--surface-elevated);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+}
+
+.border-soft { border: 1px solid var(--border-color) !important; }
+.text-muted-2 { color: var(--text-500) !important; }
+.rounded-4 { border-radius: var(--radius-lg) !important; }
+
+.card {
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-sm);
+  transition: var(--tr-fast);
+}
+
+.card:hover { box-shadow: var(--shadow-md); }
+.card.bg-white { background: var(--surface-elevated) !important; }
+
+.shadow-soft { box-shadow: var(--shadow-sm) !important; }
+.shadow-soft-lg { box-shadow: var(--shadow-lg) !important; }
+
+/* ================================
+   Navigation
+   ================================ */
+.navbar {
+  border-radius: var(--radius-md);
+  margin: 12px auto;
+  padding-block: 10px;
+  max-width: min(100%, 1100px);
+  padding-inline: clamp(18px, 4vw, 32px);
+  background: var(--surface-base) !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-sm);
+  transition: var(--tr-fast);
+}
+
+.navbar.compact-nav { padding-block: 8px !important; }
+.navbar .nav-link { color: var(--text-700) !important; font-weight: 500; }
+.navbar .nav-link:hover { color: var(--brand-600) !important; }
 
 /* ================================
    Buttons
    ================================ */
-
-.btn-brand{
-  background:var(--brand-grad);
-  color:#fff !important;
-  border:none;
-  box-shadow:0 6px 18px rgba(37,99,235,.28);
+.btn,
+button {
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: var(--tr-fast);
+  box-shadow: none;
 }
-.btn-brand:hover{ filter:brightness(.95); }
 
-.btn-brand-outline{
-  background:#fff;
-  color:var(--text) !important;
-  border:1px solid var(--border);
-  transition:all .25s ease;
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
+.btn-brand {
+  background: var(--brand-gradient);
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 12px 24px rgba(43, 169, 135, 0.28);
 }
-.btn-brand-outline:hover{
-  background:var(--brand-grad);
-  color:#fff !important;
-  border:none;
+
+.btn-brand:hover,
+.btn-brand:focus {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(43, 169, 135, 0.32);
+}
+
+.btn-brand-outline {
+  background: #fff;
+  color: var(--brand-700) !important;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 6px 16px rgba(15, 75, 66, 0.08);
+}
+
+.btn-brand-outline:hover,
+.btn-brand-outline:focus {
+  background: var(--brand-gradient);
+  color: #fff !important;
+  border-color: transparent;
+}
+
+.btn-white-outline-primary {
+  background: transparent;
+  color: var(--brand-700);
+  border: 1px solid var(--border-strong);
+}
+
+.btn-white-outline-primary:hover,
+.btn-white-outline-primary:focus {
+  background: var(--brand-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.page-btn {
+  border-radius: var(--radius-pill) !important;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-700);
+  padding: 6px 14px;
+  font-weight: 600;
+  transition: var(--tr-fast);
+}
+
+.page-btn:hover { background: var(--brand-50); }
+.page-btn:disabled { opacity: .5; cursor: not-allowed; }
+.page-btn-active {
+  background: var(--brand-gradient) !important;
+  color: #fff !important;
+  border-color: transparent !important;
 }
 
 /* ================================
-   Layout & Utilities
+   Forms
    ================================ */
-
-.page-white{ min-height:100vh; background:#fff; }
-
-.brand-page-bg{
-  min-height:100vh;
-  background:
-    radial-gradient(800px circle at 20% 10%, rgba(255,255,255,.12), rgba(255,255,255,0) 40%),
-    var(--brand-grad);
-  background-attachment:fixed;
+.form-control,
+.form-select {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+  padding-block: 10px;
+  transition: var(--tr-fast);
 }
 
-.glass-bg{
-  background:var(--ui-bg);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(43, 169, 135, 0.5);
+  box-shadow: 0 0 0 4px rgba(72, 199, 150, 0.18);
 }
 
-/* Compact navbar + μικρό logo */
-.compact-nav{ padding-block:.35rem !important; }
-.compact-nav .logo-word{
-  font-size:22px;
-  text-shadow:0 4px 12px rgba(0,0,0,.12);
+.input-group-text {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.6);
 }
 
-/* Compact hero */
-.hero-compact{ padding:24px 0 !important; }
-
-.text-muted-2{ color:var(--muted); }
-.border-soft{ border:1px solid var(--border); }
-.card.rounded-4, .rounded-4{ border-radius:1rem; }
-
-/* Slim variant για την search bar */
-.search-pill.slim{ box-shadow:0 3px 10px rgba(0,0,0,.06); }
-.search-pill.slim .icon{ padding-left:12px; padding-right:10px; }
-.search-pill.slim .search-input{ height:44px; }
-.search-pill.slim .btn-search{
-  height:36px; padding:0 14px; margin:4px 4px 4px 6px;
+.badge {
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
+  color: var(--brand-800);
+  padding: 6px 12px;
+  font-weight: 600;
 }
 
-/* Filters button: ίσιο αριστερά, στρογγυλό δεξιά */
-.btn-filters{
-  background:#fff; color:var(--text);
-  border:1px solid var(--border);
-  border-radius:0 9999px 9999px 0;
-  height:40px; line-height:40px;
-  transition:all .25s ease;
-  box-shadow:0 2px 6px rgba(0,0,0,.06);
-}
-.btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
-
-.search-group{ display:flex; align-items:center; flex-wrap:nowrap; gap:0; }
-.search-pill{
-  width:100%;
-  border-radius:9999px;
-  background:#fff;
-  border:1px solid var(--border);
-  box-shadow:0 4px 14px rgba(0,0,0,.07);
-  overflow:hidden;
-  padding-right:6px;
-}
-.search-pill .icon{ padding:0 12px 0 14px; display:flex; align-items:center; }
-.search-input{ border:none !important; box-shadow:none !important; height:44px; padding-left:0; }
-.btn-search{ border-radius:0 !important; height:44px; padding:0 14px; margin:0 0 0 6px; }
-
-/* κολλητή δεξιά πλευρά */
-.search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; padding-right:0; }
-.search-pill.stick-right .btn-search{ margin-right:0; }
-
-/* Filters: flat αριστερά, rounded δεξιά, χωρίς διπλό border */
-.btn-filters{ background:#fff; color:var(--text); border:1px solid var(--border); height:44px; line-height:44px; box-shadow:0 2px 6px rgba(0,0,0,.06); transition:all .25s ease; }
-.btn-filters.stick{ border-left:none; border-radius:0 9999px 9999px 0; margin-left:0; }
-.btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
-
-/* ίδιο ύψος για search & filters */
-:root { --search-h: 44px; }
-
-/* Η ομάδα χωρίς κενό, ίδια ευθυγράμμιση */
-.search-group{ display:flex; align-items:stretch; gap:0; }
-
-/* ----- SEARCH ----- */
-.search-pill{
-  background:#fff; border:1px solid var(--border);
-  border-radius:24px; box-shadow:0 4px 14px rgba(0,0,0,.07);
-  overflow:hidden; padding-right:6px; display:flex; align-items:center;
-}
-.search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; border-right:none; }
-.search-input{ height:var(--search-h); border:none !important; box-shadow:none !important; padding-left:0; }
-.btn-search{ height:calc(var(--search-h) - 8px); margin:4px 4px 4px 6px; border-radius:20px !important; }
-
-/* ----- FILTERS ----- */
-.btn-filters{
-  height:var(--search-h); padding:0 18px; display:flex; align-items:center; justify-content:center;
-  background:#fff; color:var(--text); border:1px solid var(--border);
-  border-left:none; border-radius:0 24px 24px 0; box-shadow:0 2px 6px rgba(0,0,0,.06); line-height:normal;
-}
-.btn-filters:hover, .btn-filters:focus, .btn-filters:active{
-  background:#fff; color:var(--text); border-color:var(--border); box-shadow:0 2px 6px rgba(0,0,0,.06);
+.alert {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(31, 143, 115, 0.2);
 }
 
-/* --- Search button: square + flush with input --- */
-.search-group .btn-search{
-  height: 48px; padding: 0 18px; display: flex; align-items: center; justify-content: center;
-  border-radius: 8px !important; border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;
+/* ================================
+   Tables & Lists
+   ================================ */
+.table {
+  border: none;
+  background: transparent;
 }
 
-/* --- Filters: flat left, rounded right, same height, no hover --- */
-.search-group .btn-filters{
-  height: 48px; padding: 0 18px; display: flex; align-items: center; justify-content: center;
-  background: #fff; color: var(--text); border: 1px solid var(--border);
-  border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 24px; border-bottom-right-radius: 24px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+.table thead th {
+  border-bottom: 1px solid rgba(15, 75, 66, 0.12);
+  color: var(--text-500);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
 }
-.search-group .btn-filters:hover, .search-group .btn-filters:focus{ background:#fff; color:var(--text); border-color:var(--border); }
 
-/* Να ακουμπάνε κυριολεκτικά */
-.search-group{ display:flex; gap:0; }
-.search-group .search-pill.stick-right{ border-top-right-radius:0; border-bottom-right-radius:0; }
-
-/* Glue Search + Filters */
-.search-group{ display:flex; align-items:stretch; gap:0; }
-.search-group .search-pill{
-  height:48px; border:1px solid var(--border); border-right:0; border-radius:8px;
-  border-top-right-radius:0; border-bottom-right-radius:0; box-shadow:0 10px 24px rgba(17,24,39,.08);
+.table tbody tr {
+  border-radius: var(--radius-md);
+  transition: var(--tr-fast);
 }
-.search-group .search-input{ height:100%; border:0; outline:0; }
-.search-group .clear-btn{ height:100%; }
-.search-group .btn-search{
-  height:48px; padding:0 18px; display:flex; align-items:center; justify-content:center;
-  border-radius:8px !important; border-top-left-radius:0 !important; border-bottom-left-radius:0 !important;
-  box-shadow:none; position:relative; z-index:2;
-}
-.search-group .btn-filters{
-  height:48px; padding:0 18px; display:flex; align-items:center; justify-content:center;
-  background:#fff; color:var(--text); border:1px solid var(--border); border-left:0; margin-left:-1px;
-  border-top-left-radius:0; border-bottom-left-radius:0; border-top-right-radius:24px; border-bottom-right-radius:24px;
-  box-shadow:0 10px 24px rgba(17,24,39,.08);
-}
-.search-group .btn-filters:hover, .search-group .btn-filters:focus{ background:#fff; color:var(--text); border-color:var(--border); }
 
-/* Circular chip αριστερά */
-.search-group .search-pill{ border-top-left-radius:999px; border-bottom-left-radius:999px; }
-.search-group .search-pill .icon{
-  width:36px; height:36px; flex:0 0 36px; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:9999px; background:#fff; border:1px solid var(--border); box-shadow:0 4px 12px rgba(17,24,39,.08);
-  margin-left:8px; margin-right:10px; color:#6b7280;
+.table tbody tr:hover {
+  background: rgba(43, 169, 135, 0.08);
 }
-.search-group .search-input{ padding-left:0; }
 
-
-/* Λίγο μεγαλύτερο logo ειδικά για το navbar του Dashboard */
-.logo-in-nav .logo-word{
-  font-size:24px;
-  line-height:1;
-  display:inline-block;
-  white-space:nowrap;
-  letter-spacing:.3px;
-  text-shadow:0 4px 12px rgba(0,0,0,.12);
+/* ================================
+   Hero & Logo
+   ================================ */
+.hero-compact {
+  padding: clamp(32px, 8vw, 72px) 0 !important;
+  text-align: center;
 }
-@media (min-width: 992px){ .logo-in-nav .logo-word{ font-size:28px; } }
-@media (min-width: 1400px){ .logo-in-nav .logo-word{ font-size:30px; } }
 
+.logo-word {
+  display: inline-block;
+  font-family: 'Baloo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 800;
+  font-size: clamp(48px, 9vw, 120px);
+  line-height: 1;
+  letter-spacing: .3px;
+  text-transform: lowercase;
+  background: linear-gradient(135deg, #135c4f 0%, #2ba987 45%, #a5ffd6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-shadow: 0 12px 30px rgba(15, 75, 66, 0.2);
+}
+
+.logo-wrap { display: inline-block; padding: .2rem .6rem; border-radius: var(--radius-md); }
+
+.logo-white .logo-word {
+  background: none !important;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: #fff !important;
+  color: #fff !important;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, .35),
+    0 4px 8px rgba(0, 0, 0, .35),
+    0 12px 24px rgba(0, 0, 0, .25);
+}
+
+.logo-in-nav .logo-word {
+  font-size: 24px;
+  line-height: 1;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+}
+
+@media (min-width: 992px) {
+  .logo-in-nav .logo-word { font-size: 28px; }
+}
+
+@media (min-width: 1400px) {
+  .logo-in-nav .logo-word { font-size: 30px; }
+}
+
+/* ================================
+   Search / Filters
+   ================================ */
+:root { --search-h: 48px; }
+
+.search-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+}
+
+.search-pill {
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding-right: 6px;
+}
+
+.search-pill .icon {
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-500);
+}
+
+.search-input {
+  border: none !important;
+  box-shadow: none !important;
+  height: var(--search-h);
+  padding-left: 0;
+  background: transparent;
+}
+
+.btn-search {
+  height: calc(var(--search-h) - 8px);
+  padding: 0 18px;
+  border-radius: var(--radius-md) !important;
+  margin: 4px 4px 4px 6px;
+  background: var(--brand-gradient);
+  color: #fff;
+  border: none;
+  box-shadow: 0 12px 20px rgba(43, 169, 135, 0.25);
+}
+
+.btn-search:hover,
+.btn-search:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 26px rgba(43, 169, 135, 0.3);
+}
+
+.search-pill.stick-right {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+  margin-right: -1px;
+}
+
+.btn-filters {
+  height: var(--search-h);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-700);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-top-right-radius: var(--radius-pill);
+  border-bottom-right-radius: var(--radius-pill);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+}
+
+.btn-filters:hover,
+.btn-filters:focus {
+  background: rgba(255, 255, 255, 1);
+  color: var(--brand-700);
+  border-color: var(--border-strong);
+}
+
+/* Compact variant */
+.search-pill.slim { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06); }
+.search-pill.slim .icon { padding-left: 12px; padding-right: 10px; }
+.search-pill.slim .search-input { height: 44px; }
+.search-pill.slim .btn-search {
+  height: 36px;
+  padding: 0 14px;
+  margin: 4px 4px 4px 6px;
+}
+
+/* ================================
+   Misc utilities
+   ================================ */
+.clear-btn { color: var(--text-500); transition: var(--tr-fast); }
+.clear-btn:hover { color: var(--brand-700); }
+
+.compact-nav .logo-word { font-size: 22px; text-shadow: 0 4px 12px rgba(0,0,0,.12); }
+
+.pagination-pills { gap: 6px; }
+.page-ellipsis { padding: 6px 0; color: #9ca3af; user-select: none; }
+
+.toggle-container { position: relative; display: flex; justify-content: center; }
+.toggle-options {
+  position: relative;
+  display: flex;
+  background: rgba(255,255,255,0.72);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle-btn {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 8px 20px;
+  font-weight: 600;
+  color: var(--text-500);
+  cursor: pointer;
+  transition: var(--tr-fast);
+}
+
+.toggle-btn.active { color: var(--brand-800); }
+
+.slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 33%;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-pill);
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+.slider.all { transform: translateX(0%); }
+.slider.sale { transform: translateX(100%); }
+.slider.rent { transform: translateX(200%); }
+
+/* Utility overrides */
+.table > :not(caption) > * > * { box-shadow: none; }
+.modal-content {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.list-group-item {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.9);
+}
+
+.toast,
+.dropdown-menu {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-md);
+}
 

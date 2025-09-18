@@ -1,7 +1,6 @@
 const Appointment = require("../models/appointments");
 const Notification = require("../models/notification");
 const Property = require("../models/property");
-const Interest = require("../models/interests");
 
 // OWNER proposes slots
 exports.proposeAppointmentSlots = async (req, res) => {
@@ -18,18 +17,6 @@ exports.proposeAppointmentSlots = async (req, res) => {
       return res
         .status(403)
         .json({ message: "Only the property owner can propose appointments" });
-    }
-
-    const interest = await Interest.findOne({
-      propertyId,
-      tenantId,
-      status: "accepted",
-    });
-
-    if (!interest) {
-      return res
-        .status(400)
-        .json({ message: "No accepted interest found for this tenant" });
     }
     const appointment = new Appointment({
       propertyId,

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMessages, sendMessage } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
-import { Container, Card, Button, Form, InputGroup } from 'react-bootstrap';
+import { Container, Card, Button, Form, InputGroup, Alert } from 'react-bootstrap';
+import ProposeAppointmentModal from '../components/ProposeAppointmentModal';
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
@@ -10,8 +11,11 @@ function Chat() {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [appointmentSuccess, setAppointmentSuccess] = useState(false);
 
 
+  const isOwner = user?.role === 'owner';
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -55,7 +59,13 @@ function Chat() {
       alert('Failed to send message.');
     }
   };
-
+const handleAppointmentClose = (submitted) => {
+    setShowAppointmentModal(false);
+    if (submitted) {
+      setAppointmentSuccess(true);
+      setTimeout(() => setAppointmentSuccess(false), 5000);
+    }
+  };
   return (
     <Container className="mt-4">
       <Button
@@ -65,8 +75,30 @@ function Chat() {
       >
         Back
       </Button>
+      {appointmentSuccess && (
+        <Alert
+          variant="success"
+          onClose={() => setAppointmentSuccess(false)}
+          dismissible
+        >
+          Appointment proposal sent successfully.
+        </Alert>
+      )}
+
       <h3>Conversation</h3>
       <Card>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <span>Chat Details</span>
+          {isOwner && (
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => setShowAppointmentModal(true)}
+            >
+              Schedule Appointment
+            </Button>
+          )}
+        </Card.Header>
         <Card.Body style={{ height: '400px', overflowY: 'auto' }}>
           {messages.map((msg) => (
             <div
@@ -105,6 +137,12 @@ function Chat() {
           </Form>
         </Card.Footer>
       </Card>
+            <ProposeAppointmentModal
+        show={showAppointmentModal}
+        onClose={handleAppointmentClose}
+        tenantId={receiverId}
+        propertyId={propertyId}
+      />
     </Container>
   );
 }
