@@ -136,22 +136,73 @@ function Dashboard() {
         const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
         const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
-        const params = {
-          sort: 'relevance',
-          q: overrides.q ?? (searchTerm || locationFilter || ''),
-          type: overrides.type ?? (viewType || undefined),
-          minPrice: minPriceParam,
-          maxPrice: maxPriceParam,
-          minSqm: minSqmParam,
-          maxSqm: maxSqmParam,
-          lat: overrides.lat ?? (userLat ?? undefined),
-          lng: overrides.lng ?? (userLng ?? undefined),
-          page: 1,
-          limit: 9999,
-        };
-        const endpoint = '/properties';
+        const isOwner = user?.role === 'owner';
+        const params = isOwner
+          ? { includeStats: 1 }
+          : {
+              sort: 'relevance',
+              q: overrides.q ?? (searchTerm || locationFilter || ''),
+              type: overrides.type ?? (viewType || undefined),
+              minPrice: minPriceParam,
+              maxPrice: maxPriceParam,
+              minSqm: minSqmParam,
+              maxSqm: maxSqmParam,
+              lat: overrides.lat ?? (userLat ?? undefined),
+              lng: overrides.lng ?? (userLng ?? undefined),
+              page: 1,
+              limit: 9999,
+            };
+        const endpoint = isOwner ? '/properties/mine' : '/properties';
         const res = await api.get(endpoint, { params });
-        const items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+
+        if (isOwner) {
+          const queryInput = overrides.q ?? (searchTerm || locationFilter || '');
+          const query =
+            typeof queryInput === 'string'
+              ? queryInput.trim().toLowerCase()
+              : String(queryInput ?? '').trim().toLowerCase();
+          const typeFilterInput = overrides.type ?? viewType;
+          let typeFilterVal = '';
+          if (typeof typeFilterInput === 'string') {
+            typeFilterVal = typeFilterInput.trim().toLowerCase();
+          } else if (typeFilterInput != null) {
+            const asString = String(typeFilterInput).trim();
+            typeFilterVal = asString ? asString.toLowerCase() : '';
+          }
+
+          items = items.filter((prop) => {
+            const title = typeof prop?.title === 'string' ? prop.title.toLowerCase() : '';
+            const location = typeof prop?.location === 'string' ? prop.location.toLowerCase() : '';
+            const address = typeof prop?.address === 'string' ? prop.address.toLowerCase() : '';
+            const matchesQuery = query
+              ? title.includes(query) || location.includes(query) || address.includes(query)
+              : true;
+
+            const typeValue = typeof prop?.type === 'string' ? prop.type.toLowerCase() : '';
+            const matchesType = typeFilterVal ? typeValue === typeFilterVal : true;
+
+            const priceValue = Number(prop?.price ?? prop?.rent);
+            const hasPrice = Number.isFinite(priceValue);
+            const matchesMinPrice = minPriceParam != null ? (hasPrice ? priceValue >= minPriceParam : false) : true;
+            const matchesMaxPrice = maxPriceParam != null ? (hasPrice ? priceValue <= maxPriceParam : false) : true;
+
+            const sqmValueRaw = prop?.squareMeters ?? prop?.surface;
+            const sqmValue = Number(sqmValueRaw);
+            const hasSqm = Number.isFinite(sqmValue);
+            const matchesMinSqm = minSqmParam != null ? (hasSqm ? sqmValue >= minSqmParam : false) : true;
+            const matchesMaxSqm = maxSqmParam != null ? (hasSqm ? sqmValue <= maxSqmParam : false) : true;
+
+            return (
+              matchesQuery &&
+              matchesType &&
+              matchesMinPrice &&
+              matchesMaxPrice &&
+              matchesMinSqm &&
+              matchesMaxSqm
+            );
+          });
+        }
 
         setAllProperties(items);
 
