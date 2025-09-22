@@ -68,8 +68,6 @@ function Dashboard() {
   const [maxPrice, setMaxPrice] = useState('');
   const [minSqm, setMinSqm] = useState('');
   const [maxSqm, setMaxSqm] = useState('');
-  const [viewType, setViewType] = useState(''); // '' | 'sale' | 'rent'
-
   // geolocation
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
@@ -100,6 +98,12 @@ function Dashboard() {
   };
 
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
+
+  const preferredDealType = useMemo(() => {
+  if (user?.role !== 'client') return undefined;
+  return user?.preferences?.dealType === 'sale' ? 'sale' : 'rent';
+  }, [user]);
+
 
   const toNum = (v) => {
     const s = String(v ?? '').replace(/\D+/g, '');
@@ -137,12 +141,16 @@ function Dashboard() {
         const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
 
         const isOwner = user?.role === 'owner';
+        const effectiveType =
+          overrides.type !== undefined
+            ? overrides.type
+            : preferredDealType || undefined;
         const params = isOwner
           ? { includeStats: 1 }
           : {
               sort: 'relevance',
               q: overrides.q ?? (searchTerm || locationFilter || ''),
-              type: overrides.type ?? (viewType || undefined),
+              type: effectiveType,
               minPrice: minPriceParam,
               maxPrice: maxPriceParam,
               minSqm: minSqmParam,
@@ -154,7 +162,7 @@ function Dashboard() {
             };
         const endpoint = isOwner ? '/properties/mine' : '/properties';
         const res = await api.get(endpoint, { params });
-let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+        let items = Array.isArray(res.data) ? res.data : res.data?.items || [];
 
         if (isOwner) {
           const queryInput = overrides.q ?? (searchTerm || locationFilter || '');
@@ -162,15 +170,6 @@ let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
             typeof queryInput === 'string'
               ? queryInput.trim().toLowerCase()
               : String(queryInput ?? '').trim().toLowerCase();
-          const typeFilterInput = overrides.type ?? viewType;
-          let typeFilterVal = '';
-          if (typeof typeFilterInput === 'string') {
-            typeFilterVal = typeFilterInput.trim().toLowerCase();
-          } else if (typeFilterInput != null) {
-            const asString = String(typeFilterInput).trim();
-            typeFilterVal = asString ? asString.toLowerCase() : '';
-          }
-
           items = items.filter((prop) => {
             const title = typeof prop?.title === 'string' ? prop.title.toLowerCase() : '';
             const location = typeof prop?.location === 'string' ? prop.location.toLowerCase() : '';
@@ -178,9 +177,6 @@ let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
             const matchesQuery = query
               ? title.includes(query) || location.includes(query) || address.includes(query)
               : true;
-
-            const typeValue = typeof prop?.type === 'string' ? prop.type.toLowerCase() : '';
-            const matchesType = typeFilterVal ? typeValue === typeFilterVal : true;
 
             const priceValue = Number(prop?.price ?? prop?.rent);
             const hasPrice = Number.isFinite(priceValue);
@@ -193,14 +189,7 @@ let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
             const matchesMinSqm = minSqmParam != null ? (hasSqm ? sqmValue >= minSqmParam : false) : true;
             const matchesMaxSqm = maxSqmParam != null ? (hasSqm ? sqmValue <= maxSqmParam : false) : true;
 
-            return (
-              matchesQuery &&
-              matchesType &&
-              matchesMinPrice &&
-              matchesMaxPrice &&
-              matchesMinSqm &&
-              matchesMaxSqm
-            );
+            return matchesQuery && matchesMinPrice && matchesMaxPrice && matchesMinSqm && matchesMaxSqm;
           });
         }
 
@@ -228,7 +217,7 @@ let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
     [
       searchTerm,
       locationFilter,
-      viewType,
+      preferredDealType,
       minPrice,
       maxPrice,
       minSqm,
@@ -818,44 +807,19 @@ let items = Array.isArray(res.data) ? res.data : (res.data?.items || []);
                   </Link>
                 </>
               )}
-              {/* Toggle: All / Sale / Rent */}
-              <div className="d-flex ms-auto">
-                <div className="toggle-container">
-                  <div className="toggle-options">
-                    <button
-                      className={`toggle-btn ${viewType === '' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('');
-                        setPage(1);
-                        fetchAllProperties({ type: undefined, page: 1 });
-                      }}
-                    >
-                      All
-                    </button>
-                    <button
-                      className={`toggle-btn ${viewType === 'sale' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('sale');
-                        setPage(1);
-                        fetchAllProperties({ type: 'sale', page: 1 });
-                      }}
-                    >
-                      Sale
-                    </button>
-                    <button
-                      className={`toggle-btn ${viewType === 'rent' ? 'active' : ''}`}
-                      onClick={() => {
-                        setViewType('rent');
-                        setPage(1);
-                        fetchAllProperties({ type: 'rent', page: 1 });
-                      }}
-                    >
-                      Rent
-                    </button>
-                    <div className={`slider ${viewType || 'all'}`}></div>
-                  </div>
-                </div>
-              </div>
+              {user?.role === 'client' && (
+                <span
+                  className="badge rounded-pill ms-auto"
+                  style={{
+                    background: 'rgba(0,100,0,0.12)',
+                    color: '#006400',
+                    fontWeight: 600,
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  {preferredDealType === 'sale' ? 'Showing properties for sale' : 'Showing rental properties'}
+                </span>
+              )}
             </div>
             {!Array.isArray(properties) || properties.length === 0 ? (
               <p className="text-muted">No properties found.</p>

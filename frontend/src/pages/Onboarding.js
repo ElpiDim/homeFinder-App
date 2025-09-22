@@ -72,7 +72,7 @@ export default function Onboarding() {
     e.preventDefault();
     setSaving(true);
     try {
-        const personalClean = clean({
+      const personalClean = clean({
         name: personal.name,
         phone: personal.phone,
         age: personal.age ? Number(personal.age) : undefined,
@@ -84,7 +84,9 @@ export default function Onboarding() {
         salary: personal.salary ? Number(personal.salary) : undefined,
         isWillingToHaveRoommate: personal.isWillingToHaveRoommate,
       });
+      
       const prefsClean = clean({
+        dealType:prefs.dealType === 'sale'? 'sale' : 'rent', 
         location: prefs.location,
         rentMin: prefs.rentMin ? Number(prefs.rentMin) : undefined,
         rentMax: prefs.rentMax ? Number(prefs.rentMax) : undefined,
@@ -92,14 +94,14 @@ export default function Onboarding() {
         sqmMax: prefs.sqmMax ? Number(prefs.sqmMax) : undefined,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
-        parking: !! prefs.parking,
+        parking: !!prefs.parking,
         furnished: !!prefs.furnished,
         petsAllowed: !!prefs.petsAllowed,
         smokingAllowed: !!prefs.smokingAllowed,
         heating: prefs.heating ||undefined
       });
 
-      const payload = {...personalClean, preferences:prefsClean};
+      const payload = { ...personalClean, preferences: prefsClean };
       const { data } = await api.post('/users/onboarding', payload);
       const updated = data.user || data;
 
@@ -199,6 +201,31 @@ export default function Onboarding() {
                 {/* Preferences */}
                 <h5 className="mt-4">Preferences (What you’re looking for)</h5>
                 <Row className="g-3">
+                   <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>I’m interested in</Form.Label>
+                      <div className="d-flex gap-4">
+                        <Form.Check
+                          type="radio"
+                          id="dealType-rent"
+                          name="dealType"
+                          value="rent"
+                          label="Renting"
+                          checked={prefs.dealType === 'rent'}
+                          onChange={onChange(setPrefs)}
+                        />
+                        <Form.Check
+                          type="radio"
+                          id="dealType-sale"
+                          name="dealType"
+                          value="sale"
+                          label="Buying"
+                          checked={prefs.dealType === 'sale'}
+                          onChange={onChange(setPrefs)}
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
                   <Col md={6}>
                     <Form.Group>
                       <Form.Label>Location</Form.Label>
