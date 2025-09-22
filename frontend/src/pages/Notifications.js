@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api from '../api';
 import { Link, useNavigate } from 'react-router-dom';
 import AppointmentModal from '../components/AppointmentModal';
-import InterestsModal from '../components/InterestsModal';
+
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
@@ -11,7 +11,6 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all'); // all | unread
   const [loading, setLoading] = useState(true);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
-  const [selectedInterestId, setSelectedInterestId] = useState(null);
   const token = localStorage.getItem('token');
 
   const pageGradient = {
@@ -72,10 +71,6 @@ export default function NotificationsPage() {
       const name = note?.senderId?.name || 'Someone';
       return `${name} added your property to favorites.`;
     }
-    if (note.type === 'interest' || note.type === 'interest_accepted' || note.type === 'interest_rejected') {
-      const name = note?.senderId?.name || 'Someone';
-      return note.message || `${name} sent an interest.`;
-    }
     if (note.type === 'appointment') {
       return note.message || 'New appointment scheduled.';
     }
@@ -93,11 +88,6 @@ export default function NotificationsPage() {
     setSelectedAppointmentId(note.referenceId); // appointmentId
   };
 
-  const openInterest = async (note) => {
-    if (!note.read) await markSingleRead(note._id);
-    setSelectedInterestId(note.referenceId); // interestId
-  };
-
   const actionButton = (note) => {
     // Όλα ίδια εμφάνιση με το λευκό-μπλε κουμπί
     if (note.type === 'appointment') {
@@ -105,17 +95,6 @@ export default function NotificationsPage() {
         <button
           className="btn btn-sm btn-white-outline-primary"
           onClick={() => openAppointment(note)}
-          disabled={!note.referenceId}
-        >
-          Show details
-        </button>
-      );
-    }
-     if (note.type === 'interest' || note.type === 'interest_accepted' || note.type === 'interest_rejected') {
-      return (
-        <button
-          className="btn btn-sm btn-white-outline-primary"
-          onClick={() => openInterest(note)}
           disabled={!note.referenceId}
         >
           Show details
@@ -214,12 +193,7 @@ export default function NotificationsPage() {
           onClose={() => setSelectedAppointmentId(null)}
         />
       )}
-      {selectedInterestId && (
-        <InterestsModal
-          interestId={selectedInterestId}
-          onClose={() => setSelectedInterestId(null)}
-        />
-      )}
+      
     </div>
   );
 }

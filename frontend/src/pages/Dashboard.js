@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
-import InterestsModal from '../components/InterestsModal';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo';
@@ -14,10 +13,7 @@ import { getMessages } from '../services/messagesService';
 const iconForType = (t) => {
   switch (t) {
     case 'appointment': return '📅';
-    case 'interest': return '👋';
     case 'favorite': return '⭐';
-    case 'interest_accepted': return '✅';
-    case 'interest_rejected': return '❌';
     case 'property_removed': return '🏠❌';
     case 'message': return '💬';
     default: return '🔔';
@@ -27,10 +23,6 @@ const titleForNote = (n) => {
   if (n?.message) return n.message;
   switch (n?.type) {
     case 'appointment': return 'You have new appointment options from the property owner.';
-    case 'interest':
-    case 'interest_accepted':
-    case 'interest_rejected':
-      return n.message || `${n?.senderId?.name || 'Someone'} sent an interest.`;
     case 'favorite': return `${n?.senderId?.name || 'Someone'} added your property to favorites.`;
     case 'property_removed': return 'A property you interacted with was removed.';
     case 'message': return 'New message received.';
@@ -64,7 +56,6 @@ function Dashboard() {
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedInterestId, setSelectedInterestId] = useState(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -374,12 +365,6 @@ function Dashboard() {
     if (!note) return;
     if (note.type === 'appointment') {
       setSelectedAppointmentId(note.referenceId);
-    } else if (
-      note.type === 'interest' ||
-      note.type === 'interest_accepted' ||
-      note.type === 'interest_rejected'
-    ) {
-      setSelectedInterestId(note.referenceId);
     } else if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
     }
@@ -725,13 +710,6 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
-      {selectedInterestId && (
-        <InterestsModal
-          interestId={selectedInterestId}
-          onClose={() => setSelectedInterestId(null)}
-        />
-      )}
       {selectedAppointmentId && (
         <AppointmentModal
           appointmentId={selectedAppointmentId}
