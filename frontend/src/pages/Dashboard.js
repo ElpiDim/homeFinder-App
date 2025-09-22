@@ -51,23 +51,15 @@ function Dashboard() {
   const [limit] = useState(8);
   const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // filters (κρατιούνται για μελλοντικό panel)
-  const [locationFilter, setLocationFilter] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [minSqm, setMinSqm] = useState('');
-  const [maxSqm, setMaxSqm] = useState('');
   // geolocation
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
@@ -100,17 +92,9 @@ function Dashboard() {
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);
 
   const preferredDealType = useMemo(() => {
-  if (user?.role !== 'client') return undefined;
-  return user?.preferences?.dealType === 'sale' ? 'sale' : 'rent';
+    if (user?.role !== 'client') return undefined;
+    return user?.preferences?.dealType === 'sale' ? 'sale' : 'rent';
   }, [user]);
-
-
-  const toNum = (v) => {
-    const s = String(v ?? '').replace(/\D+/g, '');
-    if (!s) return undefined;
-    const n = Number(s);
-    return Number.isFinite(n) ? n : undefined;
-  };
 
   /* ---------- actions ---------- */
   const handleLogout = () => {
@@ -135,11 +119,6 @@ function Dashboard() {
   const fetchAllProperties = useCallback(
     async (overrides = {}) => {
       try {
-        const minPriceParam = toNum(overrides.minPrice ?? minPrice);
-        const maxPriceParam = toNum(overrides.maxPrice ?? maxPrice);
-        const minSqmParam   = toNum(overrides.minSqm   ?? minSqm);
-        const maxSqmParam   = toNum(overrides.maxSqm   ?? maxSqm);
-
         const isOwner = user?.role === 'owner';
         const effectiveType =
           overrides.type !== undefined
@@ -149,12 +128,7 @@ function Dashboard() {
           ? { includeStats: 1 }
           : {
               sort: 'relevance',
-              q: overrides.q ?? (searchTerm || locationFilter || ''),
               type: effectiveType,
-              minPrice: minPriceParam,
-              maxPrice: maxPriceParam,
-              minSqm: minSqmParam,
-              maxSqm: maxSqmParam,
               lat: overrides.lat ?? (userLat ?? undefined),
               lng: overrides.lng ?? (userLng ?? undefined),
               page: 1,
@@ -162,36 +136,8 @@ function Dashboard() {
             };
         const endpoint = isOwner ? '/properties/mine' : '/properties';
         const res = await api.get(endpoint, { params });
-        let items = Array.isArray(res.data) ? res.data : res.data?.items || [];
-
-        if (isOwner) {
-          const queryInput = overrides.q ?? (searchTerm || locationFilter || '');
-          const query =
-            typeof queryInput === 'string'
-              ? queryInput.trim().toLowerCase()
-              : String(queryInput ?? '').trim().toLowerCase();
-          items = items.filter((prop) => {
-            const title = typeof prop?.title === 'string' ? prop.title.toLowerCase() : '';
-            const location = typeof prop?.location === 'string' ? prop.location.toLowerCase() : '';
-            const address = typeof prop?.address === 'string' ? prop.address.toLowerCase() : '';
-            const matchesQuery = query
-              ? title.includes(query) || location.includes(query) || address.includes(query)
-              : true;
-
-            const priceValue = Number(prop?.price ?? prop?.rent);
-            const hasPrice = Number.isFinite(priceValue);
-            const matchesMinPrice = minPriceParam != null ? (hasPrice ? priceValue >= minPriceParam : false) : true;
-            const matchesMaxPrice = maxPriceParam != null ? (hasPrice ? priceValue <= maxPriceParam : false) : true;
-
-            const sqmValueRaw = prop?.squareMeters ?? prop?.surface;
-            const sqmValue = Number(sqmValueRaw);
-            const hasSqm = Number.isFinite(sqmValue);
-            const matchesMinSqm = minSqmParam != null ? (hasSqm ? sqmValue >= minSqmParam : false) : true;
-            const matchesMaxSqm = maxSqmParam != null ? (hasSqm ? sqmValue <= maxSqmParam : false) : true;
-
-            return matchesQuery && matchesMinPrice && matchesMaxPrice && matchesMinSqm && matchesMaxSqm;
-          });
-        }
+        
+        const items = Array.isArray(res.data) ? res.data :res.data?.items || [];
 
         setAllProperties(items);
 
@@ -214,19 +160,7 @@ function Dashboard() {
         setMeta({ total: 0, totalPages: 1, limit, page: 1 });
       }
     },
-    [
-      searchTerm,
-      locationFilter,
-      preferredDealType,
-      minPrice,
-      maxPrice,
-      minSqm,
-      maxSqm,
-      userLat,
-      userLng,
-      user?.role,
-      limit,
-    ]
+    [preferredDealType, userLat, userLng, user?.role, limit]
   );
 
   const fetchNotifications = useCallback(async () => {
@@ -384,11 +318,6 @@ function Dashboard() {
       navigate(`/property/${note.referenceId}`);
     }
     setShowNotifications(false);
-  };
-
-  const handleSearch = () => {
-    setPage(1);
-    fetchAllProperties({ q: searchTerm, page: 1 });
   };
 
   // pagination helpers
@@ -666,114 +595,6 @@ function Dashboard() {
 
       {/* CONTENT: list (left) + sticky map (right) */}
       <div className="container-fluid pt-3">
-        {/* Centered searchbar row */}
-        <div className="row">
-          <div className="col-12">
-            <div className="mx-auto mb-3" style={{ maxWidth: 920 }}>
-              <div className="search-group">
-                {/* Search */}
-                <div className="search-pill stick-right d-flex align-items-center flex-grow-1">
-                  <span className="icon text-muted">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </span>
-
-                  <input
-                    type="text"
-                    className="form-control search-input"
-                    placeholder="Search by city, address, title…"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      className="btn btn-link text-muted clear-btn"
-                      onClick={() => { setSearchTerm(''); setPage(1); fetchAllProperties({ q:'', page:1 }); }}
-                    >
-                      Clear
-                    </button>
-                  )}
-
-                  <button className="btn btn-brand btn-search" onClick={handleSearch}>
-                    Search
-                  </button>
-                </div>
-
-                {/* Filters toggle */}
-                <button
-                  className="btn btn-filters stick px-4"
-                  type="button"
-                  onClick={() => setShowFilters(v => !v)}
-                >
-                  {showFilters ? 'Filters' : 'Filters'}
-                </button>
-              </div>
-            </div>
-
-            {showFilters && (
-              <div className="card border-0 shadow-sm p-3 mt-2 mx-auto" style={{ maxWidth: 920 }}>
-                <div className="row g-2">
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Location"
-                      value={locationFilter}
-                      onChange={(e) => setLocationFilter(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Min Price"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Max Price"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Min Sqm"
-                      value={minSqm}
-                      onChange={(e) => setMinSqm(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4">
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="Max Sqm"
-                      value={maxSqm}
-                      onChange={(e) => setMaxSqm(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-6 col-xl-4 d-flex align-items-end">
-                    <button className="btn btn-brand w-100" onClick={handleSearch}>
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        
         <div className="row g-4">
           {/* LEFT: Properties list */}
           <div className="col-lg-7">
