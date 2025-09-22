@@ -2,7 +2,6 @@
 const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
-const Interest = require("../models/interests");
 const User = require("../models/user");
 
 const { computeMatchScore } = require("../utils/matching");
@@ -351,20 +350,11 @@ exports.getMyProperties = async (req, res) => {
         { $group: { _id: "$propertyId", count: { $sum: 1 } } },
       ]);
 
-      const interestsAgg = await Interest.aggregate([
-        { $match: { propertyId: { $in: ids } } },
-        { $group: { _id: "$propertyId", count: { $sum: 1 } } },
-      ]);
-
       const favMap = new Map(favoritesAgg.map((f) => [String(f._id), f.count]));
-      const interestMap = new Map(
-        interestsAgg.map((i) => [String(i._id), i.count])
-      );
 
       const withStats = properties.map((p) => ({
         ...p.toObject(),
         favoritesCount: favMap.get(String(p._id)) || 0,
-        viewsCount: interestMap.get(String(p._id)) || 0,
       }));
 
       return res.json(withStats);
@@ -510,7 +500,6 @@ exports.deleteProperty = async (req, res) => {
 
     // cleanup
     await Favorites.deleteMany({ propertyId: property._id });
-    await Interest.deleteMany({ propertyId: property._id });
     await property.deleteOne();
 
     res.json({ message: "Property and related data deleted." });

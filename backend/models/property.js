@@ -5,6 +5,12 @@ const tenantRequirementsSchema = new mongoose.Schema(
   {
     minTenantSalary: { type: Number },              // € min μισθός
     allowedOccupations: [{ type: String, trim: true }],
+    furnished: { type: Boolean },                   // απαιτείται να είναι επιπλωμένο;
+    parking: { type: Boolean },                     // απαιτείται θέση πάρκινγκ;
+    hasElevator: { type: Boolean },                 // απαιτείται ασανσέρ;
+    pets: { type: Boolean },                        // επιτρέπονται κατοικίδια;
+    smoker: { type: Boolean },                      // επιτρέπεται καπνιστής;
+    familyStatus: { type: String, trim: true },     // προτιμώμενη οικογενειακή κατάσταση
   },
   { _id: false }
 );

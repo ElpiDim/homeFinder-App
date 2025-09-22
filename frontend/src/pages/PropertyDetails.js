@@ -184,7 +184,7 @@ function PropertyDetails() {
           ← Back to search
         </Button>
 
-        {/* Header row: Title + Badges + Favorite / Interest */}
+        {/* Header row: Title + Badges + Favorite / Contact */}
         <div className="d-flex align-items-start justify-content-between flex-wrap gap-2">
           <div>
             <h3 className="fw-bold mb-1">{property.title}</h3>

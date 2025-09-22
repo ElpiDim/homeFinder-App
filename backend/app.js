@@ -21,7 +21,6 @@ const userRoutes = require("./routes/user");
 const propertyRoutes = require("./routes/properties");
 const favoritesRoutes = require("./routes/favorites");
 const messageRoutes = require("./routes/messages");
-const interestRoutes = require("./routes/interests");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
 
@@ -31,7 +30,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/messages", messageRoutes);
-app.use("/api/interests", interestRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 
