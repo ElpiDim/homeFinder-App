@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import AppShell from '../components/AppShell';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
 import AppointmentModal from '../components/AppointmentModal';
@@ -75,13 +76,6 @@ function Dashboard() {
     : '/default-avatar.jpg';
 
   /* ---------- utils ---------- */
-  const pageGradient = useMemo(() => ({
-    minHeight: '100vh',
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-  }), []);
-
   const imgUrl = (src) => {
     if (!src) return 'https://via.placeholder.com/400x225?text=No+Image';
     if (src.startsWith('http')) return src;
@@ -136,8 +130,8 @@ function Dashboard() {
             };
         const endpoint = isOwner ? '/properties/mine' : '/properties';
         const res = await api.get(endpoint, { params });
-        
-        const items = Array.isArray(res.data) ? res.data :res.data?.items || [];
+
+        const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
 
         setAllProperties(items);
 
@@ -168,7 +162,6 @@ function Dashboard() {
       const res = await api.get('/notifications');
       const list = Array.isArray(res.data) ? res.data : [];
       setNotifications(list);
-      // Use readAt if present; fallback to read boolean
       setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -212,7 +205,6 @@ function Dashboard() {
     fetchAllProperties({ page: 1 });
     fetchUnreadMessages();
 
-    // Load favorites → map to property IDs (supports populated or plain refs)
     api.get('/favorites')
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
@@ -240,7 +232,6 @@ function Dashboard() {
       .catch(() => setHasAppointments(false));
   }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
 
-  // client-side σελιδοποίηση όταν αλλάζει η σελίδα
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -250,21 +241,18 @@ function Dashboard() {
     setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
   }, [page, limit, allProperties]);
 
-  // notifications polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
 
-  // messages polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchUnreadMessages, 30000);
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
 
-  // close popovers on outside click + Esc (notifications, profile)
   useEffect(() => {
     const handleClickOutside = (e) => {
       const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
@@ -297,7 +285,6 @@ function Dashboard() {
           await Promise.all(
             unread.map((n) => api.patch(`/notifications/${n._id}/read`))
           );
-          // reflect both read + readAt locally
           const now = new Date().toISOString();
           setNotifications((prev) => prev.map((n) =>
             unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n
@@ -397,301 +384,215 @@ function Dashboard() {
     );
   };
 
-  return (
-    <div style={pageGradient}>
-      {/* Navbar */}
-      <nav
-        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
-        style={{
-          background: 'rgba(255,255,255,0.72)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          position: 'relative',
-          zIndex: 5000,
-        }}
-      >
-        <div className="d-flex align-items-center gap-2">
-          <Link to="/" className="text-decoration-none">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
-          </Link>
-        </div>
+  if (!user) {
+    return (
+      <AppShell container="md" hero={<div className="surface-section text-center"><Logo /><p className="text-muted mb-0">Loading dashboard…</p></div>}>
+        <div className="surface-card text-center">Preparing your space…</div>
+      </AppShell>
+    );
+  }
 
-        <div className="ms-auto d-flex align-items-center gap-3">
+  const hero = (
+    <div className="surface-section">
+      <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+        <div>
+          <p className="text-uppercase text-muted small mb-1">Dashboard</p>
+          <h1 className="fw-bold mb-2">Hello, {user?.name || 'there'} 👋</h1>
+          <p className="text-muted mb-3">Stay on top of your matches, appointments and conversations.</p>
+          <div className="d-flex flex-wrap gap-2">
+            <span className="pill">Unread messages: {unreadMessages}</span>
+            {hasAppointments && <span className="pill" style={{ background: 'rgba(53,176,102,0.18)', color: '#1c6f43' }}>Confirmed visits booked</span>}
+            {user?.role === 'client' && (
+              <span className="pill">Viewing: {preferredDealType === 'sale' ? 'Homes for sale' : 'Homes for rent'}</span>
+            )}
+          </div>
+        </div>
+        <div className="surface-card surface-card--flat d-flex flex-column gap-2" style={{ minWidth: 220 }}>
+          <div className="mini-stat">
+            <span className="text-muted small d-block">Total matches</span>
+            <strong>{meta.total}</strong>
+          </div>
+          <div className="mini-stat">
+            <span className="text-muted small d-block">Favorites saved</span>
+            <strong>{favorites.length}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <AppShell
+      container="xl"
+      hero={hero}
+      navRight={
+        <div className="d-flex align-items-center gap-2 flex-wrap">
           {user?.role === 'owner' && (
-            <Link
-              to="/add-property"
-              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-              style={{
-                background: "linear-gradient(135deg,#006400,#90ee90)",
-                color: "#fff",
-                fontWeight: 600,
-                border: "none"
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Add Property
+            <Link to="/add-property" className="btn btn-brand">
+              + Add property
             </Link>
           )}
-          <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
-          <Link to="/messages" className="text-dark text-decoration-none position-relative">
+          <Link to="/appointments" className="btn btn-soft">Appointments</Link>
+          <Link to="/messages" className="btn btn-soft position-relative">
             Messages
             {unreadMessages > 0 && (
-              <span
-                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                style={{ fontSize: '0.65rem' }}
-              >
-                {unreadMessages}
-              </span>
+              <span className="notify-badge">{unreadMessages}</span>
             )}
           </Link>
-          <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
+          <Link to="/favorites" className="btn btn-soft">Favorites</Link>
 
-          {/* Notifications */}
           <div ref={dropdownRef} className="position-relative">
             <button
-              className="btn btn-link text-decoration-none text-dark p-0 position-relative"
+              type="button"
+              className="btn btn-soft position-relative"
               onClick={handleToggleNotifications}
             >
               Notifications
-              {unreadCount > 0 && (
-                <span
-                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                  style={{ fontSize: '0.65rem' }}
-                >
-                  {unreadCount}
-                </span>
-              )}
+              {unreadCount > 0 && <span className="notify-badge">{unreadCount}</span>}
             </button>
             {showNotifications && (
-              <div
-                className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                style={{ width: 320, zIndex: 6500 }}
-              >
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <div className="popover-card popover-card--right">
+                <div className="popover-card__body">
                   {notifications.length === 0 ? (
-                    <div className="p-3 text-center text-muted">No notifications.</div>
+                    <div className="text-center text-muted py-4">No notifications yet.</div>
                   ) : (
-                    <ul className="list-group list-group-flush mb-0">
+                    <ul className="list-unstyled mb-0">
                       {notifications.map((note) => (
                         <li
                           key={note._id}
-                          className="list-group-item list-group-item-action d-flex gap-2"
-                          style={{ cursor: 'pointer', background: note.readAt || note.read ? '#fff' : '#f8fafc' }}
+                          className={`popover-item ${note.readAt || note.read ? '' : 'is-unread'}`}
                           onClick={() => handleNotificationClick(note)}
                         >
-                          <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
-                          <span className="small flex-grow-1">{titleForNote(note)}</span>
+                          <span className="popover-item__icon">{iconForType(note.type)}</span>
+                          <span className="popover-item__text">{titleForNote(note)}</span>
                         </li>
                       ))}
                     </ul>
                   )}
                 </div>
-                <div className="border-top text-center">
-                  <Link
-                    to="/notifications"
-                    className="d-block py-2 small"
-                    onClick={() => setShowNotifications(false)}
-                  >
-                    View all
+                <div className="popover-card__footer">
+                  <Link to="/notifications" className="btn btn-brand-outline w-100" onClick={() => setShowNotifications(false)}>
+                    View all notifications
                   </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Profile */}
-          {user?.role === 'owner' ? (
-            <div ref={profileMenuRef} className="position-relative">
-              <button
-                type="button"
-                onClick={() => setShowProfileMenu(v => !v)}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-                className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                aria-haspopup="true"
-                aria-expanded={showProfileMenu ? 'true' : 'false'}
-                style={{
-                  background: '#fff',
-                  color: '#111827',
-                  border: '1px solid #e5e7eb',
-                  fontWeight: 500,
-                  transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-                }}
-              >
-                <img
-                  src={profileImg}
-                  alt="Profile"
-                  className="rounded-circle"
-                  style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-                />
-                <span className="small">{user?.name || 'Profile'}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="ms-1" viewBox="0 0 16 16">
-                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1 0-.708z"/>
-                </svg>
-              </button>
-
-              {showProfileMenu && (
-                <div
-                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                  style={{ minWidth: 220, zIndex: 6500 }}
-                  role="menu"
-                >
-                  <ul className="list-group list-group-flush mb-0">
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/profile');
-                      }}
-                    >
-                      Profile
-                    </li>
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/my-properties');
-                      }}
-                    >
-                      My Properties
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              to="/profile"
-              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-              style={{
-                background: '#fff',
-                color: '#111827',
-                border: '1px solid #e5e7eb',
-                fontWeight: 500,
-                transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-              }}
+          <div ref={profileMenuRef} className="position-relative">
+            <button
+              type="button"
+              className="btn btn-soft d-flex align-items-center gap-2"
+              onClick={() => setShowProfileMenu((v) => !v)}
+              aria-haspopup="true"
+              aria-expanded={showProfileMenu ? 'true' : 'false'}
             >
               <img
                 src={profileImg}
                 alt="Profile"
                 className="rounded-circle"
-                style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
+                style={{ width: 36, height: 36, objectFit: 'cover', border: '2px solid rgba(255,255,255,0.8)' }}
               />
-              <span className="small">{user?.name || 'Profile'}</span>
-            </Link>
-          )}
-
-          <button className="btn btn-outline-danger rounded-pill px-3" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* CONTENT: list (left) + sticky map (right) */}
-      <div className="container-fluid pt-3">
-        <div className="row g-4">
-          {/* LEFT: Properties list */}
-          <div className="col-lg-7">
-            <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
-              <h4 className="fw-bold mb-0">Featured Properties</h4>
-              {user?.role === 'owner' && (
-                <>
-                  <Link
-                    to="/add-property"
-                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                    style={{
-                      background: 'linear-gradient(135deg,#006400,#90ee90)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      border: 'none',
-                    }}
-                  >
-                    Add Property
-                  </Link>
-                  <Link
-                    to="/match/clients"
-                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                    style={{
-                      background: 'linear-gradient(135deg,#006400,#90ee90)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      border: 'none',
-                    }}
-                  >
-                    Suggested Tenants
-                  </Link>
-                </>
-              )}
-              {user?.role === 'client' && (
-                <span
-                  className="badge rounded-pill ms-auto"
-                  style={{
-                    background: 'rgba(0,100,0,0.12)',
-                    color: '#006400',
-                    fontWeight: 600,
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  {preferredDealType === 'sale' ? 'Showing properties for sale' : 'Showing rental properties'}
-                </span>
-              )}
-            </div>
-            {!Array.isArray(properties) || properties.length === 0 ? (
-              <p className="text-muted">No properties found.</p>
-            ) : (
-              <>
-                <div className="row g-3">
-                  {properties.map((prop) => (
-                    <div className="col-sm-6" key={prop._id}>
-                      <PropertyCard
-                        prop={prop}
-                        isFavorite={favorites.includes(prop._id)}
-                        onToggleFavorite={() => handleFavorite(prop._id)}
-                        imgUrl={imgUrl}
-                        onOpen={() => navigate(`/property/${prop._id}`)}
-                      />
-                    </div>
-                  ))}
+              <span>{user?.name || 'Profile'}</span>
+            </button>
+            {showProfileMenu && (
+              <div className="popover-card popover-card--right">
+                <div className="popover-card__body">
+                  <button type="button" className="popover-item" onClick={() => { navigate('/profile'); setShowProfileMenu(false); }}>
+                    <span className="popover-item__icon">👤</span>
+                    <span className="popover-item__text">Profile</span>
+                  </button>
+                  <button type="button" className="popover-item" onClick={() => { navigate('/edit-profile'); setShowProfileMenu(false); }}>
+                    <span className="popover-item__icon">✏️</span>
+                    <span className="popover-item__text">Edit profile</span>
+                  </button>
+                  {user?.role === 'owner' && (
+                    <button type="button" className="popover-item" onClick={() => { navigate('/my-properties'); setShowProfileMenu(false); }}>
+                      <span className="popover-item__icon">🏡</span>
+                      <span className="popover-item__text">My properties</span>
+                    </button>
+                  )}
                 </div>
-
-                <div className="mt-2">
-                  {renderPager()}
+                <div className="popover-card__footer">
+                  <button type="button" className="btn btn-brand-outline w-100" onClick={handleLogout}>
+                    Logout
+                  </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
+        </div>
+      }
+    >
+      <div className="surface-section">
+        <div className="row g-4">
+          <div className="col-lg-7">
+            <section className="surface-card h-100">
+              <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
+                <h4 className="fw-bold mb-0">Recommended properties</h4>
+                {user?.role === 'owner' && (
+                  <>
+                    <Link to="/add-property" className="btn btn-brand-outline">Add property</Link>
+                    <Link to="/match/clients" className="btn btn-brand-outline">Suggested tenants</Link>
+                  </>
+                )}
+                {user?.role === 'client' && (
+                  <span className="pill ms-lg-auto">Tailored for you</span>
+                )}
+              </div>
 
-          {/* RIGHT: Sticky Map */}
+              {!Array.isArray(properties) || properties.length === 0 ? (
+                <div className="text-center text-muted py-5">No properties found.</div>
+              ) : (
+                <>
+                  <div className="row g-3">
+                    {properties.map((prop) => (
+                      <div className="col-sm-6" key={prop._id}>
+                        <PropertyCard
+                          prop={prop}
+                          isFavorite={favorites.includes(prop._id)}
+                          onToggleFavorite={() => handleFavorite(prop._id)}
+                          imgUrl={imgUrl}
+                          onOpen={() => navigate(`/property/${prop._id}`)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3">{renderPager()}</div>
+                </>
+              )}
+            </section>
+          </div>
+
           <div className="col-lg-5">
-            <div className="position-sticky" style={{ top: 88 }}>
-              <div className="card border-0 shadow-sm" style={{ height: 'calc(100vh - 88px - 16px)' }}>
-                <div className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                  <h5 className="mb-0 fw-bold">Map</h5>
-                </div>
+            <section className="surface-card surface-card--glass h-100">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h5 className="fw-semibold mb-0">Live map</h5>
+                <button type="button" className="btn btn-soft" onClick={() => fetchAllProperties({ page: 1 })}>
+                  Refresh
+                </button>
+              </div>
+              <div className="rounded-4 overflow-hidden shadow-soft" style={{ minHeight: 360 }}>
                 <GoogleMapView
                   properties={allProperties}
-                  height="calc(100% - 48px)"
+                  height="360px"
                   useClustering={false}
                   navigateOnMarkerClick
                 />
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </div>
+
       {selectedAppointmentId && (
         <AppointmentModal
           appointmentId={selectedAppointmentId}
           onClose={() => setSelectedAppointmentId(null)}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

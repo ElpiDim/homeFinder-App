@@ -1,22 +1,40 @@
 // src/pages/Properties.js
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../api'; // axios instance (baseURL = /api + Authorization)
+import { Link } from 'react-router-dom';
+import AppShell from '../components/AppShell';
+import PropertyCard from '../components/propertyCard';
+import api from '../api';
+
+const API_ORIGIN =
+  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
+
+const normalizeUploadPath = (src) => {
+  if (!src) return '';
+  if (src.startsWith('http')) return src;
+  const clean = src.replace(/^\/+/, '');
+  const rel = clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+  return `${API_ORIGIN}${rel}`;
+};
+
+const imgUrl = (src) =>
+  src
+    ? (src.startsWith('http') ? src : normalizeUploadPath(src))
+    : 'https://via.placeholder.com/600x360?text=No+Image';
 
 const Properties = () => {
-  const { user } = useAuth();               // ✅ hook μέσα στο component
+  const { user } = useAuth();
   const [properties, setProperties] = useState([]);
 
   useEffect(() => {
     const run = async () => {
       try {
-        // αν δεν υπάρχει user ή preferences, μην καλείς API
         if (!user || !user.preferences) {
           setProperties([]);
           return;
         }
 
-        // φτιάχνουμε query από τα preferences
         const params = new URLSearchParams();
         Object.entries(user.preferences).forEach(([k, v]) => {
           if (v !== undefined && v !== null && `${v}` !== '') params.set(k, v);
@@ -34,43 +52,47 @@ const Properties = () => {
     run();
   }, [user]);
 
-  const imgUrl = (src) =>
-    src
-      ? (src.startsWith('http') ? src : `http://localhost:5000${src}`)
-      : 'https://via.placeholder.com/600x360?text=No+Image';
-
   return (
-    <div className="container mt-4">
-      <div className="row">
-        {properties.map((prop) => (
-          <div className="col-md-4 mb-4" key={prop._id}>
-            <div className="card h-100">
-              <img
-                src={imgUrl(prop.images?.[0])}
-                className="card-img-top"
-                alt={prop.title || 'Property'}
-                style={{ objectFit: 'cover', height: 200 }}
-              />
-              <div className="card-body">
-                <h5 className="card-title">{prop.title}</h5>
-                <p className="card-text">{prop.location}</p>
-              </div>
-              <div className="card-footer d-flex justify-content-between">
-                <small className="text-muted">{prop.type}</small>
-                <small className="text-muted">
-                  €{Number(prop.price ?? 0).toLocaleString()}
-                </small>
-              </div>
+    <AppShell
+      container="xl"
+      hero={
+        <div className="surface-section">
+          <div className="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3">
+            <div>
+              <p className="text-uppercase text-muted small mb-1">Tailored suggestions</p>
+              <h1 className="fw-bold mb-2">Properties matched to your profile</h1>
+              <p className="text-muted mb-0" style={{ maxWidth: 560 }}>
+                These results use your onboarding preferences. Update your filters in the profile page for even smarter matches.
+              </p>
             </div>
+            <Link to="/dashboard" className="btn btn-brand-outline">Back to dashboard</Link>
           </div>
-        ))}
-
-        {/* Αν δεν υπάρχουν αποτελέσματα, απλά μην δείχνεις τίποτα (όπως ζήτησες) */}
-        {properties.length === 0 && (
-          <div className="col-12 text-muted small"> </div>
+        </div>
+      }
+    >
+      <section className="surface-card">
+        {(!Array.isArray(properties) || properties.length === 0) && (
+          <div className="text-center text-muted py-5">
+            No matching properties yet. Adjust your criteria or explore the latest offers from the dashboard.
+          </div>
         )}
-      </div>
-    </div>
+
+        {Array.isArray(properties) && properties.length > 0 && (
+          <div className="row g-4">
+            {properties.map((prop) => (
+              <div className="col-sm-6 col-lg-4" key={prop._id}>
+                <PropertyCard
+                  prop={prop}
+                  isFavorite={false}
+                  onToggleFavorite={() => {}}
+                  imgUrl={imgUrl}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </AppShell>
   );
 };
 

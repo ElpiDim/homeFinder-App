@@ -1,6 +1,7 @@
 // src/pages/Home.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AppShell from "../components/AppShell";
 import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
 import Logo from "../components/Logo";
@@ -12,13 +13,19 @@ function Home() {
   const [userLng, setUserLng] = useState(null);
   const navigate = useNavigate();
 
-  /* ---------- pastel page background (same as Dashboard) ---------- */
-  const pageGradient = useMemo(() => ({
-    minHeight: "100vh",
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-  }), []);
+  /* ---------- hero decoration (animated gradient blob) ---------- */
+  const heroAccent = useMemo(
+    () => ({
+      width: 120,
+      height: 120,
+      borderRadius: "50%",
+      background:
+        "radial-gradient(circle at 30% 30%, rgba(53,176,102,0.45), rgba(53,176,102,0))",
+      filter: "blur(4px)",
+      opacity: 0.65,
+    }),
+    []
+  );
 
   /* ---------- images (origin-safe) ---------- */
   const API_ORIGIN =
@@ -78,57 +85,69 @@ function Home() {
   const noop = () => {};
 
   return (
-    <div style={pageGradient}>
-      {/* Header (white, compact) */}
-      <nav
-        className="navbar navbar-expand-lg px-3 compact-nav shadow-sm bg-white border-bottom border-soft"
-        style={{ position: "sticky", top: 0, zIndex: 5000 }}
-      >
-        <div className="d-flex align-items-center gap-2">
-          {/* ίδιο logo με το Dashboard (gradient + μικρό μέγεθος) */}
-          <Link to="/" className="text-decoration-none">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
-          </Link>
+    <AppShell
+      navRight={
+        <div className="d-flex align-items-center gap-2 gap-sm-3 flex-wrap">
+          <Link to="/login" className="btn btn-brand-outline">Login</Link>
+          <Link to="/register" className="btn btn-brand">Get started</Link>
         </div>
+      }
+      hero={
+        <div className="surface-section text-center position-relative overflow-hidden">
+          <div className="position-absolute top-0 start-0 translate-middle" style={heroAccent} />
+          <div className="position-absolute bottom-0 end-0 translate-middle" style={heroAccent} />
 
-        <div className="ms-auto d-flex align-items-center gap-2 gap-sm-3">
-          <Link to="/login" className="btn btn-brand-outline rounded-pill px-3 px-sm-4 fw-semibold">
-            Login
-          </Link>
-          <Link to="/register" className="btn btn-brand rounded-pill px-3 px-sm-4 fw-semibold">
-            Register
-          </Link>
+          <div className="d-flex flex-column align-items-center gap-3">
+            <Logo className="logo-shadow" />
+            <p className="lead text-muted-2 mb-1" style={{ maxWidth: 520 }}>
+              Find the right home faster with curated listings, instant matches and a guided onboarding flow.
+            </p>
+            <div className="d-flex flex-column flex-sm-row gap-2 mt-2">
+              <Link to="/register" className="btn btn-brand px-4">
+                Browse smart matches
+              </Link>
+              <Link to="/onboarding" className="btn btn-brand-outline px-4">
+                Continue onboarding
+              </Link>
+            </div>
+          </div>
         </div>
-      </nav>
-
-      {/* Hero (compact) */}
-      <section className="hero-compact text-center d-flex flex-column justify-content-center align-items-center">
-        <div className="container">
-          {/* Μεγάλο gradient logo + σκιές */}
-          <Logo className="logo-shadow" />
-          <p className="lead mb-0">Find a house, make it your home in a click.</p>
+      }
+    >
+      <section className="surface-card surface-card--glass">
+        <div className="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
+          <div>
+            <h4 className="fw-bold mb-1">See homes near you</h4>
+            <p className="text-muted mb-0">Interactive map with the latest listings matching your profile.</p>
+          </div>
+          <div className="ms-md-auto">
+            <button type="button" className="btn btn-soft" onClick={() => navigate("/register")}>Create alert</button>
+          </div>
         </div>
-      </section>
-
-      {/* Map */}
-      <div className="container my-4">
-        <div className="card border-0 shadow-sm rounded-4" style={{ overflow: "hidden" }}>
+        <div className="rounded-4 overflow-hidden shadow-soft">
           <GoogleMapView
             properties={Array.isArray(properties) ? properties : []}
             height="320px"
             navigateOnMarkerClick
           />
         </div>
-      </div>
+      </section>
 
-      {/* Featured Properties (ίδιες κάρτες με Dashboard) */}
-      <div className="container pb-5">
-        <h4 className="fw-bold mb-3">Featured Properties</h4>
+      <section className="surface-card">
+        <div className="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
+          <div>
+            <h4 className="fw-bold mb-1">Featured properties</h4>
+            <p className="text-muted mb-0">Hand-picked homes from trusted partners across Greece.</p>
+          </div>
+          <div className="ms-md-auto">
+            <Link to="/login" className="btn btn-brand-outline">Sign in to save favorites</Link>
+          </div>
+        </div>
 
         {!Array.isArray(properties) || properties.length === 0 ? (
-          <p className="text-muted">No featured properties yet.</p>
+          <div className="text-center text-muted py-5">No featured properties yet.</div>
         ) : (
-          <div className="row g-3">
+          <div className="row g-4">
             {properties.map((prop) => (
               <div className="col-sm-6 col-lg-4" key={prop._id}>
                 <PropertyCard
@@ -142,8 +161,8 @@ function Home() {
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }
 
