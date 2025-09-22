@@ -1,6 +1,7 @@
 const Appointment = require("../models/appointments");
 const Notification = require("../models/notification");
 const Property = require("../models/property");
+const Message =require("../models/messages"); 
 
 // OWNER proposes slots
 exports.proposeAppointmentSlots = async (req, res) => {
@@ -8,7 +9,7 @@ exports.proposeAppointmentSlots = async (req, res) => {
   const ownerId = req.user.userId;
 
   try {
-    const property = await Property.findById(propertyId);
+     const property = await Property.findById(propertyId);
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
@@ -28,12 +29,14 @@ exports.proposeAppointmentSlots = async (req, res) => {
     await appointment.save();
 
     await Notification.create({
-      userId: tenantId,
+    userId: tenantId,
       type: "appointment",
       referenceId: appointment._id,
       senderId: ownerId,
       message: "You have new appointment options from the property owner.",
     });
+
+
     res
       .status(201)
       .json({ message: "Appointment slots proposed", appointment });
@@ -83,7 +86,7 @@ exports.confirmAppointmentSlot = async (req, res) => {
 
     const humanReadable = slotDate.toLocaleString("en-GB", {
       dateStyle: "medium",
-      timeStyle: "short",
+      timeStyle:"short",
     });
 
     await Notification.create({
@@ -94,6 +97,14 @@ exports.confirmAppointmentSlot = async (req, res) => {
       message: `Appointment confirmed for ${humanReadable}.`,
     });
     res.json({ message: "Appointment confirmed", appointment });
+
+    await Message.create({
+      senderId: tenantId,
+      receiverId: appointment.ownerId,
+      propertyId: appointment.propertyId,
+      content: `Appointment confirmed for ${humanReadable}.`,
+    });
+    
   } catch (err) {
     console.error("❌ Error confirming appointment:", err);
     res.status(500).json({ message: "Server error" });
