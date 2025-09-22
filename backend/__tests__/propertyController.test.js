@@ -12,7 +12,6 @@ const Property = require("../models/property");
 const User = require("../models/user");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
-const Interest = require("../models/interests");
 let mongo;
 
 beforeAll(async () => {
@@ -33,7 +32,6 @@ beforeEach(async () => {
     User.deleteMany({}),
     Favorites.deleteMany({}),
     Notification.deleteMany({}),
-    Interest.deleteMany({}),
   ]);
 });
 
