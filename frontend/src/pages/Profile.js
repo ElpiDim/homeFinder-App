@@ -1,12 +1,31 @@
 // src/pages/Profile.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Card, Row, Col, Button, Form, Badge } from 'react-bootstrap';
+import api from '../api';
 
 function Profile() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch fresh user on mount to reflect any server-side changes after editing
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await api.get('/users/me');
+        const fresh = data?.user || data;
+        if (!cancelled && fresh) {
+          setUser(fresh);
+          localStorage.setItem('user', JSON.stringify(fresh));
+        }
+      } catch {
+        // optional: keep silent; the view still renders from context
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [setUser]);
 
   const pageGradient = useMemo(
     () => ({
@@ -32,11 +51,15 @@ function Profile() {
     ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
     : 'Unknown';
 
-  const bool = (v) => (v ? 'Yes' : 'No');
+  // Tri-state display helpers
+  const bool = (v) => (v === true ? 'Yes' : v === false ? 'No' : '-');
   const orDash = (v) => (v === 0 || v ? v : '-');
 
   const p = user.preferences || {};
   const r = user.requirements || {};
+
+  // Normalize intent from preferences (supports either `intent` or `dealType`)
+  const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
 
   return (
     <div style={pageGradient} className="py-4">
@@ -44,7 +67,16 @@ function Profile() {
         {/* Header */}
         <Card className="mb-4">
           <Card.Body className="d-flex align-items-center justify-content-between">
+            {/* LEFT: Dashboard button + avatar + basic info */}
             <div className="d-flex align-items-center">
+              <Button
+                variant="outline-secondary"
+                className="me-3"
+                onClick={() => navigate('/dashboard')}
+              >
+                ← 
+              </Button>
+
               <div
                 className="rounded-circle bg-light me-3"
                 style={{
@@ -58,8 +90,11 @@ function Profile() {
               <div>
                 <Card.Title className="mb-0">
                   {user.name || user.email}
-                   {isClient && (
-                    <Badge bg={user.onboardingCompleted ? 'success' : 'warning'} className="ms-2">
+                  {isClient && (
+                    <Badge
+                      bg={user.onboardingCompleted ? 'success' : 'warning'}
+                      className="ms-2"
+                    >
                       {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
                     </Badge>
                   )}
@@ -67,6 +102,8 @@ function Profile() {
                 <Card.Subtitle className="text-muted">Joined in {joinedDate}</Card.Subtitle>
               </div>
             </div>
+
+            {/* RIGHT: Edit button */}
             <div>
               <Button variant="primary" onClick={() => navigate('/edit-profile')}>
                 Edit Profile
@@ -179,18 +216,39 @@ function Profile() {
                       <Form.Control plaintext readOnly value={p.location || ''} />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Rent Min (€)</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.rentMin)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Rent Max (€)</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.rentMax)} />
-                    </Form.Group>
-                  </Col>
+
+                  {/* Budget: rent or purchase based on intent */}
+                  {intent === 'rent' ? (
+                    <>
+                      <Col md={3}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Rent Min (€)</Form.Label>
+                          <Form.Control plaintext readOnly value={orDash(p.rentMin)} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Rent Max (€)</Form.Label>
+                          <Form.Control plaintext readOnly value={orDash(p.rentMax)} />
+                        </Form.Group>
+                      </Col>
+                    </>
+                  ) : (
+                    <>
+                      <Col md={3}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Purchase Min (€)</Form.Label>
+                          <Form.Control plaintext readOnly value={orDash(p.priceMin)} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Purchase Max (€)</Form.Label>
+                          <Form.Control plaintext readOnly value={orDash(p.priceMax)} />
+                        </Form.Group>
+                      </Col>
+                    </>
+                  )}
                 </Row>
 
                 <Row>

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
+// FIX: correct component name/path
+import TriStateSelect from '../components/TristateSelect';
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -16,13 +18,25 @@ const clean = (obj) =>
     )
   );
 
+const toNumOrUndef = (v) =>
+  v === '' || v === null || v === undefined ? undefined : Number(v);
+
+const ensureRange = (min, max) => {
+  const vmin = toNumOrUndef(min);
+  const vmax = toNumOrUndef(max);
+  if (vmin !== undefined && vmax !== undefined && vmin > vmax) {
+    return { min: vmax, max: vmin }; // swap
+  }
+  return { min: vmin, max: vmax };
+};
+
 export default function EditProfile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
   const isClient = user?.role === 'client';
 
-  // --- initial state from user (safe fallbacks) ---
+  // Personal
   const [personal, setPersonal] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -36,21 +50,29 @@ export default function EditProfile() {
     isWillingToHaveRoommate: !!user?.isWillingToHaveRoommate,
   });
 
+  // Preferences (TENANT can edit)
   const [prefs, setPrefs] = useState({
+    dealType:
+      user?.preferences?.dealType ||
+      (user?.preferences?.intent === 'buy' ? 'sale' : 'rent'),
     location: user?.preferences?.location || '',
     rentMin: user?.preferences?.rentMin ?? '',
     rentMax: user?.preferences?.rentMax ?? '',
+    priceMin: user?.preferences?.priceMin ?? '',
+    priceMax: user?.preferences?.priceMax ?? '',
     sqmMin: user?.preferences?.sqmMin ?? '',
     sqmMax: user?.preferences?.sqmMax ?? '',
     bedrooms: user?.preferences?.bedrooms ?? '',
     bathrooms: user?.preferences?.bathrooms ?? '',
-    furnished: !!user?.preferences?.furnished,
-    petsAllowed: !!user?.preferences?.petsAllowed,
-    smokingAllowed: !!user?.preferences?.smokingAllowed,
-    yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
+    furnished: user?.preferences?.furnished ?? null,          // tri-state
+    petsAllowed: user?.preferences?.petsAllowed ?? null,      // tri-state
+    smokingAllowed: user?.preferences?.smokingAllowed ?? null,// tri-state
     heatingType: user?.preferences?.heatingType || '',
+    // keep in sync with Profile.jsx
+    yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
   });
 
+  // Owner-only requirements (unchanged)
   const [reqs, setReqs] = useState({
     incomeMin: user?.requirements?.incomeMin ?? '',
     incomeMax: user?.requirements?.incomeMax ?? '',
@@ -63,37 +85,35 @@ export default function EditProfile() {
   });
 
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    setter((s) => ({ ...s, [name]: type === 'checkbox' ? checked : value }));
+    if (type === 'custom') setter((s) => ({ ...s, [name]: value })); // from TriStateSelect
+    else if (type === 'checkbox') setter((s) => ({ ...s, [name]: checked }));
+    else setter((s) => ({ ...s, [name]: value }));
   };
 
-  const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
-
   const validateClient = () => {
-    const rMin = toNumOrUndef(prefs.rentMin);
-    const rMax = toNumOrUndef(prefs.rentMax);
-    if (rMin !== undefined && rMax !== undefined && rMin > rMax) {
-      alert('Rent Min cannot be greater than Rent Max.');
-      return false;
-    }
-    const sMin = toNumOrUndef(prefs.sqmMin);
-    const sMax = toNumOrUndef(prefs.sqmMax);
-    if (sMin !== undefined && sMax !== undefined && sMin > sMax) {
-      alert('Sqm Min cannot be greater than Sqm Max.');
-      return false;
-    }
-    return true;
+    const e = {};
+    const pairs = [
+      ['rentMin', 'rentMax'],
+      ['priceMin', 'priceMax'],
+      ['sqmMin', 'sqmMax'],
+    ];
+    pairs.forEach(([mi, ma]) => {
+      const { min, max } = ensureRange(prefs[mi], prefs[ma]);
+      if (min !== undefined && max !== undefined && min > max) {
+        e[mi] = 'Min should be ≤ Max';
+      }
+    });
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      alert('You need to be logged in.');
-      return;
-    }
-
+    if (!user) return alert('You need to be logged in.');
     if (isClient && !validateClient()) return;
 
     setSaving(true);
@@ -101,6 +121,12 @@ export default function EditProfile() {
       let payload;
 
       if (isClient) {
+        const intent = prefs.dealType === 'sale' ? 'buy' : 'rent';
+
+        const rent = ensureRange(prefs.rentMin, prefs.rentMax);
+        const price = ensureRange(prefs.priceMin, prefs.priceMax);
+        const sqm = ensureRange(prefs.sqmMin, prefs.sqmMax);
+
         const personalClean = clean({
           name: personal.name,
           phone: personal.phone,
@@ -115,18 +141,22 @@ export default function EditProfile() {
         });
 
         const prefsClean = clean({
+          dealType: prefs.dealType, // FE compatibility if needed
+          intent,                   // backend uses this for matching
           location: prefs.location,
-          rentMin: toNumOrUndef(prefs.rentMin),
-          rentMax: toNumOrUndef(prefs.rentMax),
-          sqmMin: toNumOrUndef(prefs.sqmMin),
-          sqmMax: toNumOrUndef(prefs.sqmMax),
+          ...(intent === 'rent'
+            ? { rentMin: rent.min, rentMax: rent.max }
+            : { priceMin: price.min, priceMax: price.max }),
+          sqmMin: sqm.min,
+          sqmMax: sqm.max,
           bedrooms: toNumOrUndef(prefs.bedrooms),
           bathrooms: toNumOrUndef(prefs.bathrooms),
-          furnished: !!prefs.furnished,
-          petsAllowed: !!prefs.petsAllowed,
-          smokingAllowed: !!prefs.smokingAllowed,
+          // tri-state → undefined when no preference
+          furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
+          petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
+          smokingAllowed: prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
+          heatingType: prefs.heatingType || undefined,
           yearBuiltMin: toNumOrUndef(prefs.yearBuiltMin),
-          heatingType: prefs.heatingType || undefined, // enum: autonomous|central|ac|none
         });
 
         payload = clean({ ...personalClean, preferences: prefsClean });
@@ -136,7 +166,7 @@ export default function EditProfile() {
           incomeMax: toNumOrUndef(reqs.incomeMax),
           allowedOccupations: reqs.allowedOccupations
             ? reqs.allowedOccupations.split(',').map((o) => o.trim()).filter(Boolean)
-            : [], // στέλνουμε [] αν είναι κενό (ή μπορείς να το κάνεις undefined αν θες να μην αλλάζει)
+            : [],
           familyStatus: reqs.familyStatus || undefined,
           petsAllowed: !!reqs.petsAllowed,
           smokingAllowed: !!reqs.smokingAllowed,
@@ -147,11 +177,10 @@ export default function EditProfile() {
         payload = clean({ requirements: reqsClean });
       }
 
-      // same endpoint for both, different payload
       const { data } = await api.patch('/users/me', payload);
-
-      setUser(data); // controller updateMe επιστρέφει τον updated user
-      localStorage.setItem('user', JSON.stringify(data));
+      const updated = data?.user || data;
+      setUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
       navigate('/profile', { replace: true });
     } catch (err) {
       const status = err?.response?.status;
@@ -182,11 +211,20 @@ export default function EditProfile() {
     );
   }
 
+  const isRent = prefs.dealType !== 'sale';
+
   return (
     <div style={pageGradient} className="py-4">
       <div className="container" style={{ maxWidth: 960 }}>
         <Card>
           <Card.Body>
+            {/* Back button */}
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <Button variant="outline-secondary" onClick={() => navigate('/profile')}>
+                ← 
+              </Button>
+            </div>
+
             <Card.Title className="mb-3">
               {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Requirements'}
             </Card.Title>
@@ -264,31 +302,99 @@ export default function EditProfile() {
                   {/* Preferences */}
                   <h5 className="mt-4">Preferences</h5>
                   <Row className="g-3">
+                    <Col md={12}>
+                      <Form.Group>
+                        <Form.Label>I’m interested in</Form.Label>
+                        <div className="d-flex gap-4">
+                          <Form.Check
+                            type="radio"
+                            id="edit-dealType-rent"
+                            name="dealType"
+                            value="rent"
+                            label="Renting"
+                            checked={prefs.dealType === 'rent'}
+                            onChange={onChange(setPrefs)}
+                          />
+                          <Form.Check
+                            type="radio"
+                            id="edit-dealType-sale"
+                            name="dealType"
+                            value="sale"
+                            label="Buying"
+                            checked={prefs.dealType === 'sale'}
+                            onChange={onChange(setPrefs)}
+                          />
+                        </div>
+                      </Form.Group>
+                    </Col>
+
                     <Col md={6}>
                       <Form.Group>
                         <Form.Label>Location</Form.Label>
                         <Form.Control name="location" value={prefs.location} onChange={onChange(setPrefs)} />
                       </Form.Group>
                     </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Rent Min (€)</Form.Label>
-                        <Form.Control type="number" name="rentMin" value={prefs.rentMin} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Rent Max (€)</Form.Label>
-                        <Form.Control type="number" name="rentMax" value={prefs.rentMax} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
+
+                    {/* Budget */}
+                    {isRent ? (
+                      <>
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label>Rent Min (€)</Form.Label>
+                            <Form.Control
+                              type="number"
+                              name="rentMin"
+                              value={prefs.rentMin}
+                              onChange={onChange(setPrefs)}
+                              isInvalid={!!errors.rentMin}
+                            />
+                            <Form.Control.Feedback type="invalid">{errors.rentMin}</Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label>Rent Max (€)</Form.Label>
+                            <Form.Control type="number" name="rentMax" value={prefs.rentMax} onChange={onChange(setPrefs)} />
+                          </Form.Group>
+                        </Col>
+                      </>
+                    ) : (
+                      <>
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label>Purchase Min (€)</Form.Label>
+                            <Form.Control
+                              type="number"
+                              name="priceMin"
+                              value={prefs.priceMin}
+                              onChange={onChange(setPrefs)}
+                              isInvalid={!!errors.priceMin}
+                            />
+                            <Form.Control.Feedback type="invalid">{errors.priceMin}</Form.Control.Feedback>
+                          </Form.Group>
+                        </Col>
+                        <Col md={3}>
+                          <Form.Group>
+                            <Form.Label>Purchase Max (€)</Form.Label>
+                            <Form.Control type="number" name="priceMax" value={prefs.priceMax} onChange={onChange(setPrefs)} />
+                          </Form.Group>
+                        </Col>
+                      </>
+                    )}
                   </Row>
 
                   <Row className="g-3 mt-0">
                     <Col md={3}>
                       <Form.Group>
                         <Form.Label>Sqm Min</Form.Label>
-                        <Form.Control type="number" name="sqmMin" value={prefs.sqmMin} onChange={onChange(setPrefs)} />
+                        <Form.Control
+                          type="number"
+                          name="sqmMin"
+                          value={prefs.sqmMin}
+                          onChange={onChange(setPrefs)}
+                          isInvalid={!!errors.sqmMin}
+                        />
+                        <Form.Control.Feedback type="invalid">{errors.sqmMin}</Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                     <Col md={3}>
@@ -311,28 +417,35 @@ export default function EditProfile() {
                     </Col>
                   </Row>
 
-                  <Row className="g-3 mt-0">
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Furnished" name="furnished" checked={prefs.furnished} onChange={onChange(setPrefs)} />
-                    </Col>
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Pets allowed" name="petsAllowed" checked={prefs.petsAllowed} onChange={onChange(setPrefs)} />
-                    </Col>
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Smoking allowed" name="smokingAllowed" checked={prefs.smokingAllowed} onChange={onChange(setPrefs)} />
-                    </Col>
-                  </Row>
-
+                  {/* Tri-state picks */}
                   <Row className="g-3 mt-0">
                     <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Year Built Min</Form.Label>
-                        <Form.Control type="number" name="yearBuiltMin" value={prefs.yearBuiltMin} onChange={onChange(setPrefs)} />
-                      </Form.Group>
+                      <TriStateSelect
+                        label="Furnished"
+                        name="furnished"
+                        value={prefs.furnished}
+                        onChange={onChange(setPrefs)}
+                      />
+                    </Col>
+                    <Col md={3}>
+                      <TriStateSelect
+                        label="Pets allowed"
+                        name="petsAllowed"
+                        value={prefs.petsAllowed}
+                        onChange={onChange(setPrefs)}
+                      />
+                    </Col>
+                    <Col md={3}>
+                      <TriStateSelect
+                        label="Smoking allowed"
+                        name="smokingAllowed"
+                        value={prefs.smokingAllowed}
+                        onChange={onChange(setPrefs)}
+                      />
                     </Col>
                     <Col md={3}>
                       <Form.Group>
-                        <Form.Label>Heating Type</Form.Label>
+                        <Form.Label>Heating Type (optional)</Form.Label>
                         <Form.Select name="heatingType" value={prefs.heatingType} onChange={onChange(setPrefs)}>
                           <option value="">Select</option>
                           <option value="autonomous">Autonomous</option>
@@ -343,9 +456,24 @@ export default function EditProfile() {
                       </Form.Group>
                     </Col>
                   </Row>
+
+                  {/* Year Built Min */}
+                  <Row className="g-3 mt-0">
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Year Built Min</Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="yearBuiltMin"
+                          value={prefs.yearBuiltMin}
+                          onChange={onChange(setPrefs)}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
                 </>
               ) : (
-                // OWNER ONLY: Requirements
+                // OWNER ONLY
                 <>
                   <h5>Requirements</h5>
                   <Row className="g-3">

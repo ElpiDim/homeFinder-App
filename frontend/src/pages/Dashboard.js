@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
-import GoogleMapView from '../components/GoogleMapView';
 import AppointmentModal from '../components/AppointmentModal';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo';
@@ -54,19 +53,20 @@ function Dashboard() {
   const [favorites, setFavorites] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // geolocation
+  // geolocation (kept for parity; not shown on UI)
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
 
+  // owner stats (optional from backend)
+  const [ownerStats, setOwnerStats] = useState(null);
+
   // refs
   const dropdownRef = useRef(null);
-  const profileMenuRef = useRef(null);
 
   const profileImg = user?.profilePicture
     ? (user.profilePicture.startsWith('http')
@@ -124,6 +124,7 @@ function Dashboard() {
           overrides.type !== undefined
             ? overrides.type
             : preferredDealType || undefined;
+
         const params = isOwner
           ? { includeStats: 1 }
           : {
@@ -134,10 +135,11 @@ function Dashboard() {
               page: 1,
               limit: 9999,
             };
+
         const endpoint = isOwner ? '/properties/mine' : '/properties';
         const res = await api.get(endpoint, { params });
-        
-        const items = Array.isArray(res.data) ? res.data :res.data?.items || [];
+
+        const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
 
         setAllProperties(items);
 
@@ -168,7 +170,6 @@ function Dashboard() {
       const res = await api.get('/notifications');
       const list = Array.isArray(res.data) ? res.data : [];
       setNotifications(list);
-      // Use readAt if present; fallback to read boolean
       setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -176,6 +177,28 @@ function Dashboard() {
       setUnreadCount(0);
     }
   }, []);
+
+  const handleToggleNotifications = async () => {
+    const nextOpen = !showNotifications;
+    setShowNotifications(nextOpen);
+    if (nextOpen) {
+      const unread = notifications.filter((n) => !n.readAt && !n.read);
+      if (unread.length) {
+        try {
+          await Promise.all(
+            unread.map((n) => api.patch(`/notifications/${n._id}/read`))
+          );
+          const now = new Date().toISOString();
+          setNotifications((prev) => prev.map((n) =>
+            unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n
+          ));
+          setUnreadCount(0);
+        } catch (err) {
+          console.error('Failed to mark notifications as read:', err);
+        }
+      }
+    }
+  };
 
   const fetchUnreadMessages = useCallback(async () => {
     try {
@@ -194,6 +217,17 @@ function Dashboard() {
     }
   }, [user?.id]);
 
+  // fetch owner stats
+  const fetchOwnerStats = useCallback(async () => {
+    if (user?.role !== 'owner') return;
+    try {
+      const res = await api.get('/owners/stats');
+      setOwnerStats(res.data);
+    } catch {
+      setOwnerStats(null);
+    }
+  }, [user?.role]);
+
   /* ---------- effects ---------- */
   useEffect(() => {
     if (!user) return;
@@ -211,8 +245,9 @@ function Dashboard() {
 
     fetchAllProperties({ page: 1 });
     fetchUnreadMessages();
+    fetchOwnerStats();
 
-    // Load favorites → map to property IDs (supports populated or plain refs)
+    // Load favorites → map to property IDs
     api.get('/favorites')
       .then((res) => {
         const arr = Array.isArray(res.data) ? res.data : [];
@@ -238,9 +273,9 @@ function Dashboard() {
         setHasAppointments(confirmed.length > 0);
       })
       .catch(() => setHasAppointments(false));
-  }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages]);
+  }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages, fetchOwnerStats]);
 
-  // client-side σελιδοποίηση όταν αλλάζει η σελίδα
+  // client-side pagination when page changes
   useEffect(() => {
     const total = allProperties.length;
     const totalPagesCalc = Math.max(1, Math.ceil(total / limit));
@@ -250,66 +285,99 @@ function Dashboard() {
     setMeta({ total, totalPages: totalPagesCalc, limit, page: safePage });
   }, [page, limit, allProperties]);
 
-  // notifications polling
+  // polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
-
-  // messages polling
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchUnreadMessages, 30000);
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
-
-  // close popovers on outside click + Esc (notifications, profile)
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      const outsideNotifications = dropdownRef.current && !dropdownRef.current.contains(e.target);
-      const outsideProfile = profileMenuRef.current && !profileMenuRef.current.contains(e.target);
-      if (outsideNotifications) setShowNotifications(false);
-      if (outsideProfile) setShowProfileMenu(false);
-    };
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowNotifications(false);
-        setShowProfileMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
+    const onKeyDown = (e) => e.key === 'Escape' && setShowNotifications(false);
     document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', onKeyDown);
-    };
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  /* ---------- handlers ---------- */
-  const handleToggleNotifications = async () => {
-    const nextOpen = !showNotifications;
-    setShowNotifications(nextOpen);
-    if (nextOpen) {
-      const unread = notifications.filter((n) => !n.readAt && !n.read);
-      if (unread.length) {
-        try {
-          await Promise.all(
-            unread.map((n) => api.patch(`/notifications/${n._id}/read`))
-          );
-          // reflect both read + readAt locally
-          const now = new Date().toISOString();
-          setNotifications((prev) => prev.map((n) =>
-            unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n
-          ));
-          setUnreadCount(0);
-        } catch (err) {
-          console.error('Failed to mark notifications as read:', err);
-        }
-      }
-    }
+  /* ---------- derived owner stats (FRACTIONS) ---------- */
+  const totalListings = useMemo(
+    () => (user?.role === 'owner' ? allProperties.length : 0),
+    [user?.role, allProperties]
+  );
+
+  const likedListings = useMemo(
+    () => (user?.role === 'owner'
+      ? allProperties.filter(p => Number(p.favoritesCount || 0) > 0).length
+      : 0),
+    [user?.role, allProperties]
+  );
+
+  const seenListings = useMemo(
+    () => (user?.role === 'owner'
+      ? allProperties.filter(p => Number(p.views || 0) > 0).length
+      : 0),
+    [user?.role, allProperties]
+  );
+
+  const rentedListings = useMemo(
+    () => (user?.role === 'owner'
+      ? allProperties.filter(p => (p.status || '').toLowerCase() === 'rented').length
+      : 0),
+    [user?.role, allProperties]
+  );
+
+  /* ---------- Donut (SVG, fraction-based) ---------- */
+  const Donut = ({ value = 0, max = 0, label = 'Label', icon = '💚' }) => {
+    const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+    const size = 128;
+    const stroke = 10;
+    const r = (size - stroke) / 2;
+    const c = 2 * Math.PI * r;
+    const dash = (pct / 100) * c;
+
+    return (
+      <div className="p-3 p-md-4 rounded-4 shadow-sm h-100 text-center"
+           style={{ background: '#ffffffcc', border: '1px solid #eef2f4' }}>
+        <div className="position-relative mx-auto" style={{ width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            {/* trail */}
+            <circle
+              cx={size/2} cy={size/2} r={r}
+              fill="none"
+              stroke="#e9f7ef"
+              strokeWidth={stroke}
+            />
+            {/* progress */}
+            <circle
+              cx={size/2} cy={size/2} r={r}
+              fill="none"
+              stroke="#22c55e"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${c - dash}`}
+              transform={`rotate(-90 ${size/2} ${size/2})`}
+            />
+          </svg>
+
+          {/* center content */}
+          <div
+            className="position-absolute d-flex flex-column align-items-center justify-content-center"
+            style={{ inset: 0 }}
+          >
+            <div style={{ fontSize: 20 }}>{icon}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
+            <div className="text-muted" style={{ fontSize: 12 }}>of {max}</div>
+          </div>
+        </div>
+        <div className="mt-2 fw-semibold">{label}</div>
+      </div>
+    );
   };
 
+  /* ---------- handlers ---------- */
   const handleNotificationClick = (note) => {
     if (!note) return;
     if (note.type === 'appointment') {
@@ -327,75 +395,6 @@ function Dashboard() {
   const goPrev = () => { if (!canPrev) return; setPage((p) => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goNext = () => { if (!canNext) return; setPage((p) => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goPage = (p) => { if (p === page) return; setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-
-  const renderPager = () => {
-    if (!properties || properties.length === 0) return null;
-    if (!(totalPagesNum && totalPagesNum > 1)) return null;
-
-    const windowSize = 5;
-    const start = Math.max(1, page - Math.floor(windowSize / 2));
-    const end = Math.min(totalPagesNum, start + windowSize - 1);
-
-    const pages = [];
-    for (let i = start; i <= end; i++) pages.push(i);
-
-    const Ellipsis = () => <span className="page-ellipsis">…</span>;
-
-    return (
-      <div className="mt-3">
-        <div className="d-flex justify-content-center align-items-center pagination-pills flex-wrap">
-          <button type="button" className="btn page-btn" onClick={goPrev} disabled={!canPrev}>
-            Prev
-          </button>
-
-          {start > 1 && (
-            <>
-              <button
-                type="button"
-                className={`btn page-btn ${page === 1 ? 'page-btn-active' : ''}`}
-                onClick={() => goPage(1)}
-              >
-                1
-              </button>
-              {start > 2 && <Ellipsis />}
-            </>
-          )}
-
-          {pages.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={`btn page-btn ${p === page ? 'page-btn-active' : ''}`}
-              onClick={() => goPage(p)}
-            >
-              {p}
-            </button>
-          ))}
-
-          {end < totalPagesNum && (
-            <>
-              {end < totalPagesNum - 1 && <Ellipsis />}
-              <button
-                type="button"
-                className={`btn page-btn ${page === totalPagesNum ? 'page-btn-active' : ''}`}
-                onClick={() => goPage(totalPagesNum)}
-              >
-                {totalPagesNum}
-              </button>
-            </>
-          )}
-
-          <button type="button" className="btn page-btn" onClick={goNext} disabled={!canNext}>
-            Next
-          </button>
-        </div>
-
-        <p className="text-center text-muted small mb-0 mt-2">
-          Page {page} of {totalPagesNum}
-        </p>
-      </div>
-    );
-  };
 
   return (
     <div style={pageGradient}>
@@ -446,7 +445,9 @@ function Dashboard() {
               </span>
             )}
           </Link>
-          <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
+          {user?.role !== 'owner' && (
+            <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
+          )}
 
           {/* Notifications */}
           <div ref={dropdownRef} className="position-relative">
@@ -502,90 +503,27 @@ function Dashboard() {
           </div>
 
           {/* Profile */}
-          {user?.role === 'owner' ? (
-            <div ref={profileMenuRef} className="position-relative">
-              <button
-                type="button"
-                onClick={() => setShowProfileMenu(v => !v)}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-                className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                aria-haspopup="true"
-                aria-expanded={showProfileMenu ? 'true' : 'false'}
-                style={{
-                  background: '#fff',
-                  color: '#111827',
-                  border: '1px solid #e5e7eb',
-                  fontWeight: 500,
-                  transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-                }}
-              >
-                <img
-                  src={profileImg}
-                  alt="Profile"
-                  className="rounded-circle"
-                  style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-                />
-                <span className="small">{user?.name || 'Profile'}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="ms-1" viewBox="0 0 16 16">
-                  <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1 0-.708z"/>
-                </svg>
-              </button>
-
-              {showProfileMenu && (
-                <div
-                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                  style={{ minWidth: 220, zIndex: 6500 }}
-                  role="menu"
-                >
-                  <ul className="list-group list-group-flush mb-0">
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/profile');
-                      }}
-                    >
-                      Profile
-                    </li>
-                    <li
-                      className="list-group-item list-group-item-action small"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        navigate('/my-properties');
-                      }}
-                    >
-                      My Properties
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              to="/profile"
-              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
-              style={{
-                background: '#fff',
-                color: '#111827',
-                border: '1px solid #e5e7eb',
-                fontWeight: 500,
-                transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
-              }}
-            >
-              <img
-                src={profileImg}
-                alt="Profile"
-                className="rounded-circle"
-                style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-              />
-              <span className="small">{user?.name || 'Profile'}</span>
-            </Link>
-          )}
+          <Link
+            to="/profile"
+            className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
+            style={{
+              background: '#fff',
+              color: '#111827',
+              border: '1px solid #e5e7eb',
+              fontWeight: 500,
+              transition: 'background 200ms ease, color 200ms ease, border 200ms ease',
+            }}
+          >
+            <img
+              src={profileImg}
+              alt="Profile"
+              className="rounded-circle"
+              style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
+            />
+            <span className="small">{user?.name || 'Profile'}</span>
+          </Link>
 
           <button className="btn btn-outline-danger rounded-pill px-3" onClick={handleLogout}>
             Logout
@@ -593,98 +531,125 @@ function Dashboard() {
         </div>
       </nav>
 
-      {/* CONTENT: list (left) + sticky map (right) */}
-      <div className="container-fluid pt-3">
-        <div className="row g-4">
-          {/* LEFT: Properties list */}
-          <div className="col-lg-7">
-            <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
-              <h4 className="fw-bold mb-0">Featured Properties</h4>
-              {user?.role === 'owner' && (
-                <>
-                  <Link
-                    to="/add-property"
-                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                    style={{
-                      background: 'linear-gradient(135deg,#006400,#90ee90)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      border: 'none',
-                    }}
-                  >
-                    Add Property
-                  </Link>
-                  <Link
-                    to="/match/clients"
-                    className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
-                    style={{
-                      background: 'linear-gradient(135deg,#006400,#90ee90)',
-                      color: '#fff',
-                      fontWeight: 600,
-                      border: 'none',
-                    }}
-                  >
-                    Suggested Tenants
-                  </Link>
-                </>
-              )}
-              {user?.role === 'client' && (
-                <span
-                  className="badge rounded-pill ms-auto"
-                  style={{
-                    background: 'rgba(0,100,0,0.12)',
-                    color: '#006400',
-                    fontWeight: 600,
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  {preferredDealType === 'sale' ? 'Showing properties for sale' : 'Showing rental properties'}
-                </span>
-              )}
-            </div>
-            {!Array.isArray(properties) || properties.length === 0 ? (
-              <p className="text-muted">No properties found.</p>
-            ) : (
-              <>
-                <div className="row g-3">
-                  {properties.map((prop) => (
-                    <div className="col-sm-6" key={prop._id}>
-                      <PropertyCard
-                        prop={prop}
-                        isFavorite={favorites.includes(prop._id)}
-                        onToggleFavorite={() => handleFavorite(prop._id)}
-                        imgUrl={imgUrl}
-                        onOpen={() => navigate(`/property/${prop._id}`)}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-2">
-                  {renderPager()}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* RIGHT: Sticky Map */}
-          <div className="col-lg-5">
-            <div className="position-sticky" style={{ top: 88 }}>
-              <div className="card border-0 shadow-sm" style={{ height: 'calc(100vh - 88px - 16px)' }}>
-                <div className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                  <h5 className="mb-0 fw-bold">Map</h5>
-                </div>
-                <GoogleMapView
-                  properties={allProperties}
-                  height="calc(100% - 48px)"
-                  useClustering={false}
-                  navigateOnMarkerClick
-                />
-              </div>
-            </div>
+      {/* HERO */}
+      <div className="container pt-4" style={{ maxWidth: 1120 }}>
+        <div className="mb-3">
+          <h2 className="fw-bold mb-1">Hi, {user?.name?.split(' ')[0] || 'there'}</h2>
+          <div className="text-muted">
+            {user?.role === 'owner'
+              ? "Here's an overview of your listings."
+              : "Here are some listings based on your preferences."}
           </div>
         </div>
+
+        {/* Owner donut stats — FRACTIONS */}
+        {user?.role === 'owner' && (
+          <div className="row g-3 mb-4">
+            <div className="col-12 col-md-4">
+              <Donut icon="💚" label="Favorited" value={likedListings} max={totalListings} />
+            </div>
+            <div className="col-12 col-md-4">
+              <Donut icon="👁️" label="Seen" value={seenListings} max={totalListings} />
+            </div>
+            <div className="col-12 col-md-4">
+              <Donut icon="🏡" label="Rented" value={rentedListings} max={totalListings} />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* CONTENT: Listings grid */}
+      <div className="container pb-4" style={{ maxWidth: 1120 }}>
+        <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
+          <h4 className="fw-bold mb-0">
+            {user?.role === 'owner' ? 'Your Listings' : 'Featured Properties'}
+          </h4>
+
+          {user?.role === 'owner' && (
+            <Link
+              to="/add-property"
+              className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm ms-auto"
+              style={{
+                background: 'linear-gradient(135deg,#006400,#90ee90)',
+                color: '#fff',
+                fontWeight: 600,
+                border: 'none',
+              }}
+            >
+              + Add Property
+            </Link>
+          )}
+
+          {user?.role === 'client' && (
+            <span
+              className="badge rounded-pill ms-auto"
+              style={{
+                background: 'rgba(0,100,0,0.12)',
+                color: '#006400',
+                fontWeight: 600,
+                letterSpacing: '0.3px',
+              }}
+            >
+              {preferredDealType === 'sale' ? 'Showing properties for sale' : 'Showing rental properties'}
+            </span>
+          )}
+        </div>
+
+        {!Array.isArray(properties) || properties.length === 0 ? (
+          <p className="text-muted">No properties found.</p>
+        ) : (
+          <>
+            <div className="row g-3">
+              {properties.map((prop) => (
+                <div className="col-sm-6 col-lg-4" key={prop._id}>
+                  <PropertyCard
+                    prop={prop}
+                    isFavorite={favorites.includes(prop._id)}
+                    onToggleFavorite={() => handleFavorite(prop._id)}
+                    imgUrl={imgUrl}
+                    showFavorite={user?.role !== 'owner'}
+                    onOpen={() => navigate(`/property/${prop._id}`)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Pager */}
+            {properties.length > 0 && totalPagesNum > 1 && (
+              <div className="mt-4">
+                <div className="d-flex justify-content-center align-items-center pagination-pills flex-wrap">
+                  <button type="button" className="btn page-btn" onClick={goPrev} disabled={!canPrev}>
+                    Prev
+                  </button>
+
+                  {Array.from({ length: totalPagesNum }).map((_, idx) => {
+                    const p = idx + 1;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        className={`btn page-btn ${p === page ? 'page-btn-active' : ''}`}
+                        onClick={() => goPage(p)}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  <button type="button" className="btn page-btn" onClick={goNext} disabled={!canNext}>
+                    Next
+                  </button>
+                </div>
+
+                <p className="text-center text-muted small mb-0 mt-2">
+                  Page {page} of {totalPagesNum}
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {selectedAppointmentId && (
         <AppointmentModal
           appointmentId={selectedAppointmentId}
