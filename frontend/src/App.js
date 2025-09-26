@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -54,10 +54,9 @@ function App() {
   if (!authReady) return <div className="p-4">Loading...</div>;
 
   return (
-    <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Home />} />
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -188,7 +187,6 @@ function App() {
           }
         />
       </Routes>
-    </Router>
   );
 }
 
