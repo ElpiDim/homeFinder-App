@@ -1,0 +1,70 @@
+/* src/pages/Onboarding.css */
+
+.onboarding-container {
+  min-height: 100vh;
+  background: radial-gradient(
+      700px circle at 18% 12%,
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0) 42%
+    ),
+    linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.onboarding-card {
+  width: 100%;
+  max-width: 720px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: #e9ecef;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.progress-bar-filler {
+  height: 100%;
+  background: linear-gradient(135deg, #006400, #90ee90);
+  border-radius: 0.5rem;
+  transition: width 0.4s ease-in-out;
+}
+
+.btn-onboarding-next {
+  background: linear-gradient(135deg, #006400, #90ee90);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 50rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.btn-onboarding-next:hover,
+.btn-onboarding-next:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 100, 0, 0.2);
+  color: #fff;
+}
+
+.btn-onboarding-back {
+  color: #6c757d;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+}
+
+.btn-onboarding-back:hover {
+  color: #000;
+}
