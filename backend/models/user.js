@@ -1,8 +1,10 @@
+// backend/models/user.js
 const mongoose = require("mongoose");
 
 // --- Subschemas ---
 
-// κοινά πεδία για requirements & preferences ώστε να ταιριάζουν
+// Κοινά πεδία για requirements & (προαιρετικά) preferences ώστε να ταιριάζουν.
+// Στα booleans default: undefined => "no restriction / no preference"
 const requirementFields = {
   incomeMin: { type: Number, min: 0 },
   incomeMax: { type: Number, min: 0 },
@@ -12,15 +14,15 @@ const requirementFields = {
     enum: ["single", "couple", "family", "any"],
     default: "any",
   },
-  petsAllowed: { type: Boolean, default: true },
-  smokingAllowed: { type: Boolean, default: true },
+  petsAllowed: { type: Boolean, default: undefined },
+  smokingAllowed: { type: Boolean, default: undefined },
   workLocation: { type: String, trim: true },
   preferredTenantRegion: { type: String, trim: true },
 };
 
 const preferencesSchema = new mongoose.Schema(
   {
-    // Πρώτη βασική επιλογή: Ενοικίαση ή Αγορά
+    // Βασική επιλογή: Ενοικίαση ή Αγορά
     dealType: { type: String, enum: ["rent", "sale"], default: "rent" },
 
     // Κοινά πεδία
@@ -30,34 +32,68 @@ const preferencesSchema = new mongoose.Schema(
     bedrooms: { type: Number, min: 0 },
     bathrooms: { type: Number, min: 0 },
 
-    // Όροφος: επιτρέπω range
+    // Όροφος (range)
     floorMin: { type: Number },
     floorMax: { type: Number },
 
-    furnished: { type: Boolean, default: false },
-    elevator: { type: Boolean, default: false },
-    parking: { type: Boolean, default: false },
+    // Tri-state: undefined => καμία προτίμηση
+    furnished: { type: Boolean, default: undefined },
+    elevator: { type: Boolean, default: undefined },
+    parking: { type: Boolean, default: undefined },
 
     yearBuiltMin: { type: Number, min: 0 },
 
-    // Θέρμανση / Κλιματισμός
+    // Θέρμανση / Κλιματισμός (undefined => καμία προτίμηση)
     heatingType: {
       type: String,
       enum: ["autonomous", "central", "ac", "none"],
-      default: "none",
+      default: undefined,
     },
 
     // Τιμές ανά τύπο συναλλαγής
     rentMin: { type: Number, min: 0 },
     rentMax: { type: Number, min: 0 },
-    saleMin: { type: Number, min: 0 },
-    saleMax: { type: Number, min: 0 },
+    saleMin: { type: Number, min: 0 }, // mapped από/σε priceMin
+    saleMax: { type: Number, min: 0 }, // mapped από/σε priceMax
 
     // Επιπλέον constraints που “μοιράζονται” με requirements για matching
     ...requirementFields,
   },
-  { _id: false }
+  {
+    _id: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+// Virtuals για FE συμβατότητα (buy budget)
+preferencesSchema
+  .virtual("priceMin")
+  .get(function () {
+    return this.saleMin;
+  })
+  .set(function (v) {
+    this.saleMin = v;
+  });
+
+preferencesSchema
+  .virtual("priceMax")
+  .get(function () {
+    return this.saleMax;
+  })
+  .set(function (v) {
+    this.saleMax = v;
+  });
+
+// Virtual intent <-> dealType (rent <-> rent, buy <-> sale)
+preferencesSchema
+  .virtual("intent")
+  .get(function () {
+    return this.dealType === "sale" ? "buy" : "rent";
+  })
+  .set(function (v) {
+    this.dealType = v === "buy" ? "sale" : "rent";
+  });
 
 const requirementsSchema = new mongoose.Schema(requirementFields, {
   _id: false,
@@ -112,7 +148,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Μοναδικός δείκτης email (sparse όχι απαραίτητο αφού email required)
+// Μοναδικός δείκτης email
 userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);

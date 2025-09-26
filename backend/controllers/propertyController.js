@@ -3,11 +3,11 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const User = require("../models/user");
-
 const { computeMatchScore } = require("../utils/matching");
 
 /* ----------------------------- helpers ----------------------------- */
-const hasValue = (v) => v !== undefined && v !== null && String(v).trim() !== "";
+const hasValue = (v) =>
+  v !== undefined && v !== null && String(v).trim() !== "";
 
 const toNum = (v, parser = Number) => (hasValue(v) ? parser(v) : undefined);
 
@@ -16,28 +16,31 @@ const setIfProvided = (current, incoming, parser = (x) => x) =>
 
 const toBool = (v) => {
   if (typeof v === "boolean") return v;
-  if (typeof v === "string") return v === "true" || v === "1" || v.toLowerCase() === "yes";
+  if (typeof v === "string")
+    return v === "true" || v === "1" || v.toLowerCase() === "yes";
   if (typeof v === "number") return v === 1;
   return undefined;
 };
 
 const toArray = (v) => {
   // Accept arrays, repeated fields (features[]), CSV strings, JSON strings
-  if (Array.isArray(v)) return v.map(String).map((s) => s.trim()).filter(Boolean);
+  if (Array.isArray(v))
+    return v.map(String).map((s) => s.trim()).filter(Boolean);
   if (!hasValue(v)) return [];
   const str = String(v).trim();
   try {
     const parsed = JSON.parse(str);
-    if (Array.isArray(parsed)) return parsed.map(String).map((s) => s.trim()).filter(Boolean);
+    if (Array.isArray(parsed))
+      return parsed.map(String).map((s) => s.trim()).filter(Boolean);
   } catch (_) {
     /* not json -> fall back to csv */
   }
   return str.split(",").map((s) => s.trim()).filter(Boolean);
 };
 
-// Map user.preferences -> keys που περιμένει το matching
+// Map user.preferences -> keys που περιμένει το matching util
 const mapClientPrefs = (p = {}) => ({
-  maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax,
+  maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax ?? p.priceMax,
   minSqm: p.minSqm ?? p.sqmMin,
   minBedrooms: p.minBedrooms ?? p.bedrooms,
   minBathrooms: p.minBathrooms ?? p.bathrooms,
@@ -49,7 +52,7 @@ const mapClientPrefs = (p = {}) => ({
   familyStatus: p.familyStatus,
 });
 
-// Διαβάζει αρχεία από upload.array('images') Ή upload.fields([...])
+/** Διαβάζει αρχεία από upload.array('images') ή upload.fields([...]) */
 const extractImagesFromReq = (req) => {
   // array mode (images only)
   if (Array.isArray(req.files) && req.files.length) {
@@ -60,7 +63,9 @@ const extractImagesFromReq = (req) => {
   }
   // fields mode
   if (req.files && typeof req.files === "object") {
-    const images = (req.files.images || []).map((f) => `/uploads/${f.filename}`);
+    const images = (req.files.images || []).map(
+      (f) => `/uploads/${f.filename}`
+    );
     const floorPlanImage = req.files.floorPlanImage?.[0]
       ? `/uploads/${req.files.floorPlanImage[0].filename}`
       : undefined;
@@ -83,13 +88,22 @@ exports.createProperty = async (req, res) => {
 
     // canonical price with backward-compat (accepts 'price' or 'rent')
     const priceNum = toNum(b.price ?? b.rent, parseFloat);
-    if (!hasValue(b.title) || !hasValue(b.location) || !hasValue(priceNum) || Number(priceNum) <= 0) {
-      return res.status(400).json({ message: "title, location and positive price are required." });
+    if (
+      !hasValue(b.title) ||
+      !hasValue(b.location) ||
+      !hasValue(priceNum) ||
+      Number(priceNum) <= 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "title, location and positive price are required." });
     }
 
     // Arrays
     const features = toArray(b["features[]"] ?? b.features);
-    const allowedOccupations = toArray(b["allowedOccupations[]"] ?? b.allowedOccupations);
+    const allowedOccupations = toArray(
+      b["allowedOccupations[]"] ?? b.allowedOccupations
+    );
 
     // Tenant reqs
     const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
@@ -98,19 +112,22 @@ exports.createProperty = async (req, res) => {
     const latitude = toNum(b.latitude, parseFloat);
     const longitude = toNum(b.longitude, parseFloat);
 
-    const newProperty = new Property({
+    // Build doc (accept FE aliases → virtual setters στο model θα κάνουν το mapping)
+    const prop = new Property({
       ownerId,
       title: b.title,
       description: b.description,
       location: b.location,
       address: b.address,
 
-      price: priceNum, // canonical
+      // price/rent
+      price: priceNum, // ή μπορείς να κάνεις prop.rent = priceNum;
 
+      // listing
       type: b.type, // 'rent'|'sale'
       status: b.status,
 
-      // basic metrics
+      // dimensions (support alias sqm)
       squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
       surface: toNum(b.surface, parseInt),
       floor: toNum(b.floor, parseInt),
@@ -122,18 +139,24 @@ exports.createProperty = async (req, res) => {
       livingRooms: toNum(b.livingRooms, parseInt),
       onTopFloor: toBool(b.onTopFloor) ?? false,
 
-      // extras
+      // extras (accept aliases)
       yearBuilt: toNum(b.yearBuilt, parseInt),
       condition: b.condition,
-      heating: b.heating,
+      heating: hasValue(b.heatingType) ? b.heatingType : b.heating, // heatingType alias
       energyClass: b.energyClass,
       orientation: b.orientation,
       furnished: toBool(b.furnished) ?? false,
       petsAllowed: toBool(b.petsAllowed) ?? false,
       smokingAllowed: toBool(b.smokingAllowed) ?? false,
-      hasElevator: toBool(b.hasElevator) ?? false,
+      hasElevator:
+        toBool(b.elevator) ?? toBool(b.hasElevator) ?? false, // elevator alias
       hasStorage: toBool(b.hasStorage) ?? false,
-      parkingSpaces: toNum(b.parkingSpaces, parseInt),
+      parkingSpaces:
+        hasValue(b.parkingSpaces)
+          ? toNum(b.parkingSpaces, parseInt)
+          : toBool(b.parking) === true
+          ? 1
+          : 0, // parking alias -> at least 1
       monthlyMaintenanceFee: toNum(b.monthlyMaintenanceFee, parseFloat),
       view: b.view,
       insulation: toBool(b.insulation) ?? false,
@@ -160,8 +183,9 @@ exports.createProperty = async (req, res) => {
       },
     });
 
-    await newProperty.save();
-    res.status(201).json({ message: "Property created", property: newProperty });
+    await prop.save();
+    // toJSON έχει virtuals enabled στο model
+    res.status(201).json({ message: "Property created", property: prop });
   } catch (err) {
     console.error("❌ createProperty error:", err);
     res.status(500).json({ message: "Server error" });
@@ -179,8 +203,8 @@ exports.getAllProperties = async (req, res) => {
       sort = "relevance", // relevance | newest | price_asc | price_desc | likes
       page = 1,
       limit = 24,
-      filters, // JSON string of filters (legacy)
-      minMatchCount, // number of filters that must match
+      // filters: legacy block removed (δεν υπάρχει πλέον property.requirements)
+      minMatchCount, // kept only to avoid breaking callers
     } = req.query;
 
     const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
@@ -205,50 +229,6 @@ exports.getAllProperties = async (req, res) => {
     }
 
     const pipeline = [{ $match: match }];
-
-    // (Legacy) Requirements filters block – kept for backwards-compat (no-op for the new schema)
-    let parsedFilters = [];
-    if (filters) {
-      try {
-        parsedFilters = JSON.parse(filters);
-      } catch (e) {
-        return res.status(400).json({ message: "Invalid filters format." });
-      }
-    }
-
-    if (Array.isArray(parsedFilters) && parsedFilters.length > 0) {
-      const minMatches = parseInt(minMatchCount) || 0;
-
-      pipeline.push(
-        {
-          $addFields: {
-            matchCount: {
-              $size: {
-                $filter: {
-                  input: { $ifNull: ["$requirements", []] }, // property.requirements δεν υπάρχει στο νέο schema
-                  as: "req",
-                  cond: {
-                    $anyElementTrue: {
-                      $map: {
-                        input: parsedFilters,
-                        as: "filter",
-                        in: {
-                          $and: [
-                            { $eq: ["$$req.name", "$$filter.name"] },
-                            { $eq: ["$$req.value", "$$filter.value"] },
-                          ],
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        { $match: { matchCount: { $gte: minMatches } } }
-      );
-    }
 
     // favorites lookup & computed count
     pipeline.push(
@@ -278,7 +258,7 @@ exports.getAllProperties = async (req, res) => {
 
     pipeline.push({ $project: { favDocs: 0 } });
 
-    // Για public/owner ροές, κάνε pagination στην aggregation
+    // For public/owner, paginate in the aggregation
     const roleFromTokenAgg = req.user?.role;
     const roleFromDocAgg = req.currentUser?.role;
     const isClientAgg =
@@ -292,14 +272,19 @@ exports.getAllProperties = async (req, res) => {
     let properties = await Property.aggregate(pipeline);
 
     // --- Client-only matching >= 0.5 ---
-    const roleFromToken = req.user?.role;
-    const roleFromDoc = req.currentUser?.role;
-    const hasPrefs = !!req.currentUser?.preferences;
+    // Fallback: load current user if middleware didn't attach it
+    let currentUser = req.currentUser;
+    if (!currentUser && req.user?.role === "client" && req.user?.userId) {
+      currentUser = await User.findById(req.user.userId).lean().exec();
+    }
+
     const isClient =
-      (roleFromToken === "client" || roleFromDoc === "client") && hasPrefs;
+      currentUser?.role === "client" &&
+      currentUser?.preferences &&
+      Object.keys(currentUser.preferences).length > 0;
 
     if (isClient) {
-      const rawPrefs = req.currentUser.preferences || {};
+      const rawPrefs = currentUser.preferences || {};
       const prefs = mapClientPrefs(rawPrefs);
 
       if (rawPrefs.dealType) {
@@ -308,14 +293,14 @@ exports.getAllProperties = async (req, res) => {
 
       const filtered = [];
       for (const p of properties) {
-        const ownerReqs = p.requirements || p.tenantRequirements || {};
+        const ownerReqs = p.tenantRequirements || {};
         const { score, hardFails } = computeMatchScore(prefs, ownerReqs, p);
         if (!hardFails?.length && score >= 0.5) {
           filtered.push({ ...p, matchScore: score });
         }
       }
 
-      // pagination ΜΕΤΑ το matching
+      // pagination AFTER matching
       const pageNum = Math.max(1, parseInt(page) || 1);
       const lim = Math.max(1, Math.min(100, parseInt(limit) || 24));
       const start = (pageNum - 1) * lim;
@@ -323,7 +308,7 @@ exports.getAllProperties = async (req, res) => {
       return res.json(filtered.slice(start, start + lim));
     }
 
-    // public/owner ροές
+    // public/owner flows
     return res.json(properties);
   } catch (err) {
     console.error("❌ getAllProperties error:", err);
@@ -353,14 +338,14 @@ exports.getMyProperties = async (req, res) => {
       const favMap = new Map(favoritesAgg.map((f) => [String(f._id), f.count]));
 
       const withStats = properties.map((p) => ({
-        ...p.toObject(),
+        ...p.toObject({ virtuals: true }),
         favoritesCount: favMap.get(String(p._id)) || 0,
       }));
 
       return res.json(withStats);
     }
 
-    res.json(properties);
+    res.json(properties.map((p) => p.toObject({ virtuals: true })));
   } catch (err) {
     console.error("❌ getMyProperties error:", err);
     res.status(500).json({ message: "Server error" });
@@ -373,9 +358,10 @@ exports.getPropertyById = async (req, res) => {
     const property = await Property.findById(req.params.propertyId).populate(
       "ownerId"
     );
-    if (!property) return res.status(404).json({ message: "Property not found" });
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
 
-    res.json(property);
+    res.json(property.toObject({ virtuals: true }));
   } catch (err) {
     console.error("❌ getPropertyById error:", err);
     res.status(500).json({ message: "Server error" });
@@ -386,7 +372,8 @@ exports.getPropertyById = async (req, res) => {
 exports.updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
-    if (!property) return res.status(404).json({ message: "Property not found" });
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
     if (String(property.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "User is unauthorized" });
     }
@@ -395,50 +382,100 @@ exports.updateProperty = async (req, res) => {
     const b = req.body;
 
     // core
-    property.title = b.title ?? property.title;
-    property.description = b.description ?? property.description;
-    property.location = b.location ?? property.location;
-    property.address = b.address ?? property.address;
+    if (hasValue(b.title)) property.title = b.title;
+    if (hasValue(b.description)) property.description = b.description;
+    if (hasValue(b.location)) property.location = b.location;
+    if (hasValue(b.address)) property.address = b.address;
 
-    // price (canonical) — accepts rent for backward-compat
+    // price (accept 'rent' for legacy)
     const priceNum = toNum(b.price ?? b.rent, parseFloat);
-    if (hasValue(priceNum)) {
-      property.price = priceNum;
-    }
+    if (hasValue(priceNum)) property.price = priceNum;
 
     // type/status
-    property.type = b.type ?? property.type;
-    property.status = b.status ?? property.status;
+    if (hasValue(b.type)) property.type = b.type;
+    if (hasValue(b.status)) property.status = b.status;
 
-    // metrics
-    property.squareMeters = setIfProvided(property.squareMeters, b.squareMeters ?? b.sqm, (v) => parseInt(v));
-    property.surface = setIfProvided(property.surface, b.surface, (v) => parseInt(v));
+    // metrics (support alias 'sqm')
+    property.squareMeters = setIfProvided(
+      property.squareMeters,
+      b.squareMeters ?? b.sqm,
+      (v) => parseInt(v)
+    );
+    property.surface = setIfProvided(property.surface, b.surface, (v) =>
+      parseInt(v)
+    );
     property.floor = setIfProvided(property.floor, b.floor, (v) => parseInt(v));
-    property.levels = setIfProvided(property.levels, b.levels, (v) => parseInt(v));
-    property.bedrooms = setIfProvided(property.bedrooms, b.bedrooms, (v) => parseInt(v));
-    property.bathrooms = setIfProvided(property.bathrooms, b.bathrooms, (v) => parseInt(v));
+    property.levels = setIfProvided(property.levels, b.levels, (v) =>
+      parseInt(v)
+    );
+    property.bedrooms = setIfProvided(property.bedrooms, b.bedrooms, (v) =>
+      parseInt(v)
+    );
+    property.bathrooms = setIfProvided(property.bathrooms, b.bathrooms, (v) =>
+      parseInt(v)
+    );
     property.wc = setIfProvided(property.wc, b.wc, (v) => parseInt(v));
-    property.kitchens = setIfProvided(property.kitchens, b.kitchens, (v) => parseInt(v));
-    property.livingRooms = setIfProvided(property.livingRooms, b.livingRooms, (v) => parseInt(v));
-    if (hasValue(b.onTopFloor)) property.onTopFloor = toBool(b.onTopFloor) ?? property.onTopFloor;
+    property.kitchens = setIfProvided(property.kitchens, b.kitchens, (v) =>
+      parseInt(v)
+    );
+    property.livingRooms = setIfProvided(
+      property.livingRooms,
+      b.livingRooms,
+      (v) => parseInt(v)
+    );
+    if (hasValue(b.onTopFloor))
+      property.onTopFloor = toBool(b.onTopFloor) ?? property.onTopFloor;
 
-    // extras
-    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) => parseInt(v));
-    property.condition = hasValue(b.condition) ? b.condition : property.condition;
-    property.heating = hasValue(b.heating) ? b.heating : property.heating;
-    property.energyClass = hasValue(b.energyClass) ? b.energyClass : property.energyClass;
-    property.orientation = hasValue(b.orientation) ? b.orientation : property.orientation;
-    if (hasValue(b.furnished)) property.furnished = toBool(b.furnished) ?? property.furnished;
-    if (hasValue(b.petsAllowed)) property.petsAllowed = toBool(b.petsAllowed) ?? property.petsAllowed;
-    if (hasValue(b.smokingAllowed)) property.smokingAllowed = toBool(b.smokingAllowed) ?? property.smokingAllowed;
-    if (hasValue(b.hasElevator)) property.hasElevator = toBool(b.hasElevator) ?? property.hasElevator;
-    if (hasValue(b.hasStorage)) property.hasStorage = toBool(b.hasStorage) ?? property.hasStorage;
-    property.parkingSpaces = setIfProvided(property.parkingSpaces, b.parkingSpaces, (v) => parseInt(v));
-    property.monthlyMaintenanceFee = setIfProvided(property.monthlyMaintenanceFee, b.monthlyMaintenanceFee, parseFloat);
-    property.view = hasValue(b.view) ? b.view : property.view;
-    if (hasValue(b.insulation)) property.insulation = toBool(b.insulation) ?? property.insulation;
+    // extras (accept FE aliases)
+    property.yearBuilt = setIfProvided(property.yearBuilt, b.yearBuilt, (v) =>
+      parseInt(v)
+    );
+    if (hasValue(b.condition)) property.condition = b.condition;
+
+    // heating / heatingType alias
+    if (hasValue(b.heatingType)) property.heating = b.heatingType;
+    else if (hasValue(b.heating)) property.heating = b.heating;
+
+    if (hasValue(b.energyClass)) property.energyClass = b.energyClass;
+    if (hasValue(b.orientation)) property.orientation = b.orientation;
+    if (hasValue(b.furnished))
+      property.furnished = toBool(b.furnished) ?? property.furnished;
+    if (hasValue(b.petsAllowed))
+      property.petsAllowed = toBool(b.petsAllowed) ?? property.petsAllowed;
+    if (hasValue(b.smokingAllowed))
+      property.smokingAllowed =
+        toBool(b.smokingAllowed) ?? property.smokingAllowed;
+
+    // elevator alias
+    if (hasValue(b.elevator))
+      property.hasElevator = toBool(b.elevator) ?? property.hasElevator;
+    else if (hasValue(b.hasElevator))
+      property.hasElevator =
+        toBool(b.hasElevator) ?? property.hasElevator;
+
+    if (hasValue(b.hasStorage))
+      property.hasStorage = toBool(b.hasStorage) ?? property.hasStorage;
+
+    // parking: numeric wins; else boolean alias toggles 0/1
+    if (hasValue(b.parkingSpaces)) {
+      property.parkingSpaces = parseInt(b.parkingSpaces);
+    } else if (hasValue(b.parking)) {
+      property.parkingSpaces =
+        toBool(b.parking) === true
+          ? Math.max(1, property.parkingSpaces || 0)
+          : 0;
+    }
+
+    property.monthlyMaintenanceFee = setIfProvided(
+      property.monthlyMaintenanceFee,
+      b.monthlyMaintenanceFee,
+      parseFloat
+    );
+    if (hasValue(b.view)) property.view = b.view;
+    if (hasValue(b.insulation))
+      property.insulation = toBool(b.insulation) ?? property.insulation;
     property.plotSize = setIfProvided(property.plotSize, b.plotSize, parseFloat);
-    property.ownerNotes = hasValue(b.ownerNotes) ? b.ownerNotes : property.ownerNotes;
+    if (hasValue(b.ownerNotes)) property.ownerNotes = b.ownerNotes;
 
     // features (replace set if provided)
     const incomingFeatures = b["features[]"] ?? b.features;
@@ -447,16 +484,20 @@ exports.updateProperty = async (req, res) => {
     }
 
     // geo
-    if (hasValue(b.latitude)) property.latitude = toNum(b.latitude, parseFloat);
-    if (hasValue(b.longitude)) property.longitude = toNum(b.longitude, parseFloat);
+    if (hasValue(b.latitude))
+      property.latitude = toNum(b.latitude, parseFloat);
+    if (hasValue(b.longitude))
+      property.longitude = toNum(b.longitude, parseFloat);
 
     // tenant requirements
     const incomingOcc = b["allowedOccupations[]"] ?? b.allowedOccupations;
     const occArray = toArray(incomingOcc);
     const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
     if (!property.tenantRequirements) property.tenantRequirements = {};
-    if (occArray.length) property.tenantRequirements.allowedOccupations = occArray;
-    if (hasValue(minTenantSalary)) property.tenantRequirements.minTenantSalary = minTenantSalary;
+    if (occArray.length)
+      property.tenantRequirements.allowedOccupations = occArray;
+    if (hasValue(minTenantSalary))
+      property.tenantRequirements.minTenantSalary = minTenantSalary;
 
     // images / floorplan
     if (newImages.length) {
@@ -467,7 +508,10 @@ exports.updateProperty = async (req, res) => {
     }
 
     await property.save();
-    res.json({ message: "Property updated", property });
+    res.json({
+      message: "Property updated",
+      property: property.toObject({ virtuals: true }),
+    });
   } catch (err) {
     console.error("❌ updateProperty error:", err);
     res.status(500).json({ message: "Server error" });
@@ -478,7 +522,8 @@ exports.updateProperty = async (req, res) => {
 exports.deleteProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.propertyId);
-    if (!property) return res.status(404).json({ message: "Property not found" });
+    if (!property)
+      return res.status(404).json({ message: "Property not found" });
 
     if (String(property.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Unauthorized" });
