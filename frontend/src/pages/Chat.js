@@ -59,7 +59,12 @@ function Chat() {
           ((newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id) ||
             (newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId))
         ) {
-          setMessages((prevMessages) => [...prevMessages, newMessage]);
+          setMessages((prevMessages) => {
+            if (prevMessages.some((msg) => msg._id === newMessage._id)) {
+              return prevMessages;
+            }
+            return [...prevMessages, newMessage];
+          });
         }
       });
 
@@ -115,7 +120,12 @@ function Chat() {
 
     try {
       const sentMessage = await sendMessage(receiverId, propertyId, newMessage);
-      setMessages((prevMessages) => [...prevMessages, sentMessage]);
+      setMessages((prevMessages) => {
+        if (prevMessages.some((msg) => msg._id === sentMessage._id)) {
+          return prevMessages;
+        }
+        return [...prevMessages, sentMessage];
+      });
       setNewMessage('');
       localStorage.setItem('lastMessageCheck', new Date().toISOString());
     } catch (err) {
@@ -232,7 +242,7 @@ function Chat() {
               >
                 <p className="mb-1">{msg.content}</p>
                 <small className="text-muted">
-                  {new Date(msg.timeStamp).toLocaleString()}
+                  {msg.timeStamp ? new Date(msg.timeStamp).toLocaleString() : 'Sending...'}
                 </small>
               </div>
             </div>
