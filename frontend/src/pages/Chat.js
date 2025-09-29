@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMessages, sendMessage } from '../services/messagesService';
+import { getMessages } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
 import {
   Container,
@@ -13,6 +13,9 @@ import {
 } from 'react-bootstrap';
 import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
@@ -48,6 +51,27 @@ function Chat() {
 
     if (token) {
       fetchMessages();
+
+      socket.emit('register', user.id);
+
+      socket.on('newMessage', (newMessage) => {
+        if (
+          newMessage.propertyId?._id === propertyId &&
+          ((newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id) ||
+            (newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId))
+        ) {
+          setMessages((prevMessages) => {
+            if (prevMessages.some((msg) => msg._id === newMessage._id)) {
+              return prevMessages;
+            }
+            return [...prevMessages, newMessage];
+          });
+        }
+      });
+
+      return () => {
+        socket.off('newMessage');
+      };
     }
   }, [propertyId, receiverId, token, user.id]);
 
@@ -91,27 +115,19 @@ function Chat() {
   const canProposeAppointment =
     isOwnerOfProperty && receiverId && String(receiverId) !== String(user?.id);
 
-  const handleSend = async (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    try {
-      await sendMessage(receiverId, propertyId, newMessage);
-      setNewMessage('');
-      // Refetch messages to show the new one
-      const allMessages = await getMessages();
-      const filteredMessages = allMessages.filter(
-        (msg) =>
-          msg.propertyId?._id === propertyId &&
-          ((msg.senderId?._id === user.id && msg.receiverId?._id === receiverId) ||
-            (msg.senderId?._id === receiverId && msg.receiverId?._id === user.id))
-      );
-      setMessages(filteredMessages);
-      localStorage.setItem('lastMessageCheck', new Date().toISOString());
-    } catch (err) {
-      console.error('Failed to send message', err);
-      alert('Failed to send message.');
-    }
+    socket.emit("sendMessage", {
+      senderId: user.id,
+      receiverId,
+      propertyId,
+      content: newMessage,
+    });
+
+    setNewMessage("");
+    localStorage.setItem("lastMessageCheck", new Date().toISOString());
   };
     const handleProposalSlotChange = (index, value) => {
     setSlotInputs((prev) => {
@@ -222,7 +238,7 @@ function Chat() {
               >
                 <p className="mb-1">{msg.content}</p>
                 <small className="text-muted">
-                  {new Date(msg.timeStamp).toLocaleString()}
+                  {msg.timeStamp ? new Date(msg.timeStamp).toLocaleString() : 'Sending...'}
                 </small>
               </div>
             </div>
