@@ -110,17 +110,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Map */}
-      <div className="container my-4">
-        <div className="card border-0 shadow-sm rounded-4" style={{ overflow: "hidden" }}>
-          <GoogleMapView
-            properties={Array.isArray(properties) ? properties : []}
-            height="320px"
-            navigateOnMarkerClick
-          />
-        </div>
-      </div>
-
+     
       {/* Featured Properties (ίδιες κάρτες με Dashboard) */}
       <div className="container pb-5">
         <h4 className="fw-bold mb-3">Featured Properties</h4>
@@ -130,7 +120,7 @@ function Home() {
         ) : (
           <div className="row g-3">
             {properties.map((prop) => (
-              <div className="col-sm-6 col-lg-4" key={prop._id}>
+              <div className="col-12 col-sm-6 col-lg-4" key={prop._id}>
                 <PropertyCard
                   prop={prop}
                   isFavorite={false}

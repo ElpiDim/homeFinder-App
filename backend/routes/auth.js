@@ -89,6 +89,7 @@ router.post("/login", async (req, res) => {
       user.onboardingCompleted = true;
       await user.save();
     }
+
     const payload = {
       userId: user._id,
       role: user.role,
@@ -118,7 +119,7 @@ const token = jwt.sign(payload, process.env.JWT_SECRET, {
         preferences: user.preferences,
       },
       });
-      
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

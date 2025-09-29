@@ -204,6 +204,11 @@ exports.findMatchingProperties = async (req, res) => {
     const dbMatch = { status: "available" };
     if (preferences.dealType) dbMatch.type = preferences.dealType;
 
+    
+    if (preferences.location) {
+      dbMatch.location = { $regex: preferences.location, $options: "i" };
+    }
+
     // αν έχουμε ανώτατο budget, μπορούμε να κόψουμε χοντρικά:
     const maxBudget =
       preferences.dealType === "rent"

@@ -86,7 +86,6 @@ import api from '../api';
                       setUnreadCount(c => c + 1);
                     }
                   }
-
                   if (note.type === "appointment") {
                     setSelectedAppointmentId(note.referenceId);
                     setShowNotifications(false);

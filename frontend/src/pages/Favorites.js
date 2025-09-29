@@ -146,9 +146,9 @@ export default function Favorites() {
                         <div className="text-muted small">📍 {p.location}</div>
 
                         <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
-                          {p.price != null && (
+                          {p.rent != null && (
                             <Badge bg="light" text="dark">
-                              💶 {currency(p.price)} €
+                              💶 {currency(p.rent)} €
                             </Badge>
                           )}
                           {p.type && (

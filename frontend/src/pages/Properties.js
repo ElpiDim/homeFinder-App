@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api'; // axios instance (baseURL = /api + Authorization)
 
 const Properties = () => {
-  const { user } = useAuth();               // ✅ hook μέσα στο component
+  const { user } = useAuth();               //hook μέσα στο component
   const [properties, setProperties] = useState([]);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const Properties = () => {
               <div className="card-footer d-flex justify-content-between">
                 <small className="text-muted">{prop.type}</small>
                 <small className="text-muted">
-                  €{Number(prop.price ?? 0).toLocaleString()}
+                  €{Number(prop.rent ?? 0).toLocaleString()}
                 </small>
               </div>
             </div>
