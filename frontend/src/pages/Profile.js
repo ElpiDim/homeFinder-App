@@ -318,53 +318,22 @@ function Profile() {
           </>
         )}
 
-        {/* === OWNER VIEW: ONLY Requirements === */}
+ {/* === OWNER VIEW: Personal Info === */}
         {!isClient && (
           <Card className="mb-4">
-            <Card.Header as="h5">Requirements</Card.Header>
+            <Card.Header as="h5">Personal Information</Card.Header>
             <Card.Body>
               <Row>
-                <Col md={3}>
+                <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Income Min (€)</Form.Label>
-                    <Form.Control plaintext readOnly value={orDash(r.incomeMin)} />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Income Max (€)</Form.Label>
-                    <Form.Control plaintext readOnly value={orDash(r.incomeMax)} />
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control plaintext readOnly value={user.name || ''} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Allowed Occupations</Form.Label>
-                    <Form.Control
-                      plaintext
-                      readOnly
-                      value={(r.allowedOccupations || []).join(', ') || '-'}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Family Status</Form.Label>
-                    <Form.Control plaintext readOnly value={r.familyStatus || '-'} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Pets Allowed</Form.Label>
-                    <Form.Control plaintext readOnly value={bool(r.petsAllowed)} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Smoking Allowed</Form.Label>
-                    <Form.Control plaintext readOnly value={bool(r.smokingAllowed)} />
+                    <Form.Label>Email</Form.Label>
+                    <Form.Control plaintext readOnly value={user.email} />
                   </Form.Group>
                 </Col>
               </Row>
@@ -372,14 +341,8 @@ function Profile() {
               <Row>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Work Location</Form.Label>
-                    <Form.Control plaintext readOnly value={r.workLocation || '-'} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Preferred Tenant Region</Form.Label>
-                    <Form.Control plaintext readOnly value={r.preferredTenantRegion || '-'} />
+                    <Form.Label>Phone</Form.Label>
+                    <Form.Control plaintext readOnly value={user.phone || ''} />
                   </Form.Group>
                 </Col>
               </Row>
