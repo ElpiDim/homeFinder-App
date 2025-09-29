@@ -1,6 +1,7 @@
 // src/pages/EditProperty.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Row, Col, Form, Button } from 'react-bootstrap';
 import api from '../api';
 import {
   GoogleMap,
@@ -105,8 +106,13 @@ function EditProperty() {
     insulation: false,
     plotSize: '',
     ownerNotes: '',
+
+    //tnant requirements 
     minTenantSalary: '',
     allowedOccupations: '',
+    familyStatus: '',
+    tenantRequirements_petsAllowed: false,
+    tenantRequirements_smokingAllowed: false,
 
     // tags
     features: [],
@@ -170,6 +176,7 @@ function EditProperty() {
       try {
         const res = await api.get(`/properties/${propertyId}`);
         const p = res.data || {};
+        const reqs = p.tenantRequirements || {};
 
         setFormData({
           title: p.title || '',
@@ -207,11 +214,16 @@ function EditProperty() {
           insulation: !!p.insulation,
           plotSize: p.plotSize ?? '',
           ownerNotes: p.ownerNotes || '',
-          minTenantSalary: p.tenantRequirements?.minTenantSalary ?? '',
-          allowedOccupations: Array.isArray(p.tenantRequirements?.allowedOccupations)
-            ? p.tenantRequirements.allowedOccupations.join(', ')
+         
+          // Tenant Requirements
+          minTenantSalary: reqs.minTenantSalary ?? '',
+          allowedOccupations: Array.isArray(reqs.allowedOccupations)
+            ? reqs.allowedOccupations.join(', ')
             : '',
-
+          familyStatus: reqs.familyStatus || '',
+          tenantRequirements_petsAllowed: !!reqs.pets,
+          tenantRequirements_smokingAllowed: !!reqs.smoker,
+          
           features: Array.isArray(p.features) ? p.features : [],
         });
 
@@ -250,7 +262,8 @@ function EditProperty() {
 
     const boolKeys = [
       'onTopFloor','furnished','petsAllowed','smokingAllowed',
-      'hasElevator','hasStorage','insulation'
+      'hasElevator','hasStorage','insulation',
+      'tenantRequirements_petsAllowed', 'tenantRequirements_smokingAllowed'
     ];
     if (type === 'checkbox' && boolKeys.includes(name)) {
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -315,7 +328,12 @@ function EditProperty() {
       insulation: formData.insulation ? 'true' : 'false',
       plotSize: toNumOrUndef(formData.plotSize, parseInt),
       ownerNotes: formData.ownerNotes,
+     
+      //tenant requirements 
       minTenantSalary: toNumOrUndef(formData.minTenantSalary, parseFloat),
+      familyStatus: formData.familyStatus,
+      tenantRequirements_petsAllowed: formData.tenantRequirements_petsAllowed ? 'true' : 'false',
+      tenantRequirements_smokingAllowed: formData.tenantRequirements_smokingAllowed ? 'true' : 'false',
     };
 
     // Append only meaningful fields
@@ -644,29 +662,58 @@ function EditProperty() {
           </div>
 
           <h5 className="mt-4">Tenant Requirements</h5>
-          <div className="row g-3">
-            <div className="col-sm-6">
-              <label className="form-label">Minimum Tenant Salary (€)</label>
-              <input
+          <Row className="g-3">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Minimum Tenant Salary (€)</Form.Label>
+                <Form.Control
                 name="minTenantSalary"
                 type="number"
-                className="form-control"
                 value={formData.minTenantSalary}
                 onChange={handleChange}
                 min={0}
               />
-            </div>
-            <div className="col-sm-6">
-              <label className="form-label">Allowed Occupations (comma separated)</label>
-              <input
+            </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Allowed Occupations (comma separated)</Form.Label>
+                <Form.Control
                 name="allowedOccupations"
-                className="form-control"
                 value={formData.allowedOccupations}
                 onChange={handleChange}
                 placeholder="e.g. Engineer, Teacher"
               />
-            </div>
-          </div>
+ </Form.Group>
+            </Col>
+          </Row>
+          <Row className="g-3 mt-0">
+            <Col md={4}>
+                <Form.Group>
+                <Form.Label>Family Status</Form.Label>
+                <Form.Select name="familyStatus" value={formData.familyStatus} onChange={handleChange}>
+                    <option value="">Any</option>
+                    <option value="single">Single</option>
+                    <option value="couple">Couple</option>
+                    <option value="family">Family</option>
+                </Form.Select>
+                </Form.Group>
+            </Col>
+            <Col md={4} className="d-flex align-items-end">
+                <Form.Check 
+                  label="Pets allowed for tenant" 
+                  name="tenantRequirements_petsAllowed" 
+                  checked={!!formData.tenantRequirements_petsAllowed} 
+                  onChange={handleChange} />
+            </Col>
+            <Col md={4} className="d-flex align-items-end">
+                <Form.Check 
+                  label="Smoking allowed for tenant" 
+                  name="tenantRequirements_smokingAllowed" 
+                  checked={!!formData.tenantRequirements_smokingAllowed} 
+                  onChange={handleChange} />
+            </Col>
+        </Row>
 
           {/* FEATURE TAGS */}
           <h5 className="mt-4">Features</h5>

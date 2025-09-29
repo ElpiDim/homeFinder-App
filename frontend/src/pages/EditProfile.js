@@ -72,18 +72,6 @@ export default function EditProfile() {
     yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
   });
 
-  // Owner-only requirements (unchanged)
-  const [reqs, setReqs] = useState({
-    incomeMin: user?.requirements?.incomeMin ?? '',
-    incomeMax: user?.requirements?.incomeMax ?? '',
-    allowedOccupations: (user?.requirements?.allowedOccupations || []).join(', '),
-    familyStatus: user?.requirements?.familyStatus || '',
-    petsAllowed: !!user?.requirements?.petsAllowed,
-    smokingAllowed: !!user?.requirements?.smokingAllowed,
-    workLocation: user?.requirements?.workLocation || '',
-    preferredTenantRegion: user?.requirements?.preferredTenantRegion || '',
-  });
-
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -160,21 +148,13 @@ export default function EditProfile() {
         });
 
         payload = clean({ ...personalClean, preferences: prefsClean });
-      } else {
-        const reqsClean = clean({
-          incomeMin: toNumOrUndef(reqs.incomeMin),
-          incomeMax: toNumOrUndef(reqs.incomeMax),
-          allowedOccupations: reqs.allowedOccupations
-            ? reqs.allowedOccupations.split(',').map((o) => o.trim()).filter(Boolean)
-            : [],
-          familyStatus: reqs.familyStatus || undefined,
-          petsAllowed: !!reqs.petsAllowed,
-          smokingAllowed: !!reqs.smokingAllowed,
-          workLocation: reqs.workLocation || undefined,
-          preferredTenantRegion: reqs.preferredTenantRegion || undefined,
+       } else { // Owner
+        const personalClean = clean({
+          name: personal.name,
+          phone: personal.phone,
         });
 
-        payload = clean({ requirements: reqsClean });
+        payload = personalClean;
       }
 
       const { data } = await api.patch('/users/me', payload);
@@ -226,13 +206,11 @@ export default function EditProfile() {
             </div>
 
             <Card.Title className="mb-3">
-              {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Requirements'}
+               {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Profile'}
             </Card.Title>
 
             <Form onSubmit={handleSubmit}>
-              {isClient ? (
-                <>
-                  {/* Personal */}
+                  {/* Personal info */}
                   <h5>Personal Information</h5>
                   <Row className="g-3">
                     <Col md={6}>
@@ -248,6 +226,8 @@ export default function EditProfile() {
                       </Form.Group>
                     </Col>
                   </Row>
+                   {isClient && (
+                <>
 
                   <Row className="g-3 mt-0">
                     <Col md={3}>
@@ -472,69 +452,7 @@ export default function EditProfile() {
                     </Col>
                   </Row>
                 </>
-              ) : (
-                // OWNER ONLY
-                <>
-                  <h5>Requirements</h5>
-                  <Row className="g-3">
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Income Min (€)</Form.Label>
-                        <Form.Control type="number" name="incomeMin" value={reqs.incomeMin} onChange={onChange(setReqs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Income Max (€)</Form.Label>
-                        <Form.Control type="number" name="incomeMax" value={reqs.incomeMax} onChange={onChange(setReqs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Allowed Occupations (comma separated)</Form.Label>
-                        <Form.Control name="allowedOccupations" value={reqs.allowedOccupations} onChange={onChange(setReqs)} />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Row className="g-3 mt-0">
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label>Family Status</Form.Label>
-                        <Form.Select name="familyStatus" value={reqs.familyStatus} onChange={onChange(setReqs)}>
-                          <option value="">Select</option>
-                          <option value="single">Single</option>
-                          <option value="couple">Couple</option>
-                          <option value="family">Family</option>
-                          <option value="any">Any</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={4} className="d-flex align-items-end">
-                      <Form.Check label="Pets allowed" name="petsAllowed" checked={reqs.petsAllowed} onChange={onChange(setReqs)} />
-                    </Col>
-                    <Col md={4} className="d-flex align-items-end">
-                      <Form.Check label="Smoking allowed" name="smokingAllowed" checked={reqs.smokingAllowed} onChange={onChange(setReqs)} />
-                    </Col>
-                  </Row>
-
-                  <Row className="g-3 mt-0">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Work Location</Form.Label>
-                        <Form.Control name="workLocation" value={reqs.workLocation} onChange={onChange(setReqs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Preferred Tenant Region</Form.Label>
-                        <Form.Control name="preferredTenantRegion" value={reqs.preferredTenantRegion} onChange={onChange(setReqs)} />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </>
               )}
-
               <div className="mt-4 d-flex justify-content-end">
                 <Button type="submit" disabled={saving}>
                   {saving ? 'Saving...' : 'Save'}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Row, Col, Form, Button } from 'react-bootstrap';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,6 +31,13 @@ export default function AddProperty() {
     heating: '',       // free text for now, can be enum later
     amenitiesInput: '',// comma-separated input that we’ll split to array
   });
+   const [tenantReqs, setTenantReqs] = useState({
+    minTenantSalary: '',
+    allowedOccupations: '',
+    familyStatus: '',
+    petsAllowed: false,
+    smokingAllowed: false,
+  });
 
   const [images, setImages] = useState([]);
   const [floorPlan, setFloorPlan] = useState(null);
@@ -39,6 +47,10 @@ export default function AddProperty() {
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+  };
+  const onReqsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setTenantReqs((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const validate = () => {
@@ -109,6 +121,13 @@ export default function AddProperty() {
         fd.append('features', features.join(','));
       }
 
+      // Tenant Requirements
+      if (tenantReqs.minTenantSalary) fd.append('minTenantSalary', tenantReqs.minTenantSalary);
+      if (tenantReqs.allowedOccupations) fd.append('allowedOccupations', tenantReqs.allowedOccupations);
+      if (tenantReqs.familyStatus) fd.append('familyStatus', tenantReqs.familyStatus);
+      fd.append('tenantRequirements_petsAllowed', tenantReqs.petsAllowed);
+      fd.append('tenantRequirements_smokingAllowed', tenantReqs.smokingAllowed);
+      
       // Files
       images.forEach((file) => fd.append('images', file));
       if (floorPlan) fd.append('floorPlanImage', floorPlan);
@@ -371,6 +390,41 @@ export default function AddProperty() {
             onChange={onChange}
           />
         </div>
+        
+        <h5 className="mt-4">Tenant Requirements</h5>
+        <Row className="g-3">
+            <Col md={4}>
+                <Form.Group>
+                <Form.Label>Minimum Tenant Salary (€)</Form.Label>
+                <Form.Control type="number" name="minTenantSalary" value={tenantReqs.minTenantSalary} onChange={onReqsChange} />
+                </Form.Group>
+            </Col>
+            <Col md={8}>
+                <Form.Group>
+                <Form.Label>Allowed Occupations (comma-separated)</Form.Label>
+                <Form.Control name="allowedOccupations" value={tenantReqs.allowedOccupations} onChange={onReqsChange} />
+                </Form.Group>
+            </Col>
+        </Row>
+        <Row className="g-3 mt-0">
+            <Col md={4}>
+                <Form.Group>
+                <Form.Label>Family Status</Form.Label>
+                <Form.Select name="familyStatus" value={tenantReqs.familyStatus} onChange={onReqsChange}>
+                    <option value="">Any</option>
+                    <option value="single">Single</option>
+                    <option value="couple">Couple</option>
+                    <option value="family">Family</option>
+                </Form.Select>
+                </Form.Group>
+            </Col>
+            <Col md={4} className="d-flex align-items-end">
+                <Form.Check label="Pets allowed for tenant" name="petsAllowed" checked={tenantReqs.petsAllowed} onChange={onReqsChange} />
+            </Col>
+            <Col md={4} className="d-flex align-items-end">
+                <Form.Check label="Smoking allowed for tenant" name="smokingAllowed" checked={tenantReqs.smokingAllowed} onChange={onReqsChange} />
+            </Col>
+        </Row>
 
         <h5 className="mt-3">Media</h5>
 

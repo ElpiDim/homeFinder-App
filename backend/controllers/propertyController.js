@@ -107,6 +107,9 @@ exports.createProperty = async (req, res) => {
 
     // Tenant reqs
     const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
+    const familyStatus = b.familyStatus || undefined;
+    const reqs_pets = toBool(b.tenantRequirements_petsAllowed);
+    const reqs_smoker = toBool(b.tenantRequirements_smokingAllowed);
 
     // Geo
     const latitude = toNum(b.latitude, parseFloat);
@@ -180,6 +183,9 @@ exports.createProperty = async (req, res) => {
       tenantRequirements: {
         minTenantSalary,
         allowedOccupations,
+        familyStatus,
+        pets: reqs_pets,
+        smoker: reqs_smoker,
       },
     });
 
@@ -498,7 +504,12 @@ exports.updateProperty = async (req, res) => {
       property.tenantRequirements.allowedOccupations = occArray;
     if (hasValue(minTenantSalary))
       property.tenantRequirements.minTenantSalary = minTenantSalary;
-
+    if (hasValue(b.familyStatus))
+        property.tenantRequirements.familyStatus = b.familyStatus
+    if (hasValue(b.tenantRequirements_petsAllowed))
+        property.tenantRequirements.pets = toBool(b.tenantRequirements_petsAllowed)
+    if (hasValue(b.tenantRequirements_smokingAllowed))
+        property.tenantRequirements.smoker = toBool(b.tenantRequirements_smokingAllowed)
     // images / floorplan
     if (newImages.length) {
       property.images = [...(property.images || []), ...newImages];
