@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 const app = require("./app");
+const Message = require("./models/messages");
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/app";
@@ -35,6 +36,37 @@ io.on("connection", (socket) => {
       }
     }
   });
+
+  socket.on(
+    "sendMessage",
+    async ({ senderId, receiverId, propertyId, content }) => {
+      try {
+        let newMessage = new Message({
+          senderId,
+          receiverId,
+          propertyId,
+          content,
+        });
+        await newMessage.save();
+
+        newMessage = await newMessage.populate(
+          "senderId receiverId propertyId"
+        );
+
+        const senderSocketId = connectedUsers[senderId];
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("newMessage", newMessage);
+        }
+
+        const receiverSocketId = connectedUsers[receiverId];
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
+      } catch (error) {
+        console.error("Failed to send message", error);
+      }
+    }
+  );
 });
 
 app.use((req, res, next) => {

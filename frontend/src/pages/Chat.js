@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMessages, sendMessage } from '../services/messagesService';
+import { getMessages } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
 import {
   Container,
@@ -14,6 +14,8 @@ import {
 import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
 import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
@@ -50,7 +52,6 @@ function Chat() {
     if (token) {
       fetchMessages();
 
-      const socket = io('http://localhost:5000');
       socket.emit('register', user.id);
 
       socket.on('newMessage', (newMessage) => {
@@ -69,7 +70,7 @@ function Chat() {
       });
 
       return () => {
-        socket.disconnect();
+        socket.off('newMessage');
       };
     }
   }, [propertyId, receiverId, token, user.id]);
@@ -114,24 +115,19 @@ function Chat() {
   const canProposeAppointment =
     isOwnerOfProperty && receiverId && String(receiverId) !== String(user?.id);
 
-  const handleSend = async (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    try {
-      const sentMessage = await sendMessage(receiverId, propertyId, newMessage);
-      setMessages((prevMessages) => {
-        if (prevMessages.some((msg) => msg._id === sentMessage._id)) {
-          return prevMessages;
-        }
-        return [...prevMessages, sentMessage];
-      });
-      setNewMessage('');
-      localStorage.setItem('lastMessageCheck', new Date().toISOString());
-    } catch (err) {
-      console.error('Failed to send message', err);
-      alert('Failed to send message.');
-    }
+    socket.emit("sendMessage", {
+      senderId: user.id,
+      receiverId,
+      propertyId,
+      content: newMessage,
+    });
+
+    setNewMessage("");
+    localStorage.setItem("lastMessageCheck", new Date().toISOString());
   };
     const handleProposalSlotChange = (index, value) => {
     setSlotInputs((prev) => {
