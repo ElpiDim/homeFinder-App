@@ -66,42 +66,48 @@ export default function AddProperty() {
     setSaving(true);
     try {
       const fd = new FormData();
+ // FIX: The backend expects all properties as individual fields in the FormData,
+      // not nested inside an 'attributes' object. This was causing a 400 Bad Request
+      // because required fields like 'price' were not found at the top level.
+      // We now append each field directly to the FormData object.
 
-      // Normalize intent from UI "type"
-      const intent = form.type === 'sale' ? 'buy' : 'rent';
-
-      // Build normalized attributes (this is what the backend should index/match on)
-      const attributes = {
-        intent,                                        // 'rent' | 'buy'
-        location: { city: form.city.trim(), area: form.area.trim() || undefined },
-        price: Number(form.price),                     // rent or sale price
-        propertyType: form.propertyType,               // enum
-        bedrooms: toNumOrUndef(form.bedrooms),
-        bathrooms: toNumOrUndef(form.bathrooms),
-        sizeSqm: toNumOrUndef(form.squareMeters),      // <-- name used in matching
-        furnished: !!form.furnished,
-        hasParking: !!form.hasParking,
-        petsAllowed: !!form.petsAllowed,
-        smokerOk: !!form.smokingAllowed,               // if your matching uses 'smokerOk'
-        heating: form.heating || undefined,
-        amenities: (form.amenitiesInput || '')
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean),
-      };
-
-      // BASIC FIELDS (non-matching, for listing page)
       fd.append('title', form.title.trim());
       if (form.description) fd.append('description', form.description);
       if (form.address) fd.append('address', form.address);
-      fd.append('status', form.status);    // validated enum server-side
 
-      // If your backend still uses legacy fields (e.g., location as string), send a display location too:
-      const displayLocation = [form.city, form.area].filter(Boolean).join(', ');
+       // The backend expects a single 'location' string.
+      const displayLocation = [form.city.trim(), form.area.trim()]
+        .filter(Boolean)
+        .join(', ');
       fd.append('location', displayLocation);
 
-      // Attach normalized attributes JSON (primary source of truth for matching)
-      fd.append('attributes', JSON.stringify(attributes));
+    fd.append('price', form.price);
+      fd.append('type', form.type);
+      fd.append('status', form.status);
+
+      // Main attributes
+      if (form.squareMeters) fd.append('squareMeters', form.squareMeters);
+      if (form.bedrooms) fd.append('bedrooms', form.bedrooms);
+      if (form.bathrooms) fd.append('bathrooms', form.bathrooms);
+      if (form.propertyType) fd.append('propertyType', form.propertyType);
+      if (form.heating) fd.append('heating', form.heating);
+
+      // Booleans
+      fd.append('furnished', form.furnished);
+      fd.append('petsAllowed', form.petsAllowed);
+      fd.append('smokingAllowed', form.smokingAllowed);
+      // FIX: The backend model uses 'parking' as a boolean alias for 'parkingSpaces'.
+      // The form was sending 'hasParking', which the backend did not recognize.
+      fd.append('parking', form.hasParking);
+
+      // The backend expects 'features' from a comma-separated list, not 'amenities'.
+      const features = (form.amenitiesInput || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (features.length) {
+        fd.append('features', features.join(','));
+      }
 
       // Files
       images.forEach((file) => fd.append('images', file));
