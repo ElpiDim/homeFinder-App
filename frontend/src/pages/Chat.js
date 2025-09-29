@@ -13,6 +13,7 @@ import {
 } from 'react-bootstrap';
 import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
+import io from 'socket.io-client';
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
@@ -48,6 +49,23 @@ function Chat() {
 
     if (token) {
       fetchMessages();
+
+      const socket = io('http://localhost:5000');
+      socket.emit('register', user.id);
+
+      socket.on('newMessage', (newMessage) => {
+        if (
+          newMessage.propertyId?._id === propertyId &&
+          ((newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id) ||
+            (newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId))
+        ) {
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
     }
   }, [propertyId, receiverId, token, user.id]);
 
@@ -96,17 +114,9 @@ function Chat() {
     if (!newMessage.trim()) return;
 
     try {
-      await sendMessage(receiverId, propertyId, newMessage);
+      const sentMessage = await sendMessage(receiverId, propertyId, newMessage);
+      setMessages((prevMessages) => [...prevMessages, sentMessage]);
       setNewMessage('');
-      // Refetch messages to show the new one
-      const allMessages = await getMessages();
-      const filteredMessages = allMessages.filter(
-        (msg) =>
-          msg.propertyId?._id === propertyId &&
-          ((msg.senderId?._id === user.id && msg.receiverId?._id === receiverId) ||
-            (msg.senderId?._id === receiverId && msg.receiverId?._id === user.id))
-      );
-      setMessages(filteredMessages);
       localStorage.setItem('lastMessageCheck', new Date().toISOString());
     } catch (err) {
       console.error('Failed to send message', err);

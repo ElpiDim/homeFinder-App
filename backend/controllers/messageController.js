@@ -3,15 +3,25 @@ const Message = require("../models/messages");
 exports.sendMessage = async (req, res) => {
   const { receiverId, propertyId, content } = req.body;
   const senderId = req.user.userId;
+  const { io, connectedUsers } = req;
 
   if (!receiverId || !propertyId || !content) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
   try {
-    const newMessage = new Message({ senderId, receiverId, propertyId, content });
+    let newMessage = new Message({ senderId, receiverId, propertyId, content });
     await newMessage.save();
-    res.status(201).json({ message: "Message sent" });
+
+    newMessage = await newMessage
+      .populate("senderId receiverId propertyId");
+
+    const receiverSocketId = connectedUsers[receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
+
+    res.status(201).json(newMessage);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
