@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getMessages } from '../services/messagesService';
-import { Container, Card, Button, ListGroup } from 'react-bootstrap';
+import { Container, Card, Button, ListGroup, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
@@ -17,9 +17,19 @@ function normalizeUploadPath(src) {
   return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
 }
 
+const assetUrl = (src, fallback) => {
+  if (!src) return fallback;
+  if (src.startsWith('http')) return src;
+  return `${API_ORIGIN}${normalizeUploadPath(src)}`;
+};
+
 function Messages() {
   const { user, token, logout } = useAuth();
   const [conversations, setConversations] = useState([]);
+  const [lastChecked, setLastChecked] = useState(() => {
+    const stored = localStorage.getItem('lastMessageCheck');
+    return stored ? new Date(stored).toLocaleString() : null;
+  });
   const navigate = useNavigate();
 
   const profileImg = user?.profilePicture
@@ -28,12 +38,14 @@ function Messages() {
         : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
 
-  const pageGradient = useMemo(() => ({
-    minHeight: '100vh',
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-  }), []);
+  const pageGradient = useMemo(
+    () => ({
+      minHeight: '100vh',
+      background: `radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),
+       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)`,
+    }),
+    []
+  );
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -51,17 +63,26 @@ function Messages() {
               otherUser,
               lastMessage: msg,
             };
-          } else {
-            if (new Date(msg.timeStamp) > new Date(acc[key].lastMessage.timeStamp)) {
-              acc[key].lastMessage = msg;
-            }
+          } else if (
+            new Date(msg.timeStamp) > new Date(acc[key].lastMessage.timeStamp)
+          ) {
+            acc[key].lastMessage = msg;
           }
           return acc;
         }, {});
-        setConversations(Object.values(groupedConversations));
-        localStorage.setItem('lastMessageCheck', new Date().toISOString());
+
+        const grouped = Object.values(groupedConversations);
+        grouped.sort(
+          (a, b) => new Date(b.lastMessage.timeStamp) - new Date(a.lastMessage.timeStamp)
+        );
+        setConversations(grouped);
+
+        const now = new Date();
+        setLastChecked(now.toLocaleString());
+        localStorage.setItem('lastMessageCheck', now.toISOString());
       } catch (err) {
         console.error('Failed to load messages', err);
+        setConversations([]);
       }
     };
 
@@ -80,7 +101,7 @@ function Messages() {
   };
 
   return (
-    <div style={pageGradient}>
+    <div style={pageGradient} className="pb-5">
       <nav
         className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
         style={{
@@ -120,56 +141,116 @@ function Messages() {
                 style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
               />
             </Link>
-            <button className="btn btn-outline-danger rounded-pill px-3 mt-2 mt-lg-0 ms-lg-2" onClick={handleLogout}>
+            <button
+              className="btn btn-outline-danger rounded-pill px-3 mt-2 mt-lg-0 ms-lg-2"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           </div>
         </div>
       </nav>
 
-      <Container className="mt-4" style={{ maxWidth: 960 }}>
-        <div className="d-flex align-items-center mb-4">
-          <Button variant="light" onClick={() => navigate('/dashboard')} className="me-3 p-2 back-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-arrow-left" viewBox="0 0 16 16">
-              <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-            </svg>
-          </Button>
-          <h2 className="fw-bold mb-0">Conversations</h2>
+      <Container className="mt-4" style={{ maxWidth: 1000 }}>
+        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+          <div className="d-flex align-items-center gap-3">
+            <Button
+              variant="light"
+              onClick={() => navigate('/dashboard')}
+              className="p-2 back-button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="currentColor"
+                className="bi bi-arrow-left"
+                viewBox="0 0 16 16"
+              >
+                <path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+              </svg>
+            </Button>
+            <div>
+              <h2 className="fw-bold mb-1">Conversations</h2>
+              <p className="text-muted mb-0">Keep track of every property discussion in one place.</p>
+            </div>
+          </div>
+          <div className="text-muted small">
+            Last checked: {lastChecked || '—'}
+          </div>
         </div>
 
-        {conversations.length === 0 ? (
-          <p className="text-center text-muted">No conversations yet.</p>
-        ) : (
-          <ListGroup variant="flush">
-            {conversations.map(({ property, otherUser, lastMessage }) => (
-              <ListGroup.Item
-                key={`${property._id}-${otherUser._id}`}
-                action
-                onClick={() => handleConversationClick(property._id, otherUser._id)}
-                className="conversation-item"
-              >
-                <div className="d-flex w-100 align-items-center">
-                  <img
-                    src={otherUser.profilePicture ? normalizeUploadPath(otherUser.profilePicture) : '/default-avatar.jpg'}
-                    alt={otherUser.name}
-                    className="rounded-circle me-3"
-                    style={{ width: 50, height: 50, objectFit: 'cover' }}
-                  />
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between">
-                      <h5 className="mb-1">{property.title}</h5>
-                      <small>{new Date(lastMessage.timeStamp).toLocaleDateString()}</small>
-                    </div>
-                    <p className="mb-1 text-muted">
-                      Conversation with <strong>{otherUser.name}</strong>
-                    </p>
-                    <p className="mb-0 conversation-content">{lastMessage.content}</p>
-                  </div>
-                </div>
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        )}
+        <Card className="shadow-sm border-0 glass-panel">
+          <Card.Body className="p-0">
+            {conversations.length === 0 ? (
+              <div className="text-center text-muted py-5">No conversations yet.</div>
+            ) : (
+              <ListGroup variant="flush" className="conversation-list">
+                {conversations.map(({ property, otherUser, lastMessage }) => {
+                  const conversationKey = `${property._id}-${otherUser._id}`;
+                  const otherUserAvatar = assetUrl(
+                    otherUser.profilePicture,
+                    '/default-avatar.jpg'
+                  );
+                  const propertyImage = property?.images?.[0]
+                    ? assetUrl(property.images[0], 'https://placehold.co/160x120?text=No+Image')
+                    : 'https://placehold.co/160x120?text=No+Image';
+                  const propertyTypeVariant = property?.type === 'rent' ? 'info' : 'success';
+                  const propertyLocation = property?.location || property?.city || property?.address || '';
+
+                  return (
+                    <ListGroup.Item
+                      key={conversationKey}
+                      action
+                      onClick={() => handleConversationClick(property._id, otherUser._id)}
+                      className="conversation-item p-3 p-md-4"
+                    >
+                      <div className="conversation-inner">
+                        <div className="conversation-media">
+                          <div className="conversation-property-thumb">
+                            <img src={propertyImage} alt={property.title} />
+                          </div>
+                          <div className="conversation-avatar">
+                            <img src={otherUserAvatar} alt={otherUser.name} />
+                          </div>
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                            <div>
+                              <h5 className="mb-1">{property.title}</h5>
+                              <div className="d-flex align-items-center gap-2 flex-wrap">
+                                {property?.type && (
+                                  <Badge bg={propertyTypeVariant} pill>
+                                    {property.type === 'rent' ? 'For Rent' : 'For Sale'}
+                                  </Badge>
+                                )}
+                                {property?.status && (
+                                  <Badge bg={property.status === 'available' ? 'success' : 'secondary'} pill>
+                                    {property.status}
+                                  </Badge>
+                                )}
+                                {propertyLocation && (
+                                  <span className="text-muted small">{propertyLocation}</span>
+                                )}
+                              </div>
+                            </div>
+                            <small className="text-muted conversation-date">
+                              {new Date(lastMessage.timeStamp).toLocaleString()}
+                            </small>
+                          </div>
+                          <p className="mb-1 text-muted">
+                            With <strong>{otherUser.name}</strong>
+                          </p>
+                          <p className="mb-0 conversation-content">{lastMessage.content}</p>
+                        </div>
+                      </div>
+                    </ListGroup.Item>
+                  );
+                })}
+              </ListGroup>
+            )}
+          </Card.Body>
+        </Card>
       </Container>
     </div>
   );
