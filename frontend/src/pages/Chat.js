@@ -23,6 +23,37 @@ const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
   (typeof window !== 'undefined' ? window.location.origin : '');
 
+  const resolveSocketUrl = () => {
+  const toOrigin = (maybeUrl) => {
+    if (!maybeUrl) return '';
+    if (typeof window === 'undefined') return '';
+    try {
+      return new URL(maybeUrl, window.location.origin).origin;
+    } catch (_err) {
+      return '';
+    }
+  };
+
+  const explicitSocket = toOrigin(process.env.REACT_APP_SOCKET_URL);
+  if (explicitSocket) return explicitSocket;
+
+  const apiBased = toOrigin(process.env.REACT_APP_API_URL);
+  if (apiBased) return apiBased;
+
+  if (typeof window !== 'undefined') {
+    const { origin } = window.location;
+    if (/:(\d+)$/.test(origin)) {
+      const port = origin.split(':').pop();
+      if (port === '3000') {
+        return origin.replace(/:3000$/, ':5000');
+      }
+    }
+    return origin;
+  }
+
+  return '';
+};
+
 function normalizeUploadPath(src) {
   if (!src) return '';
   if (src.startsWith('http')) return src;
@@ -54,8 +85,7 @@ function Chat() {
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const SOCKET_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
-
+  const SOCKET_URL = useMemo(() => resolveSocketUrl(), []);
   const pageGradient = useMemo(
     () => ({
       minHeight: '100vh',
@@ -103,33 +133,44 @@ function Chat() {
   }, [propertyId, receiverId, token, user.id]);
 
   useEffect(() => {
-    if (user?.id) {
-      socket.current = io(SOCKET_URL, {
-        reconnectionAttempts: 3,
-        transports: ['websocket'],
-      });
-      socket.current.emit('join', user.id);
+    if (!user?.id || !SOCKET_URL) return undefined;
 
-      socket.current.on('newMessage', (newMessage) => {
-        if (
-          newMessage.propertyId?._id === propertyId &&
-          ((newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
-           (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id))
-        ) {
-          setMessages((prev) => [...prev, newMessage]);
-          const participant =
-            newMessage.senderId?._id === user.id ? newMessage.receiverId : newMessage.senderId;
-          if (participant) {
-            setOtherUser(participant);
+    socket.current = io(SOCKET_URL, {
+      reconnectionAttempts: 3,
+      transports: ['websocket'],
+      path: process.env.REACT_APP_SOCKET_PATH || '/socket.io',
+      withCredentials: true,
+      auth: token ? { token } : undefined,
+    });
+    socket.current.emit('join', user.id);
+
+    const handleNewMessage = (newMessage) => {
+      if (
+        newMessage.propertyId?._id === propertyId &&
+        ((newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
+          (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id))
+      ) {
+        setMessages((prev) => {
+          if (newMessage?._id && prev.some((msg) => msg._id === newMessage._id)) {
+            return prev;
           }
+           return [...prev, newMessage];
+        });
+        const participant =
+          newMessage.senderId?._id === user.id ? newMessage.receiverId : newMessage.senderId;
+        if (participant) {
+          setOtherUser(participant);
         }
-      });
+      }
+    };
 
-      return () => {
-        socket.current.disconnect();
-      };
-    }
-  }, [user?.id, propertyId, receiverId, SOCKET_URL]);
+      socket.current.on('newMessage', handleNewMessage);
+
+    return () => {
+      socket.current?.off('newMessage', handleNewMessage);
+      socket.current?.disconnect();
+    };
+  }, [SOCKET_URL, propertyId, receiverId, token, user?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -180,7 +221,24 @@ function Chat() {
     if (!newMessage.trim()) return;
 
     try {
-      await sendMessage(receiverId, propertyId, newMessage);
+      const savedMessage = await sendMessage(receiverId, propertyId, newMessage);
+      if (
+        savedMessage?.propertyId?._id === propertyId &&
+        ((savedMessage.senderId?._id === user.id && savedMessage.receiverId?._id === receiverId) ||
+          (savedMessage.senderId?._id === receiverId && savedMessage.receiverId?._id === user.id))
+      ) {
+        setMessages((prev) => {
+          if (savedMessage?._id && prev.some((msg) => msg._id === savedMessage._id)) {
+            return prev;
+          }
+          return [...prev, savedMessage];
+        });
+        const participant =
+          savedMessage.senderId?._id === user.id ? savedMessage.receiverId : savedMessage.senderId;
+        if (participant) {
+          setOtherUser(participant);
+        }
+      }
       setNewMessage('');
     } catch (err) {
       console.error('Failed to send message', err);
