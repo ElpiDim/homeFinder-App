@@ -70,7 +70,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
 
   const monthFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(undefined, {
+      new Intl.DateTimeFormat('en-US', {
         month: 'long',
         year: 'numeric',
       }),
@@ -79,7 +79,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
 
   const timeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(undefined, {
+      new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
