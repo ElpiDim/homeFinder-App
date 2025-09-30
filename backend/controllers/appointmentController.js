@@ -116,7 +116,7 @@ exports.getAppointmentsByTenant = async (req, res) => {
   try {
     const appointments = await Appointment.find({ tenantId: req.user.userId })
       .populate("propertyId")
-      .populate("ownerId", "name");
+      .populate("ownerId", "name phone");
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -128,7 +128,7 @@ exports.getAppointmentsByOwner = async (req, res) => {
   try {
     const appointments = await Appointment.find({ ownerId: req.user.userId })
       .populate("propertyId")
-      .populate("tenantId", "name");
+      .populate("tenantId", "name phone");
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -138,8 +138,8 @@ exports.getAppointmentById = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.appointmentId)
       .populate("propertyId")
-      .populate("ownerId", "name")
-      .populate("tenantId", "name");
+      .populate("ownerId", "name phone")
+      .populate("tenantId", "name phone");
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });

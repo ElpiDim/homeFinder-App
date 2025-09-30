@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -13,6 +13,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
   const confirmedAppointments = useMemo(() => {
     return appointments
@@ -88,6 +89,18 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
     []
   );
 
+  const detailFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    []
+  );
+
   const today = useMemo(() => dayStart(new Date()), []);
 
   const upcoming = useMemo(() => {
@@ -111,6 +124,19 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
       date.getFullYear() === currentMonth.getFullYear() && date.getMonth() === currentMonth.getMonth()
     );
   };
+
+  useEffect(() => {
+    if (!selectedAppointmentId) return;
+    const exists = confirmedAppointments.some((appt) => appt._id === selectedAppointmentId);
+    if (!exists) {
+      setSelectedAppointmentId(null);
+    }
+  }, [confirmedAppointments, selectedAppointmentId]);
+
+  const selectedAppointment = useMemo(
+    () => confirmedAppointments.find((appt) => appt._id === selectedAppointmentId) || null,
+    [confirmedAppointments, selectedAppointmentId]
+  );
 
   return (
     <div
@@ -175,19 +201,23 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
               {hasAppointments && (
                 <div className="mt-2 d-flex flex-column gap-1">
                   {dayAppointments.slice(0, 2).map((appt) => (
-                    <span
+                    <button
+                      type="button"
                       key={appt._id}
-                      className="badge rounded-pill"
+                      className="badge rounded-pill border-0"
                       style={{
-                        background: '#16a34a',
+                        background:
+                          selectedAppointmentId === appt._id ? '#0f766e' : '#16a34a',
                         color: '#fff',
                         fontSize: '0.65rem',
                         textAlign: 'left',
                         whiteSpace: 'normal',
+                        cursor: 'pointer',
                       }}
+                      onClick={() => setSelectedAppointmentId(appt._id)}
                     >
                       {timeFormatter.format(appt.date)}
-                    </span>
+                    </button>
                   ))}
                   {dayAppointments.length > 2 && (
                     <span className="text-muted" style={{ fontSize: '0.65rem' }}>
@@ -200,6 +230,47 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
           );
         })}
       </div>
+
+      {selectedAppointment && (
+        <div
+          className="mt-3 p-3 rounded-4 border"
+          style={{
+            background: '#ecfdf5',
+            borderColor: '#99f6e4',
+          }}
+        >
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h6 className="fw-semibold mb-0" style={{ fontSize: '0.95rem' }}>
+              Appointment details
+            </h6>
+            <button
+              type="button"
+              className="btn btn-sm btn-link text-decoration-none text-muted p-0"
+              onClick={() => setSelectedAppointmentId(null)}
+            >
+              Clear
+            </button>
+          </div>
+          <dl className="row mb-0" style={{ fontSize: '0.85rem' }}>
+            <dt className="col-sm-4 text-muted">Tenant</dt>
+            <dd className="col-sm-8 mb-2">
+              {selectedAppointment.tenantId?.name || '—'}
+            </dd>
+            <dt className="col-sm-4 text-muted">Phone</dt>
+            <dd className="col-sm-8 mb-2">
+              {selectedAppointment.tenantId?.phone || 'Not provided'}
+            </dd>
+            <dt className="col-sm-4 text-muted">Date</dt>
+            <dd className="col-sm-8 mb-2">
+              {detailFormatter.format(selectedAppointment.date)}
+            </dd>
+            <dt className="col-sm-4 text-muted">Property</dt>
+            <dd className="col-sm-8 mb-0">
+              {selectedAppointment.propertyId?.title || 'Property viewing'}
+            </dd>
+          </dl>
+        </div>
+      )}
 
       <div className="mt-3">
         <h6 className="fw-semibold mb-2" style={{ fontSize: '0.9rem' }}>Upcoming appointments</h6>

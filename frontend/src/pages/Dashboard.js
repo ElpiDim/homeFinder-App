@@ -443,7 +443,6 @@ function Dashboard() {
               Add Property
             </Link>
           )}
-          <Link to="/appointments" className="text-dark text-decoration-none">Appointments</Link>
           <Link to="/messages" className="text-dark text-decoration-none position-relative">
             Messages
             {unreadMessages > 0 && (

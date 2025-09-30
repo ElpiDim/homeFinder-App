@@ -102,11 +102,6 @@ function Layout({ children }) {
                 <Link to="/dashboard" className="text-dark text-decoration-none">Dashboard</Link>
                 <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
 
-                {/* Appointments προαιρετικά, αν το θες εδώ */}
-                <Link to="/appointments" className="text-dark text-decoration-none">
-                  Appointments
-                </Link>
-
                 {/* Profile: owner => dropdown, αλλιώς απλό κουμπί */}
                 {user.role === 'owner' ? (
                   <div ref={profileMenuRef} className="position-relative">

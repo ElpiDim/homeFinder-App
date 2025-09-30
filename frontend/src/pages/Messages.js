@@ -128,7 +128,6 @@ function Messages() {
         </button>
         <div className="collapse navbar-collapse" id="navContent">
           <div className="navbar-nav ms-auto align-items-center">
-            <Link to="/appointments" className="nav-link text-dark">Appointments</Link>
             <Link to="/messages" className="nav-link text-dark position-relative">Messages</Link>
             {user?.role !== 'owner' && (
               <Link to="/favorites" className="nav-link text-dark">Favorites</Link>
