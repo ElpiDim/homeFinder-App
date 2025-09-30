@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef} from 'react';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
@@ -15,7 +14,6 @@ import {
 } from 'react-bootstrap';
 import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
-import { io } from "socket.io-client";
 
 
 function Chat() {
@@ -34,11 +32,8 @@ function Chat() {
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
-  const socket = useRef(null);
-  const messagesEndRef = useRef(null);
 
   const SOCKET_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
-  const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchMessages = async () => {
