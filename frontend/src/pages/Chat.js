@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo} from 'react';
+import React, { useState, useEffect, useMemo, useRef} from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
@@ -33,7 +34,11 @@ function Chat() {
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
+  const socket = useRef(null);
+  const messagesEndRef = useRef(null);
 
+  const SOCKET_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -55,6 +60,34 @@ function Chat() {
       fetchMessages();
     }
   }, [propertyId, receiverId, token, user.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      socket.current = io(SOCKET_URL, {
+        reconnectionAttempts: 3,
+        transports: ['websocket'],
+      });
+      socket.current.emit('join', user.id);
+
+      socket.current.on('newMessage', (newMessage) => {
+        if (
+          newMessage.propertyId?._id === propertyId &&
+          ((newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
+           (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id))
+        ) {
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      });
+
+      return () => {
+        socket.current.disconnect();
+      };
+    }
+  }, [user?.id, propertyId, receiverId, SOCKET_URL]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     if (user?.id) {
@@ -250,6 +283,7 @@ function Chat() {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
           <div ref={messagesEndRef} />
         </Card.Body>
         <Card.Footer>
