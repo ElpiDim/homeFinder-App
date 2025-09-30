@@ -127,43 +127,48 @@ function Messages() {
         </div>
       </nav>
 
-      <Container className="mt-4" style={{ maxWidth: 1120 }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
-          <h2 className="fw-bold mb-2 mb-md-0">Conversations</h2>
-          <Button
-            variant="outline-secondary"
-            onClick={() => navigate('/dashboard')}
-            className="w-100 w-md-auto"
-          >
-            Back to Dashboard
+      <Container className="mt-4" style={{ maxWidth: 960 }}>
+        <div className="d-flex align-items-center mb-4">
+          <Button variant="light" onClick={() => navigate('/dashboard')} className="me-3 p-2 back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-arrow-left" viewBox="0 0 16 16">
+              <path fillRule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+            </svg>
           </Button>
+          <h2 className="fw-bold mb-0">Conversations</h2>
         </div>
 
         {conversations.length === 0 ? (
-          <p>No conversations yet.</p>
+          <p className="text-center text-muted">No conversations yet.</p>
         ) : (
-          <div className="d-flex flex-column gap-3">
+          <ListGroup variant="flush">
             {conversations.map(({ property, otherUser, lastMessage }) => (
-              <Card
+              <ListGroup.Item
                 key={`${property._id}-${otherUser._id}`}
-                className="shadow-sm conversation-card"
+                action
                 onClick={() => handleConversationClick(property._id, otherUser._id)}
+                className="conversation-item"
               >
-                <Card.Body>
-                  <div className="d-flex justify-content-between">
-                    <Card.Title as="h5" className="mb-1">{property.title}</Card.Title>
-                    <small className="text-muted">{new Date(lastMessage.timeStamp).toLocaleDateString()}</small>
+                <div className="d-flex w-100 align-items-center">
+                  <img
+                    src={otherUser.profilePicture ? normalizeUploadPath(otherUser.profilePicture) : '/default-avatar.jpg'}
+                    alt={otherUser.name}
+                    className="rounded-circle me-3"
+                    style={{ width: 50, height: 50, objectFit: 'cover' }}
+                  />
+                  <div className="flex-grow-1">
+                    <div className="d-flex justify-content-between">
+                      <h5 className="mb-1">{property.title}</h5>
+                      <small>{new Date(lastMessage.timeStamp).toLocaleDateString()}</small>
+                    </div>
+                    <p className="mb-1 text-muted">
+                      Conversation with <strong>{otherUser.name}</strong>
+                    </p>
+                    <p className="mb-0 conversation-content">{lastMessage.content}</p>
                   </div>
-                  <Card.Subtitle className="mb-2 text-muted">
-                    Conversation with <strong>{otherUser.name}</strong>
-                  </Card.Subtitle>
-                  <Card.Text className="mb-1">
-                    {lastMessage.content}
-                  </Card.Text>
-                </Card.Body>
-              </Card>
+                </div>
+              </ListGroup.Item>
             ))}
-          </div>
+          </ListGroup>
         )}
       </Container>
     </div>
