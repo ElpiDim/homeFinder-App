@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo} from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -16,7 +17,7 @@ import { proposeAppointment } from '../services/appointmentsService';
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
-  const { user, token} = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -28,7 +29,10 @@ function Chat() {
   const [proposalError, setProposalError] = useState('');
   const [proposalSuccess, setProposalSuccess] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  const socket = useRef(null);
+  const messagesEndRef = useRef(null);
 
+  const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -51,7 +55,35 @@ function Chat() {
     }
   }, [propertyId, receiverId, token, user.id]);
 
-   useEffect(() => {
+  useEffect(() => {
+    if (user?.id) {
+      socket.current = io(SOCKET_URL, {
+        reconnectionAttempts: 3,
+        transports: ['websocket'],
+      });
+      socket.current.emit('join', user.id);
+
+      socket.current.on('newMessage', (newMessage) => {
+        if (
+          newMessage.propertyId?._id === propertyId &&
+          ((newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
+           (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id))
+        ) {
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      });
+
+      return () => {
+        socket.current.disconnect();
+      };
+    }
+  }, [user?.id, propertyId, receiverId, SOCKET_URL]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
     let ignore = false;
     const fetchProperty = async () => {
       if (!propertyId) return;
@@ -98,16 +130,6 @@ function Chat() {
     try {
       await sendMessage(receiverId, propertyId, newMessage);
       setNewMessage('');
-      // Refetch messages to show the new one
-      const allMessages = await getMessages();
-      const filteredMessages = allMessages.filter(
-        (msg) =>
-          msg.propertyId?._id === propertyId &&
-          ((msg.senderId?._id === user.id && msg.receiverId?._id === receiverId) ||
-            (msg.senderId?._id === receiverId && msg.receiverId?._id === user.id))
-      );
-      setMessages(filteredMessages);
-      localStorage.setItem('lastMessageCheck', new Date().toISOString());
     } catch (err) {
       console.error('Failed to send message', err);
       alert('Failed to send message.');
@@ -227,6 +249,7 @@ function Chat() {
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </Card.Body>
         <Card.Footer>
           {canProposeAppointment && (

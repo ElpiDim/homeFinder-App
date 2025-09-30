@@ -1,10 +1,36 @@
 // backend/server.js
 require("dotenv").config();
 const mongoose = require("mongoose");
+const http = require("http");
+const { Server } = require("socket.io");
 const app = require("./app");
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/app";
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
+
+app.set('io', io);
+
+io.on("connection", (socket) => {
+  console.log("a user connected:", socket.id);
+
+  socket.on('join', (userId) => {
+    if (!userId) return;
+    console.log(`Socket ${socket.id} joining room for user ${userId}`);
+    socket.join(userId);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("user disconnected:", socket.id);
+  });
+});
+
 
 /**
  * Start HTTP server after connecting to Mongo.
@@ -18,7 +44,7 @@ async function start() {
       console.log("MongoDB connected");
     }
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
     });
   } catch (err) {
