@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef} from 'react';
+import React, { useState, useEffect, useMemo} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -18,7 +19,7 @@ import { io } from "socket.io-client";
 
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
-  const { user, token} = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -33,7 +34,6 @@ function Chat() {
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
 
-  const SOCKET_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -84,7 +84,7 @@ function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-   useEffect(() => {
+  useEffect(() => {
     let ignore = false;
     const fetchProperty = async () => {
       if (!propertyId) return;

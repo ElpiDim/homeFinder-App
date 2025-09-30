@@ -9,9 +9,10 @@ exports.sendMessage = async (req, res) => {
   }
 
   try {
-     let newMessage = new Message({ senderId, receiverId, propertyId, content });
+    let newMessage = new Message({ senderId, receiverId, propertyId, content });
     await newMessage.save();
-// Populate details before sending via socket
+
+    // Populate details before sending via socket
     newMessage = await newMessage.populate("senderId receiverId propertyId");
 
     const io = req.app.get('io');
@@ -21,7 +22,7 @@ exports.sendMessage = async (req, res) => {
       // Emit to sender's room, for UI sync across multiple devices/tabs
       io.to(senderId).emit('newMessage', newMessage);
     }
-    
+
     res.status(201).json(newMessage);
   } catch (err) {
     console.error("Error sending message:", err);
