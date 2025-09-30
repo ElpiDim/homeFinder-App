@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import AppointmentModal from '../components/AppointmentModal';
+import OwnerAppointmentsCalendar from '../components/OwnerAppointmentsCalendar';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo';
 import { getMessages } from '../services/messagesService';
@@ -55,6 +56,7 @@ function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
+   const [ownerAppointments, setOwnerAppointments] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -271,8 +273,16 @@ function Dashboard() {
         const appts = Array.isArray(res.data) ? res.data : [];
         const confirmed = appts.filter((appt) => appt.status === 'confirmed');
         setHasAppointments(confirmed.length > 0);
+         if (user.role === 'owner') {
+          setOwnerAppointments(appts);
+        }
       })
-      .catch(() => setHasAppointments(false));
+            .catch(() => {
+        setHasAppointments(false);
+        if (user.role === 'owner') {
+          setOwnerAppointments([]);
+        }
+      });
   }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages, fetchOwnerStats]);
 
   // client-side pagination when page changes
@@ -554,6 +564,11 @@ function Dashboard() {
             <div className="col-12 col-md-4">
               <Donut icon="🏡" label="Rented" value={rentedListings} max={totalListings} />
             </div>
+          </div>
+        )}
+        {user?.role === 'owner' && (
+          <div className="mb-4">
+            <OwnerAppointmentsCalendar appointments={ownerAppointments} />
           </div>
         )}
       </div>
