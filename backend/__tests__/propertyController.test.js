@@ -1,5 +1,5 @@
 // backend/__tests__/propertyController.test.js
-process.env.JWT_SECRET = "testsecret";
+process.env.JWT_SECRET = "parisdimitriadis190301";
 process.env.NODE_ENV = "test";
 
 const request = require("supertest");

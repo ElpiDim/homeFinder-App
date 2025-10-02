@@ -1,4 +1,5 @@
 const Message = require("../models/messages");
+const Property = require("../models/property");
 
 exports.sendMessage = async (req, res) => {
   const { receiverId, propertyId, content } = req.body;
@@ -9,6 +10,18 @@ exports.sendMessage = async (req, res) => {
   }
 
   try {
+     const property = await Property.findById(propertyId).select("status");
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    if (property.status !== "available" && req.user.role === "client") {
+      return res
+        .status(400)
+        .json({
+          message: "This property is no longer available for messaging.",
+        });
+    }
     let newMessage = new Message({ senderId, receiverId, propertyId, content });
     await newMessage.save();
 

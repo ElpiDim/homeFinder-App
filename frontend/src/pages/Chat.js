@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
@@ -82,6 +82,9 @@ function Chat() {
   const [proposalSuccess, setProposalSuccess] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
+  const [conversationAppointment, setConversationAppointment] = useState(null);
+  const [loadingConversationAppointment, setLoadingConversationAppointment] = useState(false);
+  const [conversationAppointmentError, setConversationAppointmentError] = useState('');
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -100,6 +103,52 @@ function Chat() {
         ? user.profilePicture
         : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
+    const fetchConversationAppointment = useCallback(async () => {
+    if (!user?.role || !user?.id || !propertyId || !receiverId) {
+      return;
+    }
+
+    setConversationAppointmentError('');
+    setLoadingConversationAppointment(true);
+
+    try {
+      const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
+      const { data } = await api.get(endpoint);
+      const appointments = Array.isArray(data) ? data : [];
+
+      const relevantAppointments = appointments.filter((appt) => {
+        const propertyMatch =
+          appt?.propertyId &&
+          String(appt.propertyId?._id || appt.propertyId) === String(propertyId);
+
+        if (!propertyMatch) return false;
+
+        const counterpartField = user.role === 'owner' ? appt?.tenantId : appt?.ownerId;
+        const counterpartId = counterpartField?._id || counterpartField;
+
+        return counterpartId && String(counterpartId) === String(receiverId);
+      });
+
+      if (!relevantAppointments.length) {
+        setConversationAppointment(null);
+        return;
+      }
+
+      relevantAppointments.sort((a, b) => {
+        const aDate = new Date(a.selectedSlot || a.createdAt || 0).getTime();
+        const bDate = new Date(b.selectedSlot || b.createdAt || 0).getTime();
+        return bDate - aDate;
+      });
+
+      setConversationAppointment(relevantAppointments[0]);
+    } catch (err) {
+      console.error('Failed to load appointment for conversation', err);
+      setConversationAppointmentError('Δεν ήταν δυνατό να φορτωθεί το ραντεβού αυτής της συνομιλίας.');
+      setConversationAppointment(null);
+    } finally {
+      setLoadingConversationAppointment(false);
+    }
+  }, [propertyId, receiverId, user?.id, user?.role]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -206,6 +255,17 @@ function Chat() {
       ignore = true;
     };
   }, [propertyId, token]);
+  useEffect(() => {
+    fetchConversationAppointment();
+  }, [fetchConversationAppointment]);
+
+  useEffect(() => {
+    if (!messages.length) return;
+    const latestMessage = messages[messages.length - 1];
+    if (latestMessage?.content && /appointment/i.test(latestMessage.content)) {
+      fetchConversationAppointment();
+    }
+  }, [messages, fetchConversationAppointment]);
 
   const isOwnerOfProperty = useMemo(() => {
     if (!user || user.role !== 'owner' || !property) return false;
@@ -293,6 +353,8 @@ function Chat() {
         availableSlots: normalizedSlots,
       });
 
+       await fetchConversationAppointment();
+
       setProposalSuccess(
         `Sent ${normalizedSlots.length} appointment option${
           normalizedSlots.length > 1 ? 's' : ''
@@ -329,6 +391,10 @@ function Chat() {
   const propertyLocation = property?.location || property?.city || property?.address || '';
 
   const formattedReceiverName = otherUser?.name || 'Conversation';
+   const appointmentSelectedSlot = conversationAppointment?.selectedSlot
+    ? new Date(conversationAppointment.selectedSlot)
+    : null;
+  const appointmentStatus = conversationAppointment?.status || '';
 
   return (
     <div style={pageGradient} className="pb-5">
@@ -477,6 +543,88 @@ function Chat() {
           )}
 
           <Card.Body className="chat-body">
+           {(conversationAppointment || loadingConversationAppointment || conversationAppointmentError) && (
+              <div className="chat-appointment-wrapper mb-4">
+                {loadingConversationAppointment ? (
+                  <div className="chat-appointment-loading">
+                    <Spinner animation="border" size="sm" />
+                    <span className="ms-2 small text-muted">Φόρτωση ραντεβού…</span>
+                  </div>
+                ) : conversationAppointmentError ? (
+                  <Alert
+                    variant="danger"
+                    className="mb-0 py-2"
+                    onClose={() => setConversationAppointmentError('')}
+                    dismissible
+                  >
+                    {conversationAppointmentError}
+                  </Alert>
+                ) : (
+                  conversationAppointment && (
+                    <div className="chat-appointment-content">
+                      <div className="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                        <div>
+                          <div className="chat-appointment-heading">Ραντεβού θεάσης</div>
+                          {appointmentSelectedSlot ? (
+                            <div className="chat-appointment-time">
+                              {appointmentSelectedSlot.toLocaleString()}
+                            </div>
+                          ) : (
+                            <div className="chat-appointment-time text-muted">
+                              Αναμένεται επιβεβαίωση ώρας.
+                            </div>
+                          )}
+                        </div>
+                        <Badge
+                          bg=
+                            {appointmentStatus === 'confirmed'
+                              ? 'success'
+                              : appointmentStatus === 'pending'
+                              ? 'warning'
+                              : appointmentStatus === 'cancelled'
+                              ? 'secondary'
+                              : appointmentStatus === 'rejected'
+                              ? 'danger'
+                              : 'secondary'}
+                          text={appointmentStatus === 'pending' ? 'dark' : undefined}
+                          className="chat-appointment-status"
+                        >
+                          {appointmentStatus === 'confirmed'
+                            ? 'Επιβεβαιωμένο'
+                            : appointmentStatus === 'pending'
+                            ? 'Σε αναμονή'
+                            : appointmentStatus === 'cancelled'
+                            ? 'Ακυρώθηκε'
+                            : appointmentStatus === 'rejected'
+                            ? 'Απορρίφθηκε'
+                            : appointmentStatus || 'Άγνωστο'}
+                        </Badge>
+                      </div>
+
+                      {!appointmentSelectedSlot &&
+                        Array.isArray(conversationAppointment.availableSlots) &&
+                        conversationAppointment.availableSlots.length > 0 && (
+                          <div className="chat-appointment-options">
+                            <div className="small text-muted mb-1">Προτεινόμενες επιλογές:</div>
+                            <ul className="chat-appointment-slots">
+                              {conversationAppointment.availableSlots.map((slot) => {
+                                const slotDate = new Date(slot);
+                                return (
+                                  <li key={slot}>
+                                    {Number.isNaN(slotDate.getTime())
+                                      ? slot
+                                      : slotDate.toLocaleString()}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
             <div className="chat-counterpart d-flex align-items-center gap-3 mb-3">
               <div className="chat-counterpart-avatar">
                 <img src={otherUserAvatar} alt={formattedReceiverName} />
