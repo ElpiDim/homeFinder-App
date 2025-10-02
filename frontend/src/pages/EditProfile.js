@@ -1,10 +1,8 @@
 // src/pages/EditProfile.jsx
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-// FIX: correct component name/path
 import TriStateSelect from '../components/TristateSelect';
 
 const clean = (obj) =>
@@ -33,7 +31,6 @@ const ensureRange = (min, max) => {
 export default function EditProfile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-
   const isClient = user?.role === 'client';
 
   // Personal
@@ -50,7 +47,7 @@ export default function EditProfile() {
     isWillingToHaveRoommate: !!user?.isWillingToHaveRoommate,
   });
 
-  // Preferences (TENANT can edit)
+  // Preferences (Client only)
   const [prefs, setPrefs] = useState({
     dealType:
       user?.preferences?.dealType ||
@@ -64,11 +61,10 @@ export default function EditProfile() {
     sqmMax: user?.preferences?.sqmMax ?? '',
     bedrooms: user?.preferences?.bedrooms ?? '',
     bathrooms: user?.preferences?.bathrooms ?? '',
-    furnished: user?.preferences?.furnished ?? null,          // tri-state
-    petsAllowed: user?.preferences?.petsAllowed ?? null,      // tri-state
-    smokingAllowed: user?.preferences?.smokingAllowed ?? null,// tri-state
+    furnished: user?.preferences?.furnished ?? null,
+    petsAllowed: user?.preferences?.petsAllowed ?? null,
+    smokingAllowed: user?.preferences?.smokingAllowed ?? null,
     heatingType: user?.preferences?.heatingType || '',
-    // keep in sync with Profile.jsx
     yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
   });
 
@@ -77,7 +73,7 @@ export default function EditProfile() {
 
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'custom') setter((s) => ({ ...s, [name]: value })); // from TriStateSelect
+    if (type === 'custom') setter((s) => ({ ...s, [name]: value }));
     else if (type === 'checkbox') setter((s) => ({ ...s, [name]: checked }));
     else setter((s) => ({ ...s, [name]: value }));
   };
@@ -110,7 +106,6 @@ export default function EditProfile() {
 
       if (isClient) {
         const intent = prefs.dealType === 'sale' ? 'buy' : 'rent';
-
         const rent = ensureRange(prefs.rentMin, prefs.rentMax);
         const price = ensureRange(prefs.priceMin, prefs.priceMax);
         const sqm = ensureRange(prefs.sqmMin, prefs.sqmMax);
@@ -129,8 +124,8 @@ export default function EditProfile() {
         });
 
         const prefsClean = clean({
-          dealType: prefs.dealType, // FE compatibility if needed
-          intent,                   // backend uses this for matching
+          dealType: prefs.dealType,
+          intent,
           location: prefs.location,
           ...(intent === 'rent'
             ? { rentMin: rent.min, rentMax: rent.max }
@@ -139,7 +134,6 @@ export default function EditProfile() {
           sqmMax: sqm.max,
           bedrooms: toNumOrUndef(prefs.bedrooms),
           bathrooms: toNumOrUndef(prefs.bathrooms),
-          // tri-state → undefined when no preference
           furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
           petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
           smokingAllowed: prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
@@ -148,13 +142,11 @@ export default function EditProfile() {
         });
 
         payload = clean({ ...personalClean, preferences: prefsClean });
-       } else { // Owner
-        const personalClean = clean({
+      } else {
+        payload = clean({
           name: personal.name,
           phone: personal.phone,
         });
-
-        payload = personalClean;
       }
 
       const { data } = await api.patch('/users/me', payload);
@@ -163,9 +155,8 @@ export default function EditProfile() {
       localStorage.setItem('user', JSON.stringify(updated));
       navigate('/profile', { replace: true });
     } catch (err) {
-      const status = err?.response?.status;
       const msg = err?.response?.data?.message || err.message;
-      alert(`Save failed: ${status || '?'} - ${msg}`);
+      alert(`Save failed: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -185,7 +176,7 @@ export default function EditProfile() {
     return (
       <div style={pageGradient} className="py-4">
         <div className="container" style={{ maxWidth: 960 }}>
-          <Card><Card.Body>Loading…</Card.Body></Card>
+          <div className="p-4 rounded-4 shadow-sm bg-white border">Loading…</div>
         </div>
       </div>
     );
@@ -194,273 +185,350 @@ export default function EditProfile() {
   const isRent = prefs.dealType !== 'sale';
 
   return (
-    <div style={pageGradient} className="py-4">
+    <div style={pageGradient} className="py-5">
       <div className="container" style={{ maxWidth: 960 }}>
-        <Card>
-          <Card.Body>
-            {/* Back button */}
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <Button variant="outline-secondary" onClick={() => navigate('/profile')}>
-                ← 
-              </Button>
+        <div className="p-4 rounded-4 shadow-sm bg-white border">
+          {/* Back */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <button
+              className="btn btn-outline-secondary rounded-pill"
+              onClick={() => navigate('/profile')}
+            >
+              ← Back
+            </button>
+            <h4 className="fw-bold mb-0">
+              {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Profile'}
+            </h4>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            {/* Personal */}
+            <h5 className="fw-bold mb-3">Personal Information</h5>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="text-muted small">Name</label>
+                <input
+                  className="form-control"
+                  name="name"
+                  value={personal.name}
+                  onChange={onChange(setPersonal)}
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="text-muted small">Phone</label>
+                <input
+                  className="form-control"
+                  name="phone"
+                  value={personal.phone}
+                  onChange={onChange(setPersonal)}
+                />
+              </div>
             </div>
 
-            <Card.Title className="mb-3">
-               {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Profile'}
-            </Card.Title>
+            {isClient && (
+              <>
+                <div className="row g-3 mt-0">
+                  <div className="col-md-3">
+                    <label className="text-muted small">Age</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="age"
+                      value={personal.age}
+                      onChange={onChange(setPersonal)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="text-muted small">Household Size</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="householdSize"
+                      value={personal.householdSize}
+                      onChange={onChange(setPersonal)}
+                    />
+                  </div>
+                  <div className="col-md-3 d-flex align-items-end">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="hasFamily"
+                        name="hasFamily"
+                        checked={personal.hasFamily}
+                        onChange={onChange(setPersonal)}
+                      />
+                      <label htmlFor="hasFamily" className="form-check-label">Has family</label>
+                    </div>
+                  </div>
+                  <div className="col-md-3 d-flex align-items-end">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="hasPets"
+                        name="hasPets"
+                        checked={personal.hasPets}
+                        onChange={onChange(setPersonal)}
+                      />
+                      <label htmlFor="hasPets" className="form-check-label">Has pets</label>
+                    </div>
+                  </div>
+                </div>
 
-            <Form onSubmit={handleSubmit}>
-                  {/* Personal info */}
-                  <h5>Personal Information</h5>
-                  <Row className="g-3">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Name</Form.Label>
-                        <Form.Control name="name" value={personal.name} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Phone</Form.Label>
-                        <Form.Control name="phone" value={personal.phone} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                   {isClient && (
-                <>
+                {/* More personal */}
+                <div className="row g-3 mt-0">
+                  <div className="col-md-3 d-flex align-items-end">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="smoker"
+                        name="smoker"
+                        checked={personal.smoker}
+                        onChange={onChange(setPersonal)}
+                      />
+                      <label htmlFor="smoker" className="form-check-label">Smoker</label>
+                    </div>
+                  </div>
+                  <div className="col-md-5">
+                    <label className="text-muted small">Occupation</label>
+                    <input
+                      className="form-control"
+                      name="occupation"
+                      value={personal.occupation}
+                      onChange={onChange(setPersonal)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="text-muted small">Salary (€)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="salary"
+                      value={personal.salary}
+                      onChange={onChange(setPersonal)}
+                    />
+                  </div>
+                </div>
 
-                  <Row className="g-3 mt-0">
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Age</Form.Label>
-                        <Form.Control type="number" name="age" value={personal.age} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Household Size</Form.Label>
-                        <Form.Control type="number" name="householdSize" value={personal.householdSize} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Has family" name="hasFamily" checked={personal.hasFamily} onChange={onChange(setPersonal)} />
-                    </Col>
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Has pets" name="hasPets" checked={personal.hasPets} onChange={onChange(setPersonal)} />
-                    </Col>
-                  </Row>
-
-                  <Row className="g-3 mt-0">
-                    <Col md={3} className="d-flex align-items-end">
-                      <Form.Check label="Smoker" name="smoker" checked={personal.smoker} onChange={onChange(setPersonal)} />
-                    </Col>
-                    <Col md={5}>
-                      <Form.Group>
-                        <Form.Label>Occupation</Form.Label>
-                        <Form.Control name="occupation" value={personal.occupation} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label>Salary (€)</Form.Label>
-                        <Form.Control type="number" name="salary" value={personal.salary} onChange={onChange(setPersonal)} />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Row className="g-3 mt-0">
-                    <Col md={6} className="d-flex align-items-end">
-                      <Form.Check
-                        label="I’m willing to have a roommate"
+                <div className="row g-3 mt-0">
+                  <div className="col-md-6 d-flex align-items-end">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="roommate"
                         name="isWillingToHaveRoommate"
                         checked={personal.isWillingToHaveRoommate}
                         onChange={onChange(setPersonal)}
                       />
-                    </Col>
-                  </Row>
+                      <label htmlFor="roommate" className="form-check-label">
+                        I’m willing to have a roommate
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Preferences */}
-                  <h5 className="mt-4">Preferences</h5>
-                  <Row className="g-3">
-                    <Col md={12}>
-                      <Form.Group>
-                        <Form.Label>I’m interested in</Form.Label>
-                        <div className="d-flex gap-4">
-                          <Form.Check
-                            type="radio"
-                            id="edit-dealType-rent"
-                            name="dealType"
-                            value="rent"
-                            label="Renting"
-                            checked={prefs.dealType === 'rent'}
-                            onChange={onChange(setPrefs)}
-                          />
-                          <Form.Check
-                            type="radio"
-                            id="edit-dealType-sale"
-                            name="dealType"
-                            value="sale"
-                            label="Buying"
-                            checked={prefs.dealType === 'sale'}
-                            onChange={onChange(setPrefs)}
-                          />
-                        </div>
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label>Location</Form.Label>
-                        <Form.Control name="location" value={prefs.location} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
-
-                    {/* Budget */}
-                    {isRent ? (
-                      <>
-                        <Col md={3}>
-                          <Form.Group>
-                            <Form.Label>Rent Min (€)</Form.Label>
-                            <Form.Control
-                              type="number"
-                              name="rentMin"
-                              value={prefs.rentMin}
-                              onChange={onChange(setPrefs)}
-                              isInvalid={!!errors.rentMin}
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.rentMin}</Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col md={3}>
-                          <Form.Group>
-                            <Form.Label>Rent Max (€)</Form.Label>
-                            <Form.Control type="number" name="rentMax" value={prefs.rentMax} onChange={onChange(setPrefs)} />
-                          </Form.Group>
-                        </Col>
-                      </>
-                    ) : (
-                      <>
-                        <Col md={3}>
-                          <Form.Group>
-                            <Form.Label>Purchase Min (€)</Form.Label>
-                            <Form.Control
-                              type="number"
-                              name="priceMin"
-                              value={prefs.priceMin}
-                              onChange={onChange(setPrefs)}
-                              isInvalid={!!errors.priceMin}
-                            />
-                            <Form.Control.Feedback type="invalid">{errors.priceMin}</Form.Control.Feedback>
-                          </Form.Group>
-                        </Col>
-                        <Col md={3}>
-                          <Form.Group>
-                            <Form.Label>Purchase Max (€)</Form.Label>
-                            <Form.Control type="number" name="priceMax" value={prefs.priceMax} onChange={onChange(setPrefs)} />
-                          </Form.Group>
-                        </Col>
-                      </>
-                    )}
-                  </Row>
-
-                  <Row className="g-3 mt-0">
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Sqm Min</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="sqmMin"
-                          value={prefs.sqmMin}
-                          onChange={onChange(setPrefs)}
-                          isInvalid={!!errors.sqmMin}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.sqmMin}</Form.Control.Feedback>
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Sqm Max</Form.Label>
-                        <Form.Control type="number" name="sqmMax" value={prefs.sqmMax} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Bedrooms</Form.Label>
-                        <Form.Control type="number" name="bedrooms" value={prefs.bedrooms} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Bathrooms</Form.Label>
-                        <Form.Control type="number" name="bathrooms" value={prefs.bathrooms} onChange={onChange(setPrefs)} />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  {/* Tri-state picks */}
-                  <Row className="g-3 mt-0">
-                    <Col md={3}>
-                      <TriStateSelect
-                        label="Furnished"
-                        name="furnished"
-                        value={prefs.furnished}
-                        onChange={onChange(setPrefs)}
-                      />
-                    </Col>
-                    <Col md={3}>
-                      <TriStateSelect
-                        label="Pets allowed"
-                        name="petsAllowed"
-                        value={prefs.petsAllowed}
-                        onChange={onChange(setPrefs)}
-                      />
-                    </Col>
-                    <Col md={3}>
-                      <TriStateSelect
-                        label="Smoking allowed"
-                        name="smokingAllowed"
-                        value={prefs.smokingAllowed}
-                        onChange={onChange(setPrefs)}
-                      />
-                    </Col>
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Heating Type (optional)</Form.Label>
-                        <Form.Select name="heatingType" value={prefs.heatingType} onChange={onChange(setPrefs)}>
-                          <option value="">Select</option>
-                          <option value="autonomous">Autonomous</option>
-                          <option value="central">Central</option>
-                          <option value="ac">AC</option>
-                          <option value="none">None</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  {/* Year Built Min */}
-                  <Row className="g-3 mt-0">
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Year Built Min</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="yearBuiltMin"
-                          value={prefs.yearBuiltMin}
+                {/* Preferences */}
+                <h5 className="fw-bold mt-4 mb-3">Preferences</h5>
+                <div className="row g-3">
+                  <div className="col-md-12">
+                    <label className="text-muted small">I’m interested in</label>
+                    <div className="d-flex gap-4">
+                      <div className="form-check">
+                        <input
+                          type="radio"
+                          className="form-check-input"
+                          id="dealTypeRent"
+                          name="dealType"
+                          value="rent"
+                          checked={prefs.dealType === 'rent'}
                           onChange={onChange(setPrefs)}
                         />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </>
-              )}
-              <div className="mt-4 d-flex justify-content-end">
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save'}
-                </Button>
-              </div>
-            </Form>
-          </Card.Body>
-        </Card>
+                        <label className="form-check-label" htmlFor="dealTypeRent">Renting</label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          type="radio"
+                          className="form-check-input"
+                          id="dealTypeSale"
+                          name="dealType"
+                          value="sale"
+                          checked={prefs.dealType === 'sale'}
+                          onChange={onChange(setPrefs)}
+                        />
+                        <label className="form-check-label" htmlFor="dealTypeSale">Buying</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="text-muted small">Location</label>
+                    <input
+                      className="form-control"
+                      name="location"
+                      value={prefs.location}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  {/* Budget */}
+                  {isRent ? (
+                    <>
+                      <div className="col-md-3">
+                        <label className="text-muted small">Rent Min (€)</label>
+                        <input
+                          type="number"
+                          className={`form-control ${errors.rentMin ? 'is-invalid' : ''}`}
+                          name="rentMin"
+                          value={prefs.rentMin}
+                          onChange={onChange(setPrefs)}
+                        />
+                        {errors.rentMin && <div className="invalid-feedback">{errors.rentMin}</div>}
+                      </div>
+                      <div className="col-md-3">
+                        <label className="text-muted small">Rent Max (€)</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="rentMax"
+                          value={prefs.rentMax}
+                          onChange={onChange(setPrefs)}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="col-md-3">
+                        <label className="text-muted small">Purchase Min (€)</label>
+                        <input
+                          type="number"
+                          className={`form-control ${errors.priceMin ? 'is-invalid' : ''}`}
+                          name="priceMin"
+                          value={prefs.priceMin}
+                          onChange={onChange(setPrefs)}
+                        />
+                        {errors.priceMin && <div className="invalid-feedback">{errors.priceMin}</div>}
+                      </div>
+                      <div className="col-md-3">
+                        <label className="text-muted small">Purchase Max (€)</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="priceMax"
+                          value={prefs.priceMax}
+                          onChange={onChange(setPrefs)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="row g-3 mt-0">
+                  <div className="col-md-3">
+                    <label className="text-muted small">Sqm Min</label>
+                    <input
+                      type="number"
+                      className={`form-control ${errors.sqmMin ? 'is-invalid' : ''}`}
+                      name="sqmMin"
+                      value={prefs.sqmMin}
+                      onChange={onChange(setPrefs)}
+                    />
+                    {errors.sqmMin && <div className="invalid-feedback">{errors.sqmMin}</div>}
+                  </div>
+                  <div className="col-md-3">
+                    <label className="text-muted small">Sqm Max</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="sqmMax"
+                      value={prefs.sqmMax}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="text-muted small">Bedrooms</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="bedrooms"
+                      value={prefs.bedrooms}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="text-muted small">Bathrooms</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="bathrooms"
+                      value={prefs.bathrooms}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+                </div>
+
+                {/* Tri-state */}
+                <div className="row g-3 mt-0">
+                  <div className="col-md-3">
+                    <TriStateSelect label="Furnished" name="furnished" value={prefs.furnished} onChange={onChange(setPrefs)} />
+                  </div>
+                  <div className="col-md-3">
+                    <TriStateSelect label="Pets allowed" name="petsAllowed" value={prefs.petsAllowed} onChange={onChange(setPrefs)} />
+                  </div>
+                  <div className="col-md-3">
+                    <TriStateSelect label="Smoking allowed" name="smokingAllowed" value={prefs.smokingAllowed} onChange={onChange(setPrefs)} />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="text-muted small">Heating Type</label>
+                    <select
+                      className="form-select"
+                      name="heatingType"
+                      value={prefs.heatingType}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Select</option>
+                      <option value="autonomous">Autonomous</option>
+                      <option value="central">Central</option>
+                      <option value="ac">AC</option>
+                      <option value="none">None</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="row g-3 mt-0">
+                  <div className="col-md-3">
+                    <label className="text-muted small">Year Built Min</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="yearBuiltMin"
+                      value={prefs.yearBuiltMin}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="mt-4 d-flex justify-content-end">
+              <button
+                type="submit"
+                className="btn rounded-pill px-4"
+                style={{
+                  background: "linear-gradient(135deg,#006400,#90ee90)",
+                  color: "#fff",
+                  fontWeight: 600,
+                  border: "none"
+                }}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

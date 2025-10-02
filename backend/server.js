@@ -30,8 +30,6 @@ io.on("connection", (socket) => {
     console.log("user disconnected:", socket.id);
   });
 });
-
-
 /**
  * Start HTTP server after connecting to Mongo.
  * - Σε test runs (NODE_ENV === 'test') ΔΕΝ ξεκινάμε αυτόματα.
@@ -44,9 +42,9 @@ async function start() {
       console.log("MongoDB connected");
     }
 
-    server.listen(PORT, () => {
-      console.log(`Server listening on http://localhost:${PORT}`);
-    });
+   server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening on port ${PORT}`);
+});
   } catch (err) {
     console.error("Failed to start server:", err);
     process.exit(1);

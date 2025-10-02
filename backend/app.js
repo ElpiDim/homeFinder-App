@@ -33,15 +33,6 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-/* ---------- Serve CRA build ---------- */
-const clientDir = path.join(__dirname, "..", "frontend", "build");
-app.use(express.static(clientDir));
-
-// Catch-all για Ο,ΤΙ δεν είναι /api → δώσε το index.html (SPA routes)
-app.get(/^\/(?!api\/).*/, (_req, res) => {
-  res.sendFile(path.join(clientDir, "index.html"));
-});
-
 /* ---------- 404 μόνο για API ---------- */
 app.use("/api", (_req, res) => {
   res.status(404).json({ message: "Not found" });

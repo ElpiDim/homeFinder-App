@@ -2,14 +2,13 @@
 import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Card, Row, Col, Button, Form, Badge } from 'react-bootstrap';
 import api from '../api';
 
 function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch fresh user on mount to reflect any server-side changes after editing
+  // Fetch fresh user on mount
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -21,26 +20,23 @@ function Profile() {
           localStorage.setItem('user', JSON.stringify(fresh));
         }
       } catch {
-        // optional: keep silent; the view still renders from context
+        // silent fail
       }
     })();
     return () => { cancelled = true; };
   }, [setUser]);
 
-  const pageGradient = useMemo(
-    () => ({
-      minHeight: '100vh',
-      background:
-        'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-         linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
-    }),
-    []
-  );
+  const pageGradient = useMemo(() => ({
+    minHeight: '100vh',
+    background:
+      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
+       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+  }), []);
 
   if (!user) {
     return (
       <div style={pageGradient}>
-        <div className="container mt-5">Loading profile...</div>
+        <div className="container mt-5">Loading profile…</div>
       </div>
     );
   }
@@ -51,303 +47,198 @@ function Profile() {
     ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
     : 'Unknown';
 
-  // Tri-state display helpers
   const bool = (v) => (v === true ? 'Yes' : v === false ? 'No' : '-');
   const orDash = (v) => (v === 0 || v ? v : '-');
 
   const p = user.preferences || {};
-  const r = user.requirements || {};
-
-  // Normalize intent from preferences (supports either `intent` or `dealType`)
   const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
 
   return (
-    <div style={pageGradient} className="py-4">
-      <div className="container">
+    <div style={pageGradient} className="py-5">
+      <div className="container" style={{ maxWidth: '900px' }}>
         {/* Header */}
-        <Card className="mb-4">
-          <Card.Body className="d-flex align-items-center justify-content-between">
-            {/* LEFT: Dashboard button + avatar + basic info */}
-            <div className="d-flex align-items-center">
-              <Button
-                variant="outline-secondary"
-                className="me-3"
-                onClick={() => navigate('/dashboard')}
-              >
-                ← 
-              </Button>
-
-              <div
-                className="rounded-circle bg-light me-3"
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  backgroundImage: `url(${profilePicture})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              />
-              <div>
-                <Card.Title className="mb-0">
-                  {user.name || user.email}
-                  {isClient && (
-                    <Badge
-                      bg={user.onboardingCompleted ? 'success' : 'warning'}
-                      className="ms-2"
-                    >
-                      {user.onboardingCompleted ? 'Onboarding complete' : 'Onboarding pending'}
-                    </Badge>
-                  )}
-                </Card.Title>
-                <Card.Subtitle className="text-muted">Joined in {joinedDate}</Card.Subtitle>
-              </div>
-            </div>
-
-            {/* RIGHT: Edit button */}
+        <div className="p-4 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-center mb-4">
+          <div className="d-flex align-items-center">
+            <button
+              className="btn btn-outline-secondary rounded-pill me-3"
+              onClick={() => navigate('/dashboard')}
+            >
+              ←
+            </button>
+            <div
+              className="rounded-circle me-3"
+              style={{
+                width: 60,
+                height: 60,
+                backgroundImage: `url(${profilePicture})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
             <div>
-              <Button variant="primary" onClick={() => navigate('/edit-profile')}>
-                Edit Profile
-              </Button>
+              <h5 className="mb-1 fw-bold">{user.name || user.email}</h5>
+              <div className="text-muted">Joined in {joinedDate}</div>
             </div>
-          </Card.Body>
-        </Card>
+          </div>
+          <button
+            className="btn rounded-pill px-3 py-2"
+            style={{
+              background: "linear-gradient(135deg,#006400,#90ee90)",
+              color: "#fff",
+              fontWeight: 600,
+              border: "none"
+            }}
+            onClick={() => navigate('/edit-profile')}
+          >
+            Edit Profile
+          </button>
+        </div>
 
-        {/* === CLIENT VIEW: Personal + Preferences === */}
+        {/* Client view */}
         {isClient && (
           <>
             {/* Personal Information */}
-            <Card className="mb-4">
-              <Card.Header as="h5">Personal Information</Card.Header>
-              <Card.Body>
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Name</Form.Label>
-                      <Form.Control plaintext readOnly value={user.name || ''} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Email</Form.Label>
-                      <Form.Control plaintext readOnly value={user.email} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Phone</Form.Label>
-                      <Form.Control plaintext readOnly value={user.phone || ''} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Age</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(user.age)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Household Size</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(user.householdSize)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Has Family</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(user.hasFamily)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Has Pets</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(user.hasPets)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Smoker</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(user.smoker)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Willing to Have Roommate</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(user.isWillingToHaveRoommate)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Occupation</Form.Label>
-                      <Form.Control plaintext readOnly value={user.occupation || ''} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Salary</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(user.salary)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
+            <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
+              <h5 className="fw-bold mb-3">Personal Information</h5>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="text-muted small">Name</label>
+                  <div>{user.name || '-'}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Email</label>
+                  <div>{user.email}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Phone</label>
+                  <div>{user.phone || '-'}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Age</label>
+                  <div>{orDash(user.age)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Household Size</label>
+                  <div>{orDash(user.householdSize)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Has Family</label>
+                  <div>{bool(user.hasFamily)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Has Pets</label>
+                  <div>{bool(user.hasPets)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Smoker</label>
+                  <div>{bool(user.smoker)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Willing to Have Roommate</label>
+                  <div>{bool(user.isWillingToHaveRoommate)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Occupation</label>
+                  <div>{user.occupation || '-'}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Salary</label>
+                  <div>{orDash(user.salary)}</div>
+                </div>
+              </div>
+            </div>
 
             {/* Preferences */}
-            <Card className="mb-4">
-              <Card.Header as="h5">What I'm looking for (Preferences)</Card.Header>
-              <Card.Body>
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Location</Form.Label>
-                      <Form.Control plaintext readOnly value={p.location || ''} />
-                    </Form.Group>
-                  </Col>
-
-                  {/* Budget: rent or purchase based on intent */}
-                  {intent === 'rent' ? (
-                    <>
-                      <Col md={3}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Rent Min (€)</Form.Label>
-                          <Form.Control plaintext readOnly value={orDash(p.rentMin)} />
-                        </Form.Group>
-                      </Col>
-                      <Col md={3}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Rent Max (€)</Form.Label>
-                          <Form.Control plaintext readOnly value={orDash(p.rentMax)} />
-                        </Form.Group>
-                      </Col>
-                    </>
-                  ) : (
-                    <>
-                      <Col md={3}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Purchase Min (€)</Form.Label>
-                          <Form.Control plaintext readOnly value={orDash(p.priceMin)} />
-                        </Form.Group>
-                      </Col>
-                      <Col md={3}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Purchase Max (€)</Form.Label>
-                          <Form.Control plaintext readOnly value={orDash(p.priceMax)} />
-                        </Form.Group>
-                      </Col>
-                    </>
-                  )}
-                </Row>
-
-                <Row>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Sqm Min</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.sqmMin)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Sqm Max</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.sqmMax)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Bedrooms</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.bedrooms)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Bathrooms</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.bathrooms)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Furnished</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(p.furnished)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Pets Allowed</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(p.petsAllowed)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Smoking Allowed</Form.Label>
-                      <Form.Control plaintext readOnly value={bool(p.smokingAllowed)} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Year Built Min</Form.Label>
-                      <Form.Control plaintext readOnly value={orDash(p.yearBuiltMin)} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Heating Type</Form.Label>
-                      <Form.Control plaintext readOnly value={p.heatingType || '-'} />
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
+            <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
+              <h5 className="fw-bold mb-3">Preferences</h5>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="text-muted small">Location</label>
+                  <div>{p.location || '-'}</div>
+                </div>
+                {intent === 'rent' ? (
+                  <>
+                    <div className="col-md-3">
+                      <label className="text-muted small">Rent Min (€)</label>
+                      <div>{orDash(p.rentMin)}</div>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="text-muted small">Rent Max (€)</label>
+                      <div>{orDash(p.rentMax)}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="col-md-3">
+                      <label className="text-muted small">Purchase Min (€)</label>
+                      <div>{orDash(p.priceMin)}</div>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="text-muted small">Purchase Max (€)</label>
+                      <div>{orDash(p.priceMax)}</div>
+                    </div>
+                  </>
+                )}
+                <div className="col-md-3">
+                  <label className="text-muted small">Sqm Min</label>
+                  <div>{orDash(p.sqmMin)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Sqm Max</label>
+                  <div>{orDash(p.sqmMax)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Bedrooms</label>
+                  <div>{orDash(p.bedrooms)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Bathrooms</label>
+                  <div>{orDash(p.bathrooms)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Furnished</label>
+                  <div>{bool(p.furnished)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Pets Allowed</label>
+                  <div>{bool(p.petsAllowed)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Smoking Allowed</label>
+                  <div>{bool(p.smokingAllowed)}</div>
+                </div>
+                <div className="col-md-3">
+                  <label className="text-muted small">Year Built Min</label>
+                  <div>{orDash(p.yearBuiltMin)}</div>
+                </div>
+                <div className="col-md-6">
+                  <label className="text-muted small">Heating Type</label>
+                  <div>{p.heatingType || '-'}</div>
+                </div>
+              </div>
+            </div>
           </>
         )}
 
- {/* === OWNER VIEW: Personal Info === */}
+        {/* Owner view */}
         {!isClient && (
-          <Card className="mb-4">
-            <Card.Header as="h5">Personal Information</Card.Header>
-            <Card.Body>
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Name</Form.Label>
-                    <Form.Control plaintext readOnly value={user.name || ''} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control plaintext readOnly value={user.email} />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Phone</Form.Label>
-                    <Form.Control plaintext readOnly value={user.phone || ''} />
-                  </Form.Group>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
+          <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
+            <h5 className="fw-bold mb-3">Personal Information</h5>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="text-muted small">Name</label>
+                <div>{user.name || '-'}</div>
+              </div>
+              <div className="col-md-6">
+                <label className="text-muted small">Email</label>
+                <div>{user.email}</div>
+              </div>
+              <div className="col-md-6">
+                <label className="text-muted small">Phone</label>
+                <div>{user.phone || '-'}</div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
