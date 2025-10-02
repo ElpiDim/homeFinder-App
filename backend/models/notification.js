@@ -12,7 +12,6 @@ const notificationSchema = new mongoose.Schema({
       "message",
       "appointment",
       "property_removed",
-      "property_status_update",
       "favorite",
     ],
     required: true,

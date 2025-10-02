@@ -3,7 +3,6 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const User = require("../models/user");
-const Message = require("../models/messages");
 const { computeMatchScore } = require("../utils/matching");
 
 /* ----------------------------- helpers ----------------------------- */
@@ -387,7 +386,7 @@ exports.updateProperty = async (req, res) => {
 
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
-    const previousStatus = property.status;
+
     // core
     if (hasValue(b.title)) property.title = b.title;
     if (hasValue(b.description)) property.description = b.description;
@@ -520,49 +519,6 @@ exports.updateProperty = async (req, res) => {
     }
 
     await property.save();
-      const statusChangedToUnavailable =
-      hasValue(b.status) &&
-      previousStatus !== property.status &&
-      previousStatus === "available" &&
-      ["rented", "sold"].includes(property.status);
-
-    if (statusChangedToUnavailable) {
-      const messageParticipants = await Message.find({
-        propertyId: property._id,
-      })
-        .select("senderId receiverId")
-        .lean();
-
-      const uniqueUserIds = new Set();
-      for (const msg of messageParticipants) {
-        if (msg.senderId) uniqueUserIds.add(String(msg.senderId));
-        if (msg.receiverId) uniqueUserIds.add(String(msg.receiverId));
-      }
-      uniqueUserIds.delete(String(property.ownerId));
-
-      if (uniqueUserIds.size) {
-        const clientIds = await User.find({
-          _id: { $in: Array.from(uniqueUserIds) },
-          role: "client",
-        })
-          .select("_id")
-          .lean();
-
-        if (clientIds.length) {
-          const statusText = property.status === "sold" ? "sold" : "rented";
-          const notifications = clientIds.map(({ _id }) => ({
-            userId: _id,
-            type: "property_status_update",
-            referenceId: property._id,
-            senderId: property.ownerId,
-            message: `The property "${property.title}" has been ${statusText}.`,
-          }));
-
-          await Notification.insertMany(notifications);
-        }
-      }
-    }
-
     res.json({
       message: "Property updated",
       property: property.toObject({ virtuals: true }),
