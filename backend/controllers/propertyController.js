@@ -110,6 +110,21 @@ exports.createProperty = async (req, res) => {
     const familyStatus = b.familyStatus || undefined;
     const reqs_pets = toBool(b.tenantRequirements_petsAllowed);
     const reqs_smoker = toBool(b.tenantRequirements_smokingAllowed);
+    const reqs_furnished = toBool(b.tenantRequirements_furnished);
+    const reqs_parking = toBool(b.tenantRequirements_parking);
+    const reqs_elevator = toBool(b.tenantRequirements_hasElevator);
+
+    const tenantRequirements = {
+      minTenantSalary,
+      allowedOccupations,
+      familyStatus,
+    };
+    if (reqs_pets !== undefined) tenantRequirements.pets = reqs_pets;
+    if (reqs_smoker !== undefined) tenantRequirements.smoker = reqs_smoker;
+    if (reqs_furnished !== undefined) tenantRequirements.furnished = reqs_furnished;
+    if (reqs_parking !== undefined) tenantRequirements.parking = reqs_parking;
+    if (reqs_elevator !== undefined)
+      tenantRequirements.hasElevator = reqs_elevator;
 
     // Geo
     const latitude = toNum(b.latitude, parseFloat);
@@ -180,13 +195,7 @@ exports.createProperty = async (req, res) => {
       ownerNotes: b.ownerNotes,
 
       // tenant requirements
-      tenantRequirements: {
-        minTenantSalary,
-        allowedOccupations,
-        familyStatus,
-        pets: reqs_pets,
-        smoker: reqs_smoker,
-      },
+      tenantRequirements,
     });
 
     await prop.save();
@@ -505,11 +514,27 @@ exports.updateProperty = async (req, res) => {
     if (hasValue(minTenantSalary))
       property.tenantRequirements.minTenantSalary = minTenantSalary;
     if (hasValue(b.familyStatus))
-        property.tenantRequirements.familyStatus = b.familyStatus
+      property.tenantRequirements.familyStatus = b.familyStatus;
+    if (hasValue(b.tenantRequirements_furnished))
+      property.tenantRequirements.furnished = toBool(
+        b.tenantRequirements_furnished
+      );
+    if (hasValue(b.tenantRequirements_parking))
+      property.tenantRequirements.parking = toBool(
+        b.tenantRequirements_parking
+      );
+    if (hasValue(b.tenantRequirements_hasElevator))
+      property.tenantRequirements.hasElevator = toBool(
+        b.tenantRequirements_hasElevator
+      );
     if (hasValue(b.tenantRequirements_petsAllowed))
-        property.tenantRequirements.pets = toBool(b.tenantRequirements_petsAllowed)
+      property.tenantRequirements.pets = toBool(
+        b.tenantRequirements_petsAllowed
+      );
     if (hasValue(b.tenantRequirements_smokingAllowed))
-        property.tenantRequirements.smoker = toBool(b.tenantRequirements_smokingAllowed)
+      property.tenantRequirements.smoker = toBool(
+        b.tenantRequirements_smokingAllowed
+      );
     // images / floorplan
     if (newImages.length) {
       property.images = [...(property.images || []), ...newImages];

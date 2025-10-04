@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Form, Button } from 'react-bootstrap';
+import { Row, Col, Form } from 'react-bootstrap';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import TriStateSelect from '../components/TristateSelect';
 
 const toNumOrUndef = (v) =>
   v === '' || v === null || v === undefined ? undefined : Number(v);
@@ -31,12 +32,15 @@ export default function AddProperty() {
     heating: '',       // free text for now, can be enum later
     amenitiesInput: '',// comma-separated input that we’ll split to array
   });
-   const [tenantReqs, setTenantReqs] = useState({
+  const [tenantReqs, setTenantReqs] = useState({
     minTenantSalary: '',
-    allowedOccupations: '',
+    allowedOccupationsInput: '',
     familyStatus: '',
-    petsAllowed: false,
-    smokingAllowed: false,
+    furnished: null,
+    parking: null,
+    hasElevator: null,
+    pets: null,
+    smoker: null,
   });
 
   const [images, setImages] = useState([]);
@@ -50,7 +54,13 @@ export default function AddProperty() {
   };
   const onReqsChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setTenantReqs((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    if (type === 'checkbox') {
+      setTenantReqs((p) => ({ ...p, [name]: checked }));
+    } else if (type === 'custom') {
+      setTenantReqs((p) => ({ ...p, [name]: value }));
+    } else {
+      setTenantReqs((p) => ({ ...p, [name]: value }));
+    }
   };
 
   const validate = () => {
@@ -122,11 +132,30 @@ export default function AddProperty() {
       }
 
       // Tenant Requirements
-      if (tenantReqs.minTenantSalary) fd.append('minTenantSalary', tenantReqs.minTenantSalary);
-      if (tenantReqs.allowedOccupations) fd.append('allowedOccupations', tenantReqs.allowedOccupations);
-      if (tenantReqs.familyStatus) fd.append('familyStatus', tenantReqs.familyStatus);
-      fd.append('tenantRequirements_petsAllowed', tenantReqs.petsAllowed);
-      fd.append('tenantRequirements_smokingAllowed', tenantReqs.smokingAllowed);
+      if (tenantReqs.minTenantSalary) {
+        fd.append('minTenantSalary', tenantReqs.minTenantSalary);
+      }
+
+      const occupations = (tenantReqs.allowedOccupationsInput || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      occupations.forEach((occ) => fd.append('allowedOccupations[]', occ));
+
+      if (tenantReqs.familyStatus) {
+        fd.append('familyStatus', tenantReqs.familyStatus);
+      }
+
+      const appendTenantBool = (key, value) => {
+        if (value === null || value === undefined || value === '') return;
+        fd.append(key, value);
+      };
+
+      appendTenantBool('tenantRequirements_furnished', tenantReqs.furnished);
+      appendTenantBool('tenantRequirements_parking', tenantReqs.parking);
+      appendTenantBool('tenantRequirements_hasElevator', tenantReqs.hasElevator);
+      appendTenantBool('tenantRequirements_petsAllowed', tenantReqs.pets);
+      appendTenantBool('tenantRequirements_smokingAllowed', tenantReqs.smoker);
       
       // Files
       images.forEach((file) => fd.append('images', file));
@@ -393,37 +422,88 @@ export default function AddProperty() {
         
         <h5 className="mt-4">Tenant Requirements</h5>
         <Row className="g-3">
-            <Col md={4}>
-                <Form.Group>
-                <Form.Label>Minimum Tenant Salary (€)</Form.Label>
-                <Form.Control type="number" name="minTenantSalary" value={tenantReqs.minTenantSalary} onChange={onReqsChange} />
-                </Form.Group>
-            </Col>
-            <Col md={8}>
-                <Form.Group>
-                <Form.Label>Allowed Occupations (comma-separated)</Form.Label>
-                <Form.Control name="allowedOccupations" value={tenantReqs.allowedOccupations} onChange={onReqsChange} />
-                </Form.Group>
-            </Col>
+          <Col md={4}>
+            <Form.Group>
+              <Form.Label>Minimum Tenant Salary (€)</Form.Label>
+              <Form.Control
+                type="number"
+                name="minTenantSalary"
+                value={tenantReqs.minTenantSalary}
+                onChange={onReqsChange}
+              />
+            </Form.Group>
+          </Col>
+          <Col md={8}>
+            <Form.Group>
+              <Form.Label>Preferred Occupations</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={1}
+                name="allowedOccupationsInput"
+                value={tenantReqs.allowedOccupationsInput}
+                onChange={onReqsChange}
+                placeholder="e.g., engineer, teacher, healthcare"
+              />
+              <Form.Text className="text-muted">
+                Separate multiple occupations with commas.
+              </Form.Text>
+            </Form.Group>
+          </Col>
         </Row>
         <Row className="g-3 mt-0">
-            <Col md={4}>
-                <Form.Group>
-                <Form.Label>Family Status</Form.Label>
-                <Form.Select name="familyStatus" value={tenantReqs.familyStatus} onChange={onReqsChange}>
-                    <option value="">Any</option>
-                    <option value="single">Single</option>
-                    <option value="couple">Couple</option>
-                    <option value="family">Family</option>
-                </Form.Select>
-                </Form.Group>
-            </Col>
-            <Col md={4} className="d-flex align-items-end">
-                <Form.Check label="Pets allowed for tenant" name="petsAllowed" checked={tenantReqs.petsAllowed} onChange={onReqsChange} />
-            </Col>
-            <Col md={4} className="d-flex align-items-end">
-                <Form.Check label="Smoking allowed for tenant" name="smokingAllowed" checked={tenantReqs.smokingAllowed} onChange={onReqsChange} />
-            </Col>
+          <Col md={4}>
+            <Form.Group>
+              <Form.Label>Family Status</Form.Label>
+              <Form.Select name="familyStatus" value={tenantReqs.familyStatus} onChange={onReqsChange}>
+                <option value="">Any</option>
+                <option value="single">Single</option>
+                <option value="couple">Couple</option>
+                <option value="family">Family</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={4}>
+            <TriStateSelect
+              label="Tenant looking for furnished home"
+              name="furnished"
+              value={tenantReqs.furnished}
+              onChange={onReqsChange}
+            />
+          </Col>
+          <Col md={4}>
+            <TriStateSelect
+              label="Tenant needs parking"
+              name="parking"
+              value={tenantReqs.parking}
+              onChange={onReqsChange}
+            />
+          </Col>
+        </Row>
+        <Row className="g-3 mt-0">
+          <Col md={4}>
+            <TriStateSelect
+              label="Tenant requires elevator"
+              name="hasElevator"
+              value={tenantReqs.hasElevator}
+              onChange={onReqsChange}
+            />
+          </Col>
+          <Col md={4}>
+            <TriStateSelect
+              label="Pets allowed for tenant"
+              name="pets"
+              value={tenantReqs.pets}
+              onChange={onReqsChange}
+            />
+          </Col>
+          <Col md={4}>
+            <TriStateSelect
+              label="Smoking allowed for tenant"
+              name="smoker"
+              value={tenantReqs.smoker}
+              onChange={onReqsChange}
+            />
+          </Col>
         </Row>
 
         <h5 className="mt-3">Media</h5>
