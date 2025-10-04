@@ -1,9 +1,0 @@
-node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-Dockerfile
-backend.log
-__tests__
-*.test.js
-coverage
