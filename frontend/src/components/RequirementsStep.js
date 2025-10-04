@@ -21,7 +21,19 @@ const amenityFields = [
   { name: 'petsAllowed', label: 'Pet friendly', helper: 'Welcomes cats, dogs & more' },
   { name: 'smokingAllowed', label: 'Smoking policy', helper: 'Clarify if smoking is allowed' },
   { name: 'elevator', label: 'Elevator', helper: 'Easy access to upper floors' },
+  { name: 'balcony', label: 'Balcony', helper: 'Outdoor private space' },
+  { name: 'airConditioning', label: 'Air Conditioning', helper: 'Cooling and comfort' },
+  { name: 'garden', label: 'Garden', helper: 'Private or shared green area' },
+  { name: 'storage', label: 'Storage Room', helper: 'Extra space for belongings' },
+  { name: 'fireplace', label: 'Fireplace', helper: 'Cozy atmosphere and warmth' },
+  { name: 'swimmingPool', label: 'Swimming Pool', helper: 'Private or shared pool access' },
+  { name: 'securityDoor', label: 'Security Door', helper: 'Enhanced safety' },
+  { name: 'solarWaterHeater', label: 'Solar Water Heater', helper: 'Energy-efficient water heating' },
+  { name: 'doubleGlazing', label: 'Double Glazing', helper: 'Better insulation and quiet' },
+  { name: 'renovated', label: 'Recently Renovated', helper: 'Modern and updated condition' },
+  { name: 'energyEfficient', label: 'Energy-efficient', helper: 'Low energy consumption' },
 ];
+
 
 export default function RequirementsStep({ prefs, onChange, errors }) {
   const handleToggle = (name, value) => {
@@ -334,45 +346,42 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         )}
       </section>
 
-      {/* AMENITIES SECTION */}
-      <section className="onboarding-section">
-        <header className="section-header">
-          <h5 className="section-title">Amenities &amp; policies</h5>
-          <p className="section-description">
-            Highlight the must-haves that make a place feel like home.
-          </p>
-        </header>
+{/* AMENITIES SECTION */}
+<section className="onboarding-section">
+  <header className="section-header">
+    <h5 className="section-title">Amenities &amp; policies</h5>
+    <p className="section-description">
+      Choose which features and rules matter most to you.
+    </p>
+  </header>
 
-        <div className="amenities-grid">
-          {amenityFields.map((field) => (
-            <div key={field.name} className="amenity-item">
-              <div className="amenity-header">
-                <span className="amenity-title">{field.label}</span>
-                {field.helper && (
-                  <span className="amenity-helper">{field.helper}</span>
-                )}
-              </div>
-              <ButtonGroup className="tile-button-group" role="group">
-                {toggleOptions.map((option) => (
-                  <ToggleButton
-                    key={`${field.name}-${option.value}`}
-                    id={`${field.name}-${option.value}`}
-                    type="radio"
-                    variant="outline-success"
-                    name={field.name}
-                    value={option.value}
-                    checked={normalizeValue(prefs[field.name]) === option.value}
-                    onChange={() => handleToggle(field.name, option.value)}
-                    className="tile-button"
-                  >
-                    {option.label}
-                  </ToggleButton>
-                ))}
-              </ButtonGroup>
-            </div>
-          ))}
-        </div>
-      </section>
+  <Row className="g-3">
+    {amenityFields.map((field) => (
+      <Col key={field.name} xs={12} md={6}>
+        <Form.Group controlId={field.name} className="mb-3">
+          <Form.Label className="field-label">
+            {field.label}
+            {field.helper && (
+              <Form.Text className="text-muted d-block small">
+                {field.helper}
+              </Form.Text>
+            )}
+          </Form.Label>
+          <Form.Select
+            name={field.name}
+            value={normalizeValue(prefs[field.name])}
+            onChange={(e) => handleToggle(field.name, e.target.value)}
+          >
+            <option value="any">Any</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </Form.Select>
+        </Form.Group>
+      </Col>
+    ))}
+  </Row>
+</section>
+
     </div>
   );
 }
