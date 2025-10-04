@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, Row, Col, ButtonGroup, ToggleButton } from 'react-bootstrap';
 import './RequirementsStep.css';
+import './OnboardingStepLayout.css';
 
 const normalizeValue = (value) => {
   if (value === undefined || value === null || value === '') {
@@ -59,8 +60,8 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
   };
 
   return (
-    <div className="requirements-step">
-      <section className="requirements-section">
+    <div className="onboarding-step">
+      <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Location &amp; deal</h5>
           <p className="section-description">
@@ -108,7 +109,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         </div>
       </section>
 
-      <section className="requirements-section">
+       <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Budget &amp; size</h5>
           <p className="section-description">
@@ -224,7 +225,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         </Row>
       </section>
 
-      <section className="requirements-section">
+       <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Living details</h5>
           <p className="section-description">
@@ -323,7 +324,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         )}
       </section>
 
-      <section className="requirements-section">
+      <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Amenities &amp; policies</h5>
           <p className="section-description">

@@ -1,10 +1,10 @@
-.profile-step {
+.onboarding-step {
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
 }
 
-.profile-section {
+.onboarding-section {
   background: #fff;
   border-radius: 1rem;
   padding: 1.5rem 1.75rem;
@@ -39,7 +39,7 @@
 }
 
 @media (max-width: 768px) {
-  .profile-section {
+  .onboarding-section {
     padding: 1.25rem;
   }
 

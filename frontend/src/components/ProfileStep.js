@@ -1,11 +1,11 @@
 import React from 'react';
 import { Form, Row, Col } from 'react-bootstrap';
-import './ProfileStep.css';
+import './OnboardingStepLayout.css';
 
 export default function ProfileStep({ personal, onChange, errors = {} }) {
   return (
-    <div className="profile-step">
-      <section className="profile-section">
+       <div className="onboarding-step">
+      <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Basic information</h5>
           <p className="section-description">
@@ -103,7 +103,7 @@ export default function ProfileStep({ personal, onChange, errors = {} }) {
         </Row>
       </section>
 
-      <section className="profile-section">
+ <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Lifestyle &amp; work</h5>
           <p className="section-description">
