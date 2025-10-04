@@ -18,10 +18,9 @@ import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
 import Logo from '../components/Logo';
 import './Chat.css';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
+const API_ORIGIN = getApiOrigin();
 
   const resolveSocketUrl = () => {
   const toOrigin = (maybeUrl) => {
@@ -54,17 +53,9 @@ const API_ORIGIN =
   return '';
 };
 
-function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
-}
-
 const assetUrl = (src, fallback) => {
-  if (!src) return fallback;
-  if (src.startsWith('http')) return src;
-  return `${API_ORIGIN}${normalizeUploadPath(src)}`;
+  const url = resolveUploadUrl(src, API_ORIGIN);
+  return url || fallback;
 };
 
 function Chat() {
@@ -96,9 +87,7 @@ function Chat() {
   );
 
   const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith('http')
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
+    ? assetUrl(user.profilePicture, '/default-avatar.jpg')
     : '/default-avatar.jpg';
 
   useEffect(() => {

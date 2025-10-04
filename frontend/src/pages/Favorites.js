@@ -4,18 +4,13 @@ import { getFavorites, removeFavorite } from '../services/favoritesService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
 /* -------- helpers (images) -------- */
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
+const API_ORIGIN = getApiOrigin();
 
-function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  const rel = clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
-  return `${API_ORIGIN}${rel}`;
+function getUploadUrl(src) {
+  return resolveUploadUrl(src, API_ORIGIN);
 }
 
 const currency = (n) =>
@@ -123,7 +118,7 @@ export default function Favorites() {
             {favorites.map((fav) => {
               const p = fav.propertyId;
               const img =
-                (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
+                (p.images?.[0] && getUploadUrl(p.images[0])) ||
                 'https://via.placeholder.com/600x360?text=No+Image';
               return (
                 <Col md={6} lg={4} key={p._id}>

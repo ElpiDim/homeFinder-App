@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Button, Spinner, Row, Col, Card, Badge, Container } from 'react-bootstrap';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
 export default function MyProperties() {
   const { user } = useAuth();
@@ -19,17 +20,11 @@ export default function MyProperties() {
   }), []);
 
   // --- image URL helpers (no localhost hardcode) ---
-  const API_ORIGIN =
-    (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  const normalizeUploadPath = (src) => {
-    if (!src) return '';
-    if (src.startsWith('http')) return src;
-    const clean = src.replace(/^\/+/, '');
-    return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+  const API_ORIGIN = getApiOrigin();
+  const imgUrl = (src) => {
+    const url = resolveUploadUrl(src, API_ORIGIN);
+    return url || 'https://via.placeholder.com/600x360?text=No+Image';
   };
-  const imgUrl = (src) =>
-    src ? `${API_ORIGIN}${normalizeUploadPath(src)}` : 'https://via.placeholder.com/600x360?text=No+Image';
 
   useEffect(() => {
     const load = async () => {

@@ -8,6 +8,7 @@ import OwnerAppointmentsCalendar from '../components/OwnerAppointmentsCalendar';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo';
 import { getMessages } from '../services/messagesService';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
 /* ---------- helpers (notifications) ---------- */
 const iconForType = (t) => {
@@ -30,15 +31,7 @@ const titleForNote = (n) => {
 };
 
 /* ---------- images (local/ngrok) ---------- */
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
-function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
-}
+const API_ORIGIN = getApiOrigin();
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -71,9 +64,7 @@ function Dashboard() {
   const dropdownRef = useRef(null);
 
   const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith('http')
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
+    ? resolveUploadUrl(user.profilePicture, API_ORIGIN) || '/default-avatar.jpg'
     : '/default-avatar.jpg';
 
   /* ---------- utils ---------- */
@@ -85,10 +76,8 @@ function Dashboard() {
   }), []);
 
   const imgUrl = (src) => {
-    if (!src) return 'https://via.placeholder.com/400x225?text=No+Image';
-    if (src.startsWith('http')) return src;
-    const rel = normalizeUploadPath(src);
-    return `${API_ORIGIN}${rel}`;
+    const url = resolveUploadUrl(src, API_ORIGIN);
+    return url || 'https://via.placeholder.com/400x225?text=No+Image';
   };
 
   const totalPages = useMemo(() => meta?.totalPages || 1, [meta]);

@@ -5,22 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import './Messages.css';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
-
-function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
-}
+const API_ORIGIN = getApiOrigin();
 
 const assetUrl = (src, fallback) => {
-  if (!src) return fallback;
-  if (src.startsWith('http')) return src;
-  return `${API_ORIGIN}${normalizeUploadPath(src)}`;
+  const url = resolveUploadUrl(src, API_ORIGIN);
+  return url || fallback;
 };
 
 function Messages() {
@@ -33,9 +24,7 @@ function Messages() {
   const navigate = useNavigate();
 
   const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith('http')
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
+    ? assetUrl(user.profilePicture, '/default-avatar.jpg')
     : '/default-avatar.jpg';
 
   const pageGradient = useMemo(

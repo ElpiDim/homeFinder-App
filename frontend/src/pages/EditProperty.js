@@ -9,6 +9,7 @@ import {
   useJsApiLoader,
   StandaloneSearchBox,
 } from '@react-google-maps/api';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
 const containerStyle = { width: '100%', height: '320px' };
 const LIBRARIES = ['places'];
@@ -42,17 +43,8 @@ const featureOptions = [
 ];
 
 // --- image URL helpers (όπως στα άλλα pages: όχι localhost hardcode) ---
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
-const normalizeUploadPath = (src) => {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
-};
-const getImageUrl = (path) =>
-  path ? `${API_ORIGIN}${normalizeUploadPath(path)}` : '';
+const API_ORIGIN = getApiOrigin();
+const getImageUrl = (path) => resolveUploadUrl(path, API_ORIGIN);
 
 function EditProperty() {
   const { propertyId } = useParams();
