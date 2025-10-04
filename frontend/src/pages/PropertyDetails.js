@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
+import { getApiOrigin, resolveUploadUrl } from '../utils/uploads';
 
 function PropertyDetails() {
   const { propertyId } = useParams();
@@ -28,20 +29,11 @@ function PropertyDetails() {
   );
 
   // API origin & image helpers
-  const API_ORIGIN =
-    (process.env.REACT_APP_API_URL
-      ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
-      : "") || (typeof window !== "undefined" ? window.location.origin : "");
-  const normalizeUploadPath = (src) => {
-    if (!src) return "";
-    if (src.startsWith("http")) return src;
-    const clean = src.replace(/^\/+/, "");
-    return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  const API_ORIGIN = getApiOrigin();
+  const getImageUrl = (path) => {
+    const url = resolveUploadUrl(path, API_ORIGIN);
+    return url || "https://placehold.co/1200x800?text=No+Image";
   };
-  const getImageUrl = (path) =>
-    path
-      ? `${API_ORIGIN}${normalizeUploadPath(path)}`
-      : "https://placehold.co/1200x800?text=No+Image";
 
   // Fetch property & favorites
   useEffect(() => {

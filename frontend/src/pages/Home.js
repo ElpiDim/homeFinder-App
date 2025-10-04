@@ -5,6 +5,7 @@ import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
 import Logo from "../components/Logo";
 import PropertyCard from "../components/propertyCard";
+import { getApiOrigin, resolveUploadUrl } from "../utils/uploads";
 
 function Home() {
   const [properties, setProperties] = useState([]);
@@ -21,23 +22,12 @@ function Home() {
   }), []);
 
   /* ---------- images (origin-safe) ---------- */
-  const API_ORIGIN =
-    (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, "") : "") ||
-    (typeof window !== "undefined" ? window.location.origin : "");
+  const API_ORIGIN = getApiOrigin();
 
-  const normalizeUploadPath = (src) => {
-    if (!src) return "";
-    if (src.startsWith("http")) return src;
-    const clean = src.replace(/^\/+/, "");
-    return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  const imgUrl = (src) => {
+    const url = resolveUploadUrl(src, API_ORIGIN);
+    return url || "https://via.placeholder.com/400x225?text=No+Image";
   };
-
-  const imgUrl = (src) =>
-    src
-      ? src.startsWith("http")
-        ? src
-        : `${API_ORIGIN}${normalizeUploadPath(src)}`
-      : "https://via.placeholder.com/400x225?text=No+Image";
 
   /* ---------- geolocation (optional) ---------- */
   useEffect(() => {
