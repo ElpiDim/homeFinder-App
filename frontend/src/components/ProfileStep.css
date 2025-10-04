@@ -1,0 +1,49 @@
+.profile-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.profile-section {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #033;
+}
+
+.section-description {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.align-center-checkbox {
+  display: flex;
+  align-items: center;
+  padding-top: 1.75rem;
+}
+
+@media (max-width: 768px) {
+  .profile-section {
+    padding: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+}
