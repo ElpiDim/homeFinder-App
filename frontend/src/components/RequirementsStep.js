@@ -1,116 +1,103 @@
 import React from 'react';
-import { Row, Col, Form } from 'react-bootstrap';
-import TriStateSelect from './TristateSelect';
+import { Form, Row, Col } from 'react-bootstrap';
 
-export default function RequirementsStep({ prefs, onChange, errors = {} }) {
-  const isRent = prefs.dealType !== 'sale';
-
+export default function RequirementsStep({ prefs, onChange, errors }) {
   return (
     <>
-      <h4 className="mb-4 text-center">Step 2: What are you looking for?</h4>
+      {/* Location */}
+      <Form.Group className="mb-3">
+        <Form.Label>Preferred Location</Form.Label>
+        <Form.Control
+          type="text"
+          name="location"
+          value={prefs.location}
+          onChange={onChange}
+          isInvalid={!!errors.location}
+        />
+        <Form.Control.Feedback type="invalid">
+          {errors.location}
+        </Form.Control.Feedback>
+      </Form.Group>
 
-      <Row className="g-3">
-        <Col md={12}>
-          <Form.Group>
-            <Form.Label>I’m interested in</Form.Label>
-            <div className="d-flex gap-4">
-              <Form.Check
-                type="radio"
-                id="dealType-rent"
-                name="dealType"
-                value="rent"
-                label="Renting"
-                checked={prefs.dealType === 'rent'}
+      {/* Deal Type */}
+      <Form.Group className="mb-3">
+        <Form.Label>Deal Type</Form.Label>
+        <Form.Select
+          name="dealType"
+          value={prefs.dealType}
+          onChange={onChange}
+        >
+          <option value="rent">Rent</option>
+          <option value="sale">Buy</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Rent or Price */}
+      {prefs.dealType === 'rent' ? (
+        <Row>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Min Rent (€)</Form.Label>
+              <Form.Control
+                type="number"
+                name="rentMin"
+                value={prefs.rentMin}
+                onChange={onChange}
+                isInvalid={!!errors.rentMin}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.rentMin}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Col>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Max Rent (€)</Form.Label>
+              <Form.Control
+                type="number"
+                name="rentMax"
+                value={prefs.rentMax}
                 onChange={onChange}
               />
-              <Form.Check
-                type="radio"
-                id="dealType-sale"
-                name="dealType"
-                value="sale"
-                label="Buying"
-                checked={prefs.dealType === 'sale'}
+            </Form.Group>
+          </Col>
+        </Row>
+      ) : (
+        <Row>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Min Price (€)</Form.Label>
+              <Form.Control
+                type="number"
+                name="priceMin"
+                value={prefs.priceMin}
+                onChange={onChange}
+                isInvalid={!!errors.priceMin}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.priceMin}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Col>
+          <Col>
+            <Form.Group className="mb-3">
+              <Form.Label>Max Price (€)</Form.Label>
+              <Form.Control
+                type="number"
+                name="priceMax"
+                value={prefs.priceMax}
                 onChange={onChange}
               />
-            </div>
-          </Form.Group>
-        </Col>
+            </Form.Group>
+          </Col>
+        </Row>
+      )}
 
-        <Col md={6}>
-          <Form.Group>
-            <Form.Label>Location</Form.Label>
-            <Form.Control
-              name="location"
-              value={prefs.location}
-              onChange={onChange}
-              placeholder="e.g., Athens, Center"
-              isInvalid={!!errors.location}
-            />
-            <Form.Control.Feedback type="invalid">{errors.location}</Form.Control.Feedback>
-          </Form.Group>
-        </Col>
-
-        {isRent ? (
-          <>
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>Rent Min (€)</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="rentMin"
-                  value={prefs.rentMin}
-                  onChange={onChange}
-                  isInvalid={!!errors.rentMin}
-                />
-                <Form.Control.Feedback type="invalid">{errors.rentMin}</Form.Control.Feedback>
-              </Form.Group>
-            </Col>
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>Rent Max (€)</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="rentMax"
-                  value={prefs.rentMax}
-                  onChange={onChange}
-                />
-              </Form.Group>
-            </Col>
-          </>
-        ) : (
-          <>
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>Purchase Min (€)</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="priceMin"
-                  value={prefs.priceMin}
-                  onChange={onChange}
-                  isInvalid={!!errors.priceMin}
-                />
-                <Form.Control.Feedback type="invalid">{errors.priceMin}</Form.Control.Feedback>
-              </Form.Group>
-            </Col>
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>Purchase Max (€)</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="priceMax"
-                  value={prefs.priceMax}
-                  onChange={onChange}
-                />
-              </Form.Group>
-            </Col>
-          </>
-        )}
-      </Row>
-
-      <Row className="g-3 mt-1">
-        <Col md={3}>
-          <Form.Group>
-            <Form.Label>Sqm Min</Form.Label>
+      {/* Sqm range */}
+      <Row>
+        <Col>
+          <Form.Group className="mb-3">
+            <Form.Label>Min Sqm</Form.Label>
             <Form.Control
               type="number"
               name="sqmMin"
@@ -118,12 +105,14 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
               onChange={onChange}
               isInvalid={!!errors.sqmMin}
             />
-            <Form.Control.Feedback type="invalid">{errors.sqmMin}</Form.Control.Feedback>
+            <Form.Control.Feedback type="invalid">
+              {errors.sqmMin}
+            </Form.Control.Feedback>
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group>
-            <Form.Label>Sqm Max</Form.Label>
+        <Col>
+          <Form.Group className="mb-3">
+            <Form.Label>Max Sqm</Form.Label>
             <Form.Control
               type="number"
               name="sqmMax"
@@ -132,80 +121,145 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group>
+      </Row>
+
+      {/* Bedrooms & Bathrooms */}
+      <Row>
+        <Col>
+          <Form.Group className="mb-3">
             <Form.Label>Bedrooms</Form.Label>
             <Form.Control
               type="number"
               name="bedrooms"
               value={prefs.bedrooms}
               onChange={onChange}
-              min={0}
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
-          <Form.Group>
+        <Col>
+          <Form.Group className="mb-3">
             <Form.Label>Bathrooms</Form.Label>
             <Form.Control
               type="number"
               name="bathrooms"
               value={prefs.bathrooms}
               onChange={onChange}
-              min={0}
             />
           </Form.Group>
         </Col>
       </Row>
 
-      <Row className="g-3 mt-1">
-        <Col md={3}>
-          <TriStateSelect
-            label="Parking"
-            name="parking"
-            value={prefs.parking}
+      {/* Lease duration (only for rent) */}
+      {prefs.dealType === 'rent' && (
+        <Form.Group className="mb-3">
+          <Form.Label>Lease Duration</Form.Label>
+          <Form.Select
+            name="leaseDuration"
+            value={prefs.leaseDuration}
             onChange={onChange}
-          />
-        </Col>
-        <Col md={3}>
-          <TriStateSelect
-            label="Pets allowed"
-            name="petsAllowed"
-            value={prefs.petsAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col md={3}>
-          <TriStateSelect
-            label="Smoking allowed"
-            name="smokingAllowed"
-            value={prefs.smokingAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col md={3}>
-          <TriStateSelect
-            label="Furnished"
-            name="furnished"
-            value={prefs.furnished}
-            onChange={onChange}
-          />
-        </Col>
-      </Row>
+            isInvalid={!!errors.leaseDuration}
+          >
+            <option value="">Select...</option>
+            <option value="short">Short-term (&lt; 12 months)</option>
+            <option value="long">Long-term (&ge; 12 months)</option>
+          </Form.Select>
+          <Form.Control.Feedback type="invalid">
+            {errors.leaseDuration}
+          </Form.Control.Feedback>
+        </Form.Group>
+      )}
 
-      <Row className="g-3 mt-1">
-        <Col md={4}>
-          <Form.Group>
-            <Form.Label>Heating (optional)</Form.Label>
-            <Form.Control
-              name="heating"
-              value={prefs.heating}
-              onChange={onChange}
-              placeholder="e.g., natural gas, heat pump"
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+      {/* Floor */}
+      <Form.Group className="mb-3">
+        <Form.Label>Floor</Form.Label>
+        <Form.Control
+          type="number"
+          name="floor"
+          value={prefs.floor}
+          onChange={onChange}
+        />
+      </Form.Group>
+
+      {/* Elevator */}
+      <Form.Group className="mb-3">
+        <Form.Label>Elevator</Form.Label>
+        <Form.Select
+          name="elevator"
+          value={prefs.elevator ?? ''}
+          onChange={onChange}
+        >
+          <option value="">I don't mind</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Parking */}
+      <Form.Group className="mb-3">
+        <Form.Label>Parking</Form.Label>
+        <Form.Select
+          name="parking"
+          value={prefs.parking ?? ''}
+          onChange={onChange}
+        >
+          <option value="">I don't mind</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Furnished */}
+      <Form.Group className="mb-3">
+        <Form.Label>Furnished</Form.Label>
+        <Form.Select
+          name="furnished"
+          value={prefs.furnished ?? ''}
+          onChange={onChange}
+        >
+          <option value="">I don't mind</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Pets allowed */}
+      <Form.Group className="mb-3">
+        <Form.Label>Pets Allowed</Form.Label>
+        <Form.Select
+          name="petsAllowed"
+          value={prefs.petsAllowed ?? ''}
+          onChange={onChange}
+        >
+          <option value="">I don't mindr</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Smoking allowed */}
+      <Form.Group className="mb-3">
+        <Form.Label>Smoking Allowed</Form.Label>
+        <Form.Select
+          name="smokingAllowed"
+          value={prefs.smokingAllowed ?? ''}
+          onChange={onChange}
+        >
+          <option value="">I don't mind</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </Form.Select>
+      </Form.Group>
+
+      {/* Heating */}
+      <Form.Group className="mb-3">
+        <Form.Label>Heating</Form.Label>
+        <Form.Control
+          type="text"
+          name="heating"
+          value={prefs.heating}
+          onChange={onChange}
+        />
+      </Form.Group>
     </>
   );
 }

@@ -22,7 +22,8 @@ const clean = (obj) =>
 
 // Helper to ensure min <= max for range inputs
 const ensureRange = (min, max) => {
-  const n = (x) => (x === '' || x === undefined || x === null ? undefined : Number(x));
+  const n = (x) =>
+    x === '' || x === undefined || x === null ? undefined : Number(x);
   const vmin = n(min);
   const vmax = n(max);
   if (vmin !== undefined && vmax !== undefined && vmin > vmax) {
@@ -76,6 +77,9 @@ export default function Onboarding() {
       smokingAllowed: user?.preferences?.smokingAllowed ?? null,
       furnished: user?.preferences?.furnished ?? null,
       heating: user?.preferences?.heating || '',
+      leaseDuration: user?.preferences?.leaseDuration || '', // short-term / long-term
+      floor: user?.preferences?.floor ?? '',
+      elevator: user?.preferences?.elevator ?? null,
     }),
     [user]
   );
@@ -87,7 +91,6 @@ export default function Onboarding() {
 
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    // TriStateSelect sends a custom event shape
     if (type === 'custom') {
       setter((s) => ({ ...s, [name]: value }));
     } else if (type === 'checkbox') {
@@ -101,7 +104,10 @@ export default function Onboarding() {
     const e = {};
     if (!personal.name.trim()) e.name = 'Name is required.';
     if (!personal.phone.trim()) e.phone = 'Phone is required.';
-    if (personal.age && (Number(personal.age) < 18 || Number(personal.age) > 120)) {
+    if (
+      personal.age &&
+      (Number(personal.age) < 18 || Number(personal.age) > 120)
+    ) {
       e.age = 'Please enter a valid age.';
     }
     setErrors(e);
@@ -110,26 +116,32 @@ export default function Onboarding() {
 
   const validateStep2 = () => {
     const e = {};
-    const num = (v) => (v === '' || v === undefined ? undefined : Number(v));
+    const num = (v) =>
+      v === '' || v === undefined ? undefined : Number(v);
 
     if (!prefs.location.trim()) e.location = 'Location is required.';
 
-    // Validate budget ranges
     const { rentMin, rentMax, priceMin, priceMax, sqmMin, sqmMax } = prefs;
-    if (num(rentMin) > num(rentMax)) e.rentMin = 'Min rent cannot be greater than max.';
-    if (num(priceMin) > num(priceMax)) e.priceMin = 'Min price cannot be greater than max.';
-    if (num(sqmMin) > num(sqmMax)) e.sqmMin = 'Min SqM cannot be greater than max.';
+    if (num(rentMin) > num(rentMax))
+      e.rentMin = 'Min rent cannot be greater than max.';
+    if (num(priceMin) > num(priceMax))
+      e.priceMin = 'Min price cannot be greater than max.';
+    if (num(sqmMin) > num(sqmMax))
+      e.sqmMin = 'Min SqM cannot be greater than max.';
 
-    // Require at least one bound for the active budget type
     if (prefs.dealType === 'rent') {
       if (num(rentMin) == null && num(rentMax) == null) {
         e.rentMin = 'Provide a rent range (at least one of Min/Max).';
+      }
+      if (!prefs.leaseDuration) {
+        e.leaseDuration = 'Please select lease duration.';
       }
     } else {
       if (num(priceMin) == null && num(priceMax) == null) {
         e.priceMin = 'Provide a price range (at least one of Min/Max).';
       }
     }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -157,7 +169,9 @@ export default function Onboarding() {
         name: personal.name,
         phone: personal.phone,
         age: personal.age ? Number(personal.age) : undefined,
-        householdSize: personal.householdSize ? Number(personal.householdSize) : undefined,
+        householdSize: personal.householdSize
+          ? Number(personal.householdSize)
+          : undefined,
         hasFamily: personal.hasFamily,
         hasPets: personal.hasPets,
         smoker: personal.smoker,
@@ -176,11 +190,14 @@ export default function Onboarding() {
         sqmMax: sqm.max,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
-        parking: prefs.parking === null ? undefined : !!prefs.parking,
-        furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
-        petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
-        smokingAllowed: prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
+        parking: prefs.parking,
+        furnished: prefs.furnished,
+        petsAllowed: prefs.petsAllowed,
+        smokingAllowed: prefs.smokingAllowed,
         heating: prefs.heating || undefined,
+        leaseDuration: prefs.leaseDuration || undefined,
+        floor: prefs.floor ? Number(prefs.floor) : undefined,
+        elevator: prefs.elevator,
       });
 
       const payload = { ...personalClean, preferences: prefsClean };
