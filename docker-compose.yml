@@ -19,12 +19,13 @@ services:
     environment:
       - PORT=5000
       - MONGO_URI=mongodb://mongo:27017/homefinder
+      - NODE_ENV=development
     depends_on:
       - mongo
     volumes:
       - ./backend:/usr/src/app
       - ./backend/uploads:/usr/src/app/uploads
-    command: npx nodemon server.js   # 👈 auto-reload backend όταν αλλάζει κώδικας
+    command: npm run dev
 
   frontend:
     build:
@@ -34,6 +35,9 @@ services:
       - "3000:3000"   # 👈 dev server αντί για nginx
     depends_on:
       - backend
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - ./frontend:/usr/src/app
     stdin_open: true
