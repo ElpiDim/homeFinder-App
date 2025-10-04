@@ -23,7 +23,7 @@ const clean = (obj) =>
 // Helper: ensure min <= max for numeric ranges
 const ensureRange = (min, max) => {
   const n = (x) =>
-    x === "" || x === undefined || x === null ? undefined : Number(x);
+    x === '' || x === undefined || x === null ? undefined : Number(x);
   const vmin = n(min);
   const vmax = n(max);
   if (vmin !== undefined && vmax !== undefined && vmin > vmax)
@@ -77,11 +77,10 @@ export default function Onboarding() {
       petsAllowed: user?.preferences?.petsAllowed ?? null,
       smokingAllowed: user?.preferences?.smokingAllowed ?? null,
       furnished: user?.preferences?.furnished ?? null,
-      heating: user?.preferences?.heating || "",
-      leaseDuration: user?.preferences?.leaseDuration || "",
-      floor: user?.preferences?.floor ?? "",
+      heating: user?.preferences?.heating || '',
+      leaseDuration: user?.preferences?.leaseDuration || '', // short-term / long-term
+      floor: user?.preferences?.floor ?? '',
       elevator: user?.preferences?.elevator ?? null,
-      energyClass: user?.preferences?.energyClass || "",
     }),
     [user]
   );
@@ -94,7 +93,7 @@ export default function Onboarding() {
   /** -------- FORM HANDLERS -------- **/
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === "custom") {
+    if (type === 'custom') {
       setter((s) => ({ ...s, [name]: value }));
     } else if (type === "checkbox") {
       setter((s) => ({ ...s, [name]: checked }));
@@ -106,13 +105,13 @@ export default function Onboarding() {
   /** -------- VALIDATION -------- **/
   const validateStep1 = () => {
     const e = {};
-    if (!personal.name.trim()) e.name = "Name is required.";
-    if (!personal.phone.trim()) e.phone = "Phone number is required.";
+    if (!personal.name.trim()) e.name = 'Name is required.';
+    if (!personal.phone.trim()) e.phone = 'Phone is required.';
     if (
       personal.age &&
       (Number(personal.age) < 18 || Number(personal.age) > 120)
     ) {
-      e.age = "Please enter a valid age (18–120).";
+      e.age = 'Please enter a valid age.';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -121,24 +120,25 @@ export default function Onboarding() {
   const validateStep2 = () => {
     const e = {};
     const num = (v) =>
-      v === "" || v === undefined || v === null ? undefined : Number(v);
+      v === '' || v === undefined ? undefined : Number(v);
 
     if (!prefs.location.trim()) e.location = "Location is required.";
 
     const { rentMin, rentMax, priceMin, priceMax, sqmMin, sqmMax } = prefs;
     if (num(rentMin) > num(rentMax))
-      e.rentMin = "Min rent cannot be greater than max rent.";
+      e.rentMin = 'Min rent cannot be greater than max.';
     if (num(priceMin) > num(priceMax))
-      e.priceMin = "Min price cannot be greater than max price.";
+      e.priceMin = 'Min price cannot be greater than max.';
     if (num(sqmMin) > num(sqmMax))
-      e.sqmMin = "Min square meters cannot be greater than max.";
+      e.sqmMin = 'Min SqM cannot be greater than max.';
 
-    if (prefs.dealType === "rent") {
+    if (prefs.dealType === 'rent') {
       if (num(rentMin) == null && num(rentMax) == null) {
         e.rentMin = "Provide at least one value for rent range.";
       }
-      if (!prefs.leaseDuration)
-        e.leaseDuration = "Please select lease duration.";
+      if (!prefs.leaseDuration) {
+        e.leaseDuration = 'Please select lease duration.';
+      }
     } else {
       if (num(priceMin) == null && num(priceMax) == null) {
         e.priceMin = "Provide at least one value for price range.";
@@ -186,22 +186,14 @@ export default function Onboarding() {
         sqmMax: sqm.max,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
-        parking:
-          prefs.parking === null ? undefined : Boolean(prefs.parking),
-        furnished:
-          prefs.furnished === null ? undefined : Boolean(prefs.furnished),
-        petsAllowed:
-          prefs.petsAllowed === null ? undefined : Boolean(prefs.petsAllowed),
-        smokingAllowed:
-          prefs.smokingAllowed === null
-            ? undefined
-            : Boolean(prefs.smokingAllowed),
+        parking: prefs.parking,
+        furnished: prefs.furnished,
+        petsAllowed: prefs.petsAllowed,
+        smokingAllowed: prefs.smokingAllowed,
         heating: prefs.heating || undefined,
         leaseDuration: prefs.leaseDuration || undefined,
         floor: prefs.floor ? Number(prefs.floor) : undefined,
-        elevator:
-          prefs.elevator === null ? undefined : Boolean(prefs.elevator),
-        energyClass: prefs.energyClass || undefined,
+        elevator: prefs.elevator,
       });
 
       const payload = { ...personalClean, preferences: prefsClean };

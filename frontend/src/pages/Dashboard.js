@@ -271,9 +271,13 @@ function Dashboard() {
     api.get(endpoint)
       .then((res) => {
         const appts = Array.isArray(res.data) ? res.data : [];
-        const confirmed = appts.filter((appt) => appt.status === 'confirmed');
-        setHasAppointments(confirmed.length > 0);
-         if (user.role === 'owner') {
+         const hasActiveAppts = appts.some((appt) => {
+          const status = (appt.status || '').toLowerCase();
+          return status === 'pending' || status === 'confirmed';
+        });
+        setHasAppointments(hasActiveAppts);
+
+        if (user.role === 'owner') {
           setOwnerAppointments(appts);
         }
       })
@@ -454,6 +458,22 @@ function Dashboard() {
               </span>
             )}
           </Link>
+            {user?.role === 'client' && (
+            <Link
+              to="/appointments"
+              className={`text-decoration-none position-relative ${hasAppointments ? 'fw-semibold text-success' : 'text-dark'}`}
+            >
+              Appointments
+              {hasAppointments && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  New
+                </span>
+              )}
+            </Link>
+          )}
           {user?.role !== 'owner' && (
             <Link to="/favorites" className="text-dark text-decoration-none">Favorites</Link>
           )}

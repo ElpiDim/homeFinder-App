@@ -1,290 +1,366 @@
 import React from 'react';
-import { Row, Col, Form } from 'react-bootstrap';
-import TriStateSelect from './TristateSelect';
+import { Form, Row, Col, ButtonGroup, ToggleButton } from 'react-bootstrap';
+import './RequirementsStep.css';
 
-export default function RequirementsStep({ prefs, onChange, errors = {} }) {
-  const isRent = prefs.dealType !== 'sale';
+const normalizeValue = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return 'any';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  return String(value);
+};
+
+const toggleOptions = [
+  { value: 'any', label: 'Any' },
+  { value: 'true', label: 'Yes' },
+  { value: 'false', label: 'No' },
+];
+
+const amenityFields = [
+  {
+    name: 'parking',
+    label: 'Parking',
+    helper: 'Reserved spot or garage access',
+  },
+  {
+    name: 'furnished',
+    label: 'Furnished',
+    helper: 'Move-in ready with furniture',
+  },
+  {
+    name: 'petsAllowed',
+    label: 'Pet friendly',
+    helper: 'Welcomes cats, dogs & more',
+  },
+  {
+    name: 'smokingAllowed',
+    label: 'Smoking policy',
+    helper: 'Clarify if smoking is allowed',
+  },
+  {
+    name: 'elevator',
+    label: 'Elevator',
+    helper: 'Easy access to upper floors',
+  },
+];
+
+export default function RequirementsStep({ prefs, onChange, errors }) {
+  const handleToggle = (name, value) => {
+    const nextValue = value === 'any' ? '' : value;
+    onChange({
+      target: {
+        name,
+        value: nextValue,
+        type: 'custom',
+      },
+    });
+  };
 
   return (
-    <>
-      <h4 className="mb-4 text-center fw-semibold">Step 2: What are you looking for?</h4>
+    <div className="requirements-step">
+      <section className="requirements-section">
+        <header className="section-header">
+          <h5 className="section-title">Location &amp; deal</h5>
+          <p className="section-description">
+            Tell us where you&apos;re looking and how you plan to move forward.
+          </p>
+        </header>
 
-      <Row className="gy-3 gx-2">
-        <Col xs={12}>
-          <Form.Group>
-            <Form.Label className="fw-semibold">I’m interested in</Form.Label>
-            <div className="d-flex flex-wrap gap-3">
-              <Form.Check
+        <Form.Group className="mb-3">
+          <Form.Label className="field-label">Preferred location</Form.Label>
+          <Form.Control
+            type="text"
+            name="location"
+            value={prefs.location}
+            onChange={onChange}
+            isInvalid={!!errors.location}
+            placeholder="e.g. Lisbon city center or Bairro Alto"
+          />
+          <Form.Control.Feedback type="invalid">
+            {errors.location}
+          </Form.Control.Feedback>
+        </Form.Group>
+
+        <div className="segmented-field">
+          <span className="field-label">Deal type</span>
+          <ButtonGroup className="tile-button-group" role="group">
+            {[
+              { value: 'rent', label: 'Rent' },
+              { value: 'sale', label: 'Buy' },
+            ].map((option) => (
+              <ToggleButton
+                key={option.value}
+                id={`dealType-${option.value}`}
                 type="radio"
-                id="dealType-rent"
+                variant="outline-success"
                 name="dealType"
-                value="rent"
-                label="Renting"
-                checked={prefs.dealType === 'rent'}
-                onChange={onChange}
-              />
-              <Form.Check
-                type="radio"
-                id="dealType-sale"
-                name="dealType"
-                value="sale"
-                label="Buying"
-                checked={prefs.dealType === 'sale'}
-                onChange={onChange}
-              />
-            </div>
-          </Form.Group>
-        </Col>
+                value={option.value}
+                checked={normalizeValue(prefs.dealType) === option.value}
+                onChange={() => handleToggle('dealType', option.value)}
+                className="tile-button"
+              >
+                {option.label}
+              </ToggleButton>
+            ))}
+          </ButtonGroup>
+        </div>
+      </section>
 
-        <Col xs={12} sm={6}>
-          <Form.Group>
-            <Form.Label className="fw-semibold">Location</Form.Label>
-            <Form.Control
-              name="location"
-              value={prefs.location}
-              onChange={onChange}
-              placeholder="e.g., Athens, Center"
-              isInvalid={!!errors.location}
-            />
-            <Form.Control.Feedback type="invalid">
-              {errors.location}
-            </Form.Control.Feedback>
-          </Form.Group>
-        </Col>
+      <section className="requirements-section">
+        <header className="section-header">
+          <h5 className="section-title">Budget &amp; size</h5>
+          <p className="section-description">
+            Set comfortable ranges so we can surface the best-matched homes.
+          </p>
+        </header>
 
-        {isRent ? (
-          <>
-            <Col xs={12} sm={6} md={3}>
+        {prefs.dealType === 'rent' ? (
+          <Row className="g-3">
+            <Col xs={12} md={6}>
               <Form.Group>
-                <Form.Label>Rent Min (€)</Form.Label>
+                <Form.Label className="field-label">Min rent (€)</Form.Label>
                 <Form.Control
                   type="number"
                   name="rentMin"
                   value={prefs.rentMin}
                   onChange={onChange}
                   isInvalid={!!errors.rentMin}
+                  placeholder="Optional"
+                  min={0}
+                  inputMode="numeric"
                 />
                 <Form.Control.Feedback type="invalid">
                   {errors.rentMin}
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col xs={12} sm={6} md={3}>
+            <Col xs={12} md={6}>
               <Form.Group>
-                <Form.Label>Rent Max (€)</Form.Label>
+                <Form.Label className="field-label">Max rent (€)</Form.Label>
                 <Form.Control
                   type="number"
                   name="rentMax"
                   value={prefs.rentMax}
                   onChange={onChange}
+                  placeholder="Optional"
+                  min={0}
+                  inputMode="numeric"
                 />
               </Form.Group>
             </Col>
-            <Col xs={12} sm={6}>
-              <Form.Group>
-                <Form.Label>Lease Duration</Form.Label>
-                <Form.Select
-                  name="leaseDuration"
-                  value={prefs.leaseDuration || ''}
-                  onChange={onChange}
-                  isInvalid={!!errors.leaseDuration}
-                >
-                  <option value="">Select...</option>
-                  <option value="short">Short-term</option>
-                  <option value="long">Long-term</option>
-                </Form.Select>
-                <Form.Control.Feedback type="invalid">
-                  {errors.leaseDuration}
-                </Form.Control.Feedback>
-              </Form.Group>
-            </Col>
-          </>
+          </Row>
         ) : (
-          <>
-            <Col xs={12} sm={6} md={3}>
+          <Row className="g-3">
+            <Col xs={12} md={6}>
               <Form.Group>
-                <Form.Label>Purchase Min (€)</Form.Label>
+                <Form.Label className="field-label">Min price (€)</Form.Label>
                 <Form.Control
                   type="number"
                   name="priceMin"
                   value={prefs.priceMin}
                   onChange={onChange}
                   isInvalid={!!errors.priceMin}
+                  placeholder="Optional"
+                  min={0}
+                  inputMode="numeric"
                 />
                 <Form.Control.Feedback type="invalid">
                   {errors.priceMin}
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col xs={12} sm={6} md={3}>
+            <Col xs={12} md={6}>
               <Form.Group>
-                <Form.Label>Purchase Max (€)</Form.Label>
+                <Form.Label className="field-label">Max price (€)</Form.Label>
                 <Form.Control
                   type="number"
                   name="priceMax"
                   value={prefs.priceMax}
                   onChange={onChange}
+                  placeholder="Optional"
+                  min={0}
+                  inputMode="numeric"
                 />
               </Form.Group>
             </Col>
-          </>
+          </Row>
         )}
-      </Row>
 
-      <Row className="gy-3 gx-2 mt-1">
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Sqm Min</Form.Label>
-            <Form.Control
-              type="number"
-              name="sqmMin"
-              value={prefs.sqmMin}
-              onChange={onChange}
-              isInvalid={!!errors.sqmMin}
-            />
-            <Form.Control.Feedback type="invalid">
-              {errors.sqmMin}
-            </Form.Control.Feedback>
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Sqm Max</Form.Label>
-            <Form.Control
-              type="number"
-              name="sqmMax"
-              value={prefs.sqmMax}
-              onChange={onChange}
-            />
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Bedrooms</Form.Label>
-            <Form.Control
-              type="number"
-              name="bedrooms"
-              value={prefs.bedrooms}
-              onChange={onChange}
-              min={0}
-            />
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Bathrooms</Form.Label>
-            <Form.Control
-              type="number"
-              name="bathrooms"
-              value={prefs.bathrooms}
-              onChange={onChange}
-              min={0}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+        <Row className="g-3 mt-1">
+          <Col xs={12} md={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Min area (m²)</Form.Label>
+              <Form.Control
+                type="number"
+                name="sqmMin"
+                value={prefs.sqmMin}
+                onChange={onChange}
+                isInvalid={!!errors.sqmMin}
+                placeholder="Optional"
+                min={0}
+                inputMode="numeric"
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors.sqmMin}
+              </Form.Control.Feedback>
+            </Form.Group>
+          </Col>
+          <Col xs={12} md={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Max area (m²)</Form.Label>
+              <Form.Control
+                type="number"
+                name="sqmMax"
+                value={prefs.sqmMax}
+                onChange={onChange}
+                placeholder="Optional"
+                min={0}
+                inputMode="numeric"
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+      </section>
 
-      <Row className="gy-3 gx-2 mt-1">
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Floor</Form.Label>
-            <Form.Control
-              type="number"
-              name="floor"
-              value={prefs.floor || ''}
-              onChange={onChange}
-            />
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Elevator</Form.Label>
-            <Form.Select
-              name="elevator"
-              value={
-                prefs.elevator === null || prefs.elevator === undefined
-                  ? ''
-                  : prefs.elevator
-                  ? 'yes'
-                  : 'no'
-              }
-              onChange={(e) =>
-                onChange({
-                  target: {
-                    name: 'elevator',
-                    value:
-                      e.target.value === ''
-                        ? null
-                        : e.target.value === 'yes',
-                    type: 'custom',
-                  },
-                })
-              }
-            >
-              <option value="">Doesn't matter</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <TriStateSelect
-            label="Parking"
-            name="parking"
-            value={prefs.parking}
-            onChange={onChange}
-          />
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <TriStateSelect
-            label="Furnished"
-            name="furnished"
-            value={prefs.furnished}
-            onChange={onChange}
-          />
-        </Col>
-      </Row>
+      <section className="requirements-section">
+        <header className="section-header">
+          <h5 className="section-title">Living details</h5>
+          <p className="section-description">
+            Share a few essentials about the space you have in mind.
+          </p>
+        </header>
 
-      <Row className="gy-3 gx-2 mt-1">
-        <Col xs={12} sm={6} md={3}>
-          <TriStateSelect
-            label="Pets allowed"
-            name="petsAllowed"
-            value={prefs.petsAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <TriStateSelect
-            label="Smoking allowed"
-            name="smokingAllowed"
-            value={prefs.smokingAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Heating (optional)</Form.Label>
-            <Form.Control
-              name="heating"
-              value={prefs.heating}
-              onChange={onChange}
-              placeholder="e.g., natural gas, heat pump"
-            />
-          </Form.Group>
-        </Col>
-        <Col xs={12} sm={6} md={3}>
-          <Form.Group>
-            <Form.Label>Energy Class (optional)</Form.Label>
-            <Form.Control
-              name="energyClass"
-              value={prefs.energyClass || ''}
-              onChange={onChange}
-              placeholder="e.g., A+, B, C"
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-    </>
+        <Row className="g-3">
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Bedrooms</Form.Label>
+              <Form.Control
+                type="number"
+                name="bedrooms"
+                value={prefs.bedrooms}
+                onChange={onChange}
+                placeholder="Any"
+                min={0}
+                inputMode="numeric"
+              />
+            </Form.Group>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Bathrooms</Form.Label>
+              <Form.Control
+                type="number"
+                name="bathrooms"
+                value={prefs.bathrooms}
+                onChange={onChange}
+                placeholder="Any"
+                min={0}
+                inputMode="numeric"
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <Row className="g-3 mt-1">
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Preferred floor</Form.Label>
+              <Form.Control
+                type="number"
+                name="floor"
+                value={prefs.floor}
+                onChange={onChange}
+                placeholder="Any"
+                inputMode="numeric"
+              />
+            </Form.Group>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Heating</Form.Label>
+              <Form.Control
+                type="text"
+                name="heating"
+                value={prefs.heating}
+                onChange={onChange}
+                placeholder="e.g. Central, AC, Radiators"
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+
+        {prefs.dealType === 'rent' && (
+          <div className="segmented-field mt-3">
+            <span className="field-label">Lease duration</span>
+            <ButtonGroup className="tile-button-group" role="group">
+              {[
+                { value: 'short', label: 'Short stay (< 12 months)' },
+                { value: 'long', label: 'Long term (≥ 12 months)' },
+              ].map((option) => (
+                <ToggleButton
+                  key={option.value}
+                  id={`leaseDuration-${option.value}`}
+                  type="radio"
+                  variant="outline-success"
+                  name="leaseDuration"
+                  value={option.value}
+                  checked={normalizeValue(prefs.leaseDuration) === option.value}
+                  onChange={() => handleToggle('leaseDuration', option.value)}
+                  className="tile-button"
+                >
+                  {option.label}
+                </ToggleButton>
+              ))}
+            </ButtonGroup>
+            {errors.leaseDuration && (
+              <div className="invalid-feedback d-block">
+                {errors.leaseDuration}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="requirements-section">
+        <header className="section-header">
+          <h5 className="section-title">Amenities &amp; policies</h5>
+          <p className="section-description">
+            Highlight the must-haves that make a place feel like home.
+          </p>
+        </header>
+
+        <div className="amenities-grid">
+          {amenityFields.map((field) => (
+            <div key={field.name} className="amenity-item">
+              <div className="amenity-header">
+                <span className="amenity-title">{field.label}</span>
+                {field.helper && (
+                  <span className="amenity-helper">{field.helper}</span>
+                )}
+              </div>
+              <ButtonGroup className="tile-button-group" role="group">
+                {toggleOptions.map((option) => (
+                  <ToggleButton
+                    key={`${field.name}-${option.value}`}
+                    id={`${field.name}-${option.value}`}
+                    type="radio"
+                    variant="outline-success"
+                    name={field.name}
+                    value={option.value}
+                    checked={normalizeValue(prefs[field.name]) === option.value}
+                    onChange={() => handleToggle(field.name, option.value)}
+                    className="tile-button"
+                  >
+                    {option.label}
+                  </ToggleButton>
+                ))}
+              </ButtonGroup>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
