@@ -4,12 +4,8 @@ import './RequirementsStep.css';
 import './OnboardingStepLayout.css';
 
 const normalizeValue = (value) => {
-  if (value === undefined || value === null || value === '') {
-    return 'any';
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
+  if (value === undefined || value === null || value === '') return 'any';
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
   return String(value);
 };
 
@@ -20,31 +16,11 @@ const toggleOptions = [
 ];
 
 const amenityFields = [
-  {
-    name: 'parking',
-    label: 'Parking',
-    helper: 'Reserved spot or garage access',
-  },
-  {
-    name: 'furnished',
-    label: 'Furnished',
-    helper: 'Move-in ready with furniture',
-  },
-  {
-    name: 'petsAllowed',
-    label: 'Pet friendly',
-    helper: 'Welcomes cats, dogs & more',
-  },
-  {
-    name: 'smokingAllowed',
-    label: 'Smoking policy',
-    helper: 'Clarify if smoking is allowed',
-  },
-  {
-    name: 'elevator',
-    label: 'Elevator',
-    helper: 'Easy access to upper floors',
-  },
+  { name: 'parking', label: 'Parking', helper: 'Reserved spot or garage access' },
+  { name: 'furnished', label: 'Furnished', helper: 'Move-in ready with furniture' },
+  { name: 'petsAllowed', label: 'Pet friendly', helper: 'Welcomes cats, dogs & more' },
+  { name: 'smokingAllowed', label: 'Smoking policy', helper: 'Clarify if smoking is allowed' },
+  { name: 'elevator', label: 'Elevator', helper: 'Easy access to upper floors' },
 ];
 
 export default function RequirementsStep({ prefs, onChange, errors }) {
@@ -61,6 +37,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
 
   return (
     <div className="onboarding-step">
+      {/* LOCATION & DEAL SECTION */}
       <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Location &amp; deal</h5>
@@ -69,6 +46,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
           </p>
         </header>
 
+        {/* Preferred location */}
         <Form.Group className="mb-3">
           <Form.Label className="field-label">Preferred location</Form.Label>
           <Form.Control
@@ -77,14 +55,46 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
             value={prefs.location}
             onChange={onChange}
             isInvalid={!!errors.location}
-            placeholder="e.g. Lisbon city center or Bairro Alto"
+            placeholder="e.g. Athens, Center or Marousi"
           />
-          <Form.Control.Feedback type="invalid">
-            {errors.location}
-          </Form.Control.Feedback>
+          <Form.Control.Feedback type="invalid">{errors.location}</Form.Control.Feedback>
         </Form.Group>
 
-        <div className="segmented-field">
+        {/* 🏘 Neighborhood Preferences */}
+        <Form.Group className="mb-3">
+          <Form.Label className="field-label">Preferred neighborhoods</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={2}
+            name="neighborhoods"
+            value={prefs.neighborhoods || ''}
+            onChange={onChange}
+            placeholder="List neighborhoods you’d love to live in (comma or line separated)"
+          />
+          <Form.Text className="text-muted">
+            Example: Kifisia, Kolonaki, Glyfada
+          </Form.Text>
+        </Form.Group>
+
+        {/* 🏠 Property Type */}
+        <Form.Group className="mt-2">
+          <Form.Label className="field-label">Preferred property type</Form.Label>
+          <Form.Select
+            name="propertyType"
+            value={prefs.propertyType || ''}
+            onChange={onChange}
+          >
+            <option value="">Any</option>
+            <option value="apartment">Apartment</option>
+            <option value="studio">Studio</option>
+            <option value="house">House</option>
+            <option value="loft">Loft</option>
+            <option value="duplex">Duplex</option>
+          </Form.Select>
+        </Form.Group>
+
+        {/* Deal type toggle */}
+        <div className="segmented-field mt-4">
           <span className="field-label">Deal type</span>
           <ButtonGroup className="tile-button-group" role="group">
             {[
@@ -109,7 +119,8 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         </div>
       </section>
 
-       <section className="onboarding-section">
+      {/* BUDGET & SIZE SECTION */}
+      <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Budget &amp; size</h5>
           <p className="section-description">
@@ -225,7 +236,8 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         </Row>
       </section>
 
-       <section className="onboarding-section">
+      {/* LIVING DETAILS SECTION */}
+      <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Living details</h5>
           <p className="section-description">
@@ -316,14 +328,13 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
               ))}
             </ButtonGroup>
             {errors.leaseDuration && (
-              <div className="invalid-feedback d-block">
-                {errors.leaseDuration}
-              </div>
+              <div className="invalid-feedback d-block">{errors.leaseDuration}</div>
             )}
           </div>
         )}
       </section>
 
+      {/* AMENITIES SECTION */}
       <section className="onboarding-section">
         <header className="section-header">
           <h5 className="section-title">Amenities &amp; policies</h5>
