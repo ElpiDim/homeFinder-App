@@ -1,33 +1,33 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Form, Button } from 'react-bootstrap';
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
-import ProfileStep from '../components/ProfileStep';
-import RequirementsStep from '../components/RequirementsStep';
-import Logo from '../components/Logo';
-import './Onboarding.css';
+import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, Form, Button } from "react-bootstrap";
+import { useAuth } from "../context/AuthContext";
+import api from "../api";
+import ProfileStep from "../components/ProfileStep";
+import RequirementsStep from "../components/RequirementsStep";
+import Logo from "../components/Logo";
+import "./Onboarding.css";
 
-// Helper to remove empty/null/undefined values from an object
+// Helper: remove empty/null/undefined values
 const clean = (obj) =>
   Object.fromEntries(
     Object.entries(obj).filter(
       ([, v]) =>
         v !== undefined &&
         v !== null &&
-        v !== '' &&
-        !(typeof v === 'number' && isNaN(v))
+        v !== "" &&
+        !(typeof v === "number" && isNaN(v))
     )
   );
 
-// Helper to ensure min <= max for range inputs
+// Helper: ensure min <= max for numeric ranges
 const ensureRange = (min, max) => {
-  const n = (x) => (x === '' || x === undefined || x === null ? undefined : Number(x));
+  const n = (x) =>
+    x === "" || x === undefined || x === null ? undefined : Number(x);
   const vmin = n(min);
   const vmax = n(max);
-  if (vmin !== undefined && vmax !== undefined && vmin > vmax) {
-    return { min: vmax, max: vmin }; // swap if entered reversed
-  }
+  if (vmin !== undefined && vmax !== undefined && vmin > vmax)
+    return { min: vmax, max: vmin };
   return { min: vmin, max: vmax };
 };
 
@@ -36,24 +36,26 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
-  const isClient = user?.role === 'client';
+  const isClient = user?.role === "client";
 
+  // Redirect if not client or already onboarded
   useEffect(() => {
-    if (!isClient) navigate('/dashboard', { replace: true });
-  }, [isClient, navigate]);
+    if (!isClient) navigate("/dashboard", { replace: true });
+    if (user?.onboarded) navigate("/dashboard", { replace: true });
+  }, [isClient, user, navigate]);
 
-  // --- initial values from existing user data (if any) ---
+  /** -------- INITIAL VALUES -------- **/
   const initPersonal = useMemo(
     () => ({
-      name: user?.name || '',
-      phone: user?.phone || '',
-      age: user?.age ?? '',
-      householdSize: user?.householdSize ?? '',
+      name: user?.name || "",
+      phone: user?.phone || "",
+      age: user?.age ?? "",
+      householdSize: user?.householdSize ?? "",
       hasFamily: !!user?.hasFamily,
       hasPets: !!user?.hasPets,
       smoker: !!user?.smoker,
-      occupation: user?.occupation || '',
-      salary: user?.salary ?? '',
+      occupation: user?.occupation || "",
+      salary: user?.salary ?? "",
       isWillingToHaveRoommate: !!user?.isWillingToHaveRoommate,
     }),
     [user]
@@ -61,21 +63,25 @@ export default function Onboarding() {
 
   const initPrefs = useMemo(
     () => ({
-      dealType: user?.preferences?.dealType || 'rent',
-      location: user?.preferences?.location || '',
-      rentMin: user?.preferences?.rentMin ?? '',
-      rentMax: user?.preferences?.rentMax ?? '',
-      priceMin: user?.preferences?.priceMin ?? '',
-      priceMax: user?.preferences?.priceMax ?? '',
-      sqmMin: user?.preferences?.sqmMin ?? '',
-      sqmMax: user?.preferences?.sqmMax ?? '',
-      bedrooms: user?.preferences?.bedrooms ?? '',
-      bathrooms: user?.preferences?.bathrooms ?? '',
+      dealType: user?.preferences?.dealType || "rent",
+      location: user?.preferences?.location || "",
+      rentMin: user?.preferences?.rentMin ?? "",
+      rentMax: user?.preferences?.rentMax ?? "",
+      priceMin: user?.preferences?.priceMin ?? "",
+      priceMax: user?.preferences?.priceMax ?? "",
+      sqmMin: user?.preferences?.sqmMin ?? "",
+      sqmMax: user?.preferences?.sqmMax ?? "",
+      bedrooms: user?.preferences?.bedrooms ?? "",
+      bathrooms: user?.preferences?.bathrooms ?? "",
       parking: user?.preferences?.parking ?? null,
       petsAllowed: user?.preferences?.petsAllowed ?? null,
       smokingAllowed: user?.preferences?.smokingAllowed ?? null,
       furnished: user?.preferences?.furnished ?? null,
-      heating: user?.preferences?.heating || '',
+      heating: user?.preferences?.heating || "",
+      leaseDuration: user?.preferences?.leaseDuration || "",
+      floor: user?.preferences?.floor ?? "",
+      elevator: user?.preferences?.elevator ?? null,
+      energyClass: user?.preferences?.energyClass || "",
     }),
     [user]
   );
@@ -85,24 +91,28 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  /** -------- FORM HANDLERS -------- **/
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    // TriStateSelect sends a custom event shape
-    if (type === 'custom') {
+    if (type === "custom") {
       setter((s) => ({ ...s, [name]: value }));
-    } else if (type === 'checkbox') {
+    } else if (type === "checkbox") {
       setter((s) => ({ ...s, [name]: checked }));
     } else {
       setter((s) => ({ ...s, [name]: value }));
     }
   };
 
+  /** -------- VALIDATION -------- **/
   const validateStep1 = () => {
     const e = {};
-    if (!personal.name.trim()) e.name = 'Name is required.';
-    if (!personal.phone.trim()) e.phone = 'Phone is required.';
-    if (personal.age && (Number(personal.age) < 18 || Number(personal.age) > 120)) {
-      e.age = 'Please enter a valid age.';
+    if (!personal.name.trim()) e.name = "Name is required.";
+    if (!personal.phone.trim()) e.phone = "Phone number is required.";
+    if (
+      personal.age &&
+      (Number(personal.age) < 18 || Number(personal.age) > 120)
+    ) {
+      e.age = "Please enter a valid age (18–120).";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -110,45 +120,43 @@ export default function Onboarding() {
 
   const validateStep2 = () => {
     const e = {};
-    const num = (v) => (v === '' || v === undefined ? undefined : Number(v));
+    const num = (v) =>
+      v === "" || v === undefined || v === null ? undefined : Number(v);
 
-    if (!prefs.location.trim()) e.location = 'Location is required.';
+    if (!prefs.location.trim()) e.location = "Location is required.";
 
-    // Validate budget ranges
     const { rentMin, rentMax, priceMin, priceMax, sqmMin, sqmMax } = prefs;
-    if (num(rentMin) > num(rentMax)) e.rentMin = 'Min rent cannot be greater than max.';
-    if (num(priceMin) > num(priceMax)) e.priceMin = 'Min price cannot be greater than max.';
-    if (num(sqmMin) > num(sqmMax)) e.sqmMin = 'Min SqM cannot be greater than max.';
+    if (num(rentMin) > num(rentMax))
+      e.rentMin = "Min rent cannot be greater than max rent.";
+    if (num(priceMin) > num(priceMax))
+      e.priceMin = "Min price cannot be greater than max price.";
+    if (num(sqmMin) > num(sqmMax))
+      e.sqmMin = "Min square meters cannot be greater than max.";
 
-    // Require at least one bound for the active budget type
-    if (prefs.dealType === 'rent') {
+    if (prefs.dealType === "rent") {
       if (num(rentMin) == null && num(rentMax) == null) {
-        e.rentMin = 'Provide a rent range (at least one of Min/Max).';
+        e.rentMin = "Provide at least one value for rent range.";
       }
+      if (!prefs.leaseDuration)
+        e.leaseDuration = "Please select lease duration.";
     } else {
       if (num(priceMin) == null && num(priceMax) == null) {
-        e.priceMin = 'Provide a price range (at least one of Min/Max).';
+        e.priceMin = "Provide at least one value for price range.";
       }
     }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const nextStep = () => {
-    if (step === 1 && validateStep1()) {
-      setStep(2);
-    }
-  };
-
-  const prevStep = () => setStep(step - 1);
-
+  /** -------- SUBMIT -------- **/
   const submit = async (e) => {
     e.preventDefault();
     if (!validateStep2()) return;
 
     setSaving(true);
     try {
-      const intent = prefs.dealType === 'sale' ? 'buy' : 'rent';
+      const intent = prefs.dealType === "sale" ? "buy" : "rent";
       const rent = ensureRange(prefs.rentMin, prefs.rentMax);
       const price = ensureRange(prefs.priceMin, prefs.priceMax);
       const sqm = ensureRange(prefs.sqmMin, prefs.sqmMax);
@@ -157,7 +165,9 @@ export default function Onboarding() {
         name: personal.name,
         phone: personal.phone,
         age: personal.age ? Number(personal.age) : undefined,
-        householdSize: personal.householdSize ? Number(personal.householdSize) : undefined,
+        householdSize: personal.householdSize
+          ? Number(personal.householdSize)
+          : undefined,
         hasFamily: personal.hasFamily,
         hasPets: personal.hasPets,
         smoker: personal.smoker,
@@ -169,27 +179,38 @@ export default function Onboarding() {
       const prefsClean = clean({
         intent,
         location: prefs.location,
-        ...(intent === 'rent'
+        ...(intent === "rent"
           ? { rentMin: rent.min, rentMax: rent.max }
           : { priceMin: price.min, priceMax: price.max }),
         sqmMin: sqm.min,
         sqmMax: sqm.max,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
-        parking: prefs.parking === null ? undefined : !!prefs.parking,
-        furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
-        petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
-        smokingAllowed: prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
+        parking:
+          prefs.parking === null ? undefined : Boolean(prefs.parking),
+        furnished:
+          prefs.furnished === null ? undefined : Boolean(prefs.furnished),
+        petsAllowed:
+          prefs.petsAllowed === null ? undefined : Boolean(prefs.petsAllowed),
+        smokingAllowed:
+          prefs.smokingAllowed === null
+            ? undefined
+            : Boolean(prefs.smokingAllowed),
         heating: prefs.heating || undefined,
+        leaseDuration: prefs.leaseDuration || undefined,
+        floor: prefs.floor ? Number(prefs.floor) : undefined,
+        elevator:
+          prefs.elevator === null ? undefined : Boolean(prefs.elevator),
+        energyClass: prefs.energyClass || undefined,
       });
 
       const payload = { ...personalClean, preferences: prefsClean };
-      const { data } = await api.post('/users/onboarding', payload);
+      const { data } = await api.post("/users/onboarding", payload);
       const updated = data.user || data;
 
       setUser(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
-      navigate('/dashboard', { replace: true });
+      localStorage.setItem("user", JSON.stringify(updated));
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.message || err.message;
       alert(`Onboarding failed: ${msg}`);
@@ -198,8 +219,8 @@ export default function Onboarding() {
     }
   };
 
+  /** -------- RENDER -------- **/
   if (!isClient) return null;
-
   const progress = step === 1 ? 50 : 100;
 
   return (
@@ -209,7 +230,9 @@ export default function Onboarding() {
           <div className="text-center mb-4">
             <Logo />
             <h3 className="mt-3 mb-0">Welcome!</h3>
-            <p className="text-muted">Let's set up your profile.</p>
+            <p className="text-muted">
+              Let's set up your profile and housing preferences.
+            </p>
           </div>
 
           <div className="progress-bar-container">
@@ -241,7 +264,7 @@ export default function Onboarding() {
                 <Button
                   variant="link"
                   className="btn-onboarding-back"
-                  onClick={prevStep}
+                  onClick={() => setStep(step - 1)}
                 >
                   Back
                 </Button>
@@ -250,7 +273,9 @@ export default function Onboarding() {
               {step === 1 && (
                 <Button
                   className="btn-onboarding-next ms-auto"
-                  onClick={nextStep}
+                  onClick={() => {
+                    if (validateStep1()) setStep(2);
+                  }}
                 >
                   Next: Preferences
                 </Button>
@@ -262,7 +287,7 @@ export default function Onboarding() {
                   className="btn-onboarding-next ms-auto"
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : 'Save & Finish'}
+                  {saving ? "Saving..." : "Save & Finish"}
                 </Button>
               )}
             </div>

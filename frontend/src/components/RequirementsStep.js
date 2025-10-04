@@ -7,13 +7,13 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
 
   return (
     <>
-      <h4 className="mb-4 text-center">Step 2: What are you looking for?</h4>
+      <h4 className="mb-4 text-center fw-semibold">Step 2: What are you looking for?</h4>
 
-      <Row className="g-3">
-        <Col md={12}>
+      <Row className="gy-3 gx-2">
+        <Col xs={12}>
           <Form.Group>
-            <Form.Label>I’m interested in</Form.Label>
-            <div className="d-flex gap-4">
+            <Form.Label className="fw-semibold">I’m interested in</Form.Label>
+            <div className="d-flex flex-wrap gap-3">
               <Form.Check
                 type="radio"
                 id="dealType-rent"
@@ -36,9 +36,9 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
           </Form.Group>
         </Col>
 
-        <Col md={6}>
+        <Col xs={12} sm={6}>
           <Form.Group>
-            <Form.Label>Location</Form.Label>
+            <Form.Label className="fw-semibold">Location</Form.Label>
             <Form.Control
               name="location"
               value={prefs.location}
@@ -46,13 +46,15 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
               placeholder="e.g., Athens, Center"
               isInvalid={!!errors.location}
             />
-            <Form.Control.Feedback type="invalid">{errors.location}</Form.Control.Feedback>
+            <Form.Control.Feedback type="invalid">
+              {errors.location}
+            </Form.Control.Feedback>
           </Form.Group>
         </Col>
 
         {isRent ? (
           <>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Group>
                 <Form.Label>Rent Min (€)</Form.Label>
                 <Form.Control
@@ -62,10 +64,12 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
                   onChange={onChange}
                   isInvalid={!!errors.rentMin}
                 />
-                <Form.Control.Feedback type="invalid">{errors.rentMin}</Form.Control.Feedback>
+                <Form.Control.Feedback type="invalid">
+                  {errors.rentMin}
+                </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Group>
                 <Form.Label>Rent Max (€)</Form.Label>
                 <Form.Control
@@ -76,10 +80,28 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
                 />
               </Form.Group>
             </Col>
+            <Col xs={12} sm={6}>
+              <Form.Group>
+                <Form.Label>Lease Duration</Form.Label>
+                <Form.Select
+                  name="leaseDuration"
+                  value={prefs.leaseDuration || ''}
+                  onChange={onChange}
+                  isInvalid={!!errors.leaseDuration}
+                >
+                  <option value="">Select...</option>
+                  <option value="short">Short-term</option>
+                  <option value="long">Long-term</option>
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  {errors.leaseDuration}
+                </Form.Control.Feedback>
+              </Form.Group>
+            </Col>
           </>
         ) : (
           <>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Group>
                 <Form.Label>Purchase Min (€)</Form.Label>
                 <Form.Control
@@ -89,10 +111,12 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
                   onChange={onChange}
                   isInvalid={!!errors.priceMin}
                 />
-                <Form.Control.Feedback type="invalid">{errors.priceMin}</Form.Control.Feedback>
+                <Form.Control.Feedback type="invalid">
+                  {errors.priceMin}
+                </Form.Control.Feedback>
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Group>
                 <Form.Label>Purchase Max (€)</Form.Label>
                 <Form.Control
@@ -107,8 +131,8 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
         )}
       </Row>
 
-      <Row className="g-3 mt-1">
-        <Col md={3}>
+      <Row className="gy-3 gx-2 mt-1">
+        <Col xs={12} sm={6} md={3}>
           <Form.Group>
             <Form.Label>Sqm Min</Form.Label>
             <Form.Control
@@ -118,10 +142,12 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
               onChange={onChange}
               isInvalid={!!errors.sqmMin}
             />
-            <Form.Control.Feedback type="invalid">{errors.sqmMin}</Form.Control.Feedback>
+            <Form.Control.Feedback type="invalid">
+              {errors.sqmMin}
+            </Form.Control.Feedback>
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col xs={12} sm={6} md={3}>
           <Form.Group>
             <Form.Label>Sqm Max</Form.Label>
             <Form.Control
@@ -132,7 +158,7 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col xs={12} sm={6} md={3}>
           <Form.Group>
             <Form.Label>Bedrooms</Form.Label>
             <Form.Control
@@ -144,7 +170,7 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
             />
           </Form.Group>
         </Col>
-        <Col md={3}>
+        <Col xs={12} sm={6} md={3}>
           <Form.Group>
             <Form.Label>Bathrooms</Form.Label>
             <Form.Control
@@ -158,8 +184,50 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
         </Col>
       </Row>
 
-      <Row className="g-3 mt-1">
-        <Col md={3}>
+      <Row className="gy-3 gx-2 mt-1">
+        <Col xs={12} sm={6} md={3}>
+          <Form.Group>
+            <Form.Label>Floor</Form.Label>
+            <Form.Control
+              type="number"
+              name="floor"
+              value={prefs.floor || ''}
+              onChange={onChange}
+            />
+          </Form.Group>
+        </Col>
+        <Col xs={12} sm={6} md={3}>
+          <Form.Group>
+            <Form.Label>Elevator</Form.Label>
+            <Form.Select
+              name="elevator"
+              value={
+                prefs.elevator === null || prefs.elevator === undefined
+                  ? ''
+                  : prefs.elevator
+                  ? 'yes'
+                  : 'no'
+              }
+              onChange={(e) =>
+                onChange({
+                  target: {
+                    name: 'elevator',
+                    value:
+                      e.target.value === ''
+                        ? null
+                        : e.target.value === 'yes',
+                    type: 'custom',
+                  },
+                })
+              }
+            >
+              <option value="">Doesn't matter</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Form.Select>
+          </Form.Group>
+        </Col>
+        <Col xs={12} sm={6} md={3}>
           <TriStateSelect
             label="Parking"
             name="parking"
@@ -167,23 +235,7 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
             onChange={onChange}
           />
         </Col>
-        <Col md={3}>
-          <TriStateSelect
-            label="Pets allowed"
-            name="petsAllowed"
-            value={prefs.petsAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col md={3}>
-          <TriStateSelect
-            label="Smoking allowed"
-            name="smokingAllowed"
-            value={prefs.smokingAllowed}
-            onChange={onChange}
-          />
-        </Col>
-        <Col md={3}>
+        <Col xs={12} sm={6} md={3}>
           <TriStateSelect
             label="Furnished"
             name="furnished"
@@ -193,8 +245,24 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
         </Col>
       </Row>
 
-      <Row className="g-3 mt-1">
-        <Col md={4}>
+      <Row className="gy-3 gx-2 mt-1">
+        <Col xs={12} sm={6} md={3}>
+          <TriStateSelect
+            label="Pets allowed"
+            name="petsAllowed"
+            value={prefs.petsAllowed}
+            onChange={onChange}
+          />
+        </Col>
+        <Col xs={12} sm={6} md={3}>
+          <TriStateSelect
+            label="Smoking allowed"
+            name="smokingAllowed"
+            value={prefs.smokingAllowed}
+            onChange={onChange}
+          />
+        </Col>
+        <Col xs={12} sm={6} md={3}>
           <Form.Group>
             <Form.Label>Heating (optional)</Form.Label>
             <Form.Control
@@ -202,6 +270,17 @@ export default function RequirementsStep({ prefs, onChange, errors = {} }) {
               value={prefs.heating}
               onChange={onChange}
               placeholder="e.g., natural gas, heat pump"
+            />
+          </Form.Group>
+        </Col>
+        <Col xs={12} sm={6} md={3}>
+          <Form.Group>
+            <Form.Label>Energy Class (optional)</Form.Label>
+            <Form.Control
+              name="energyClass"
+              value={prefs.energyClass || ''}
+              onChange={onChange}
+              placeholder="e.g., A+, B, C"
             />
           </Form.Group>
         </Col>
