@@ -184,6 +184,38 @@ const scoreRequirementsVsTenant = (tenantReq = {}, user = {}) => {
     else fails.push("familyStatus");
   }
 
+  if (tenantReq.minTenantAge !== undefined) {
+    checks++;
+    if ((user.age ?? 0) >= Number(tenantReq.minTenantAge)) score++;
+    else fails.push("minTenantAge");
+  }
+
+  if (tenantReq.maxTenantAge !== undefined) {
+    checks++;
+    if (user.age != null && Number(user.age) <= Number(tenantReq.maxTenantAge)) score++;
+    else fails.push("maxTenantAge");
+  }
+
+  if (tenantReq.maxHouseholdSize !== undefined) {
+    checks++;
+    const size = user.householdSize ?? (user.hasFamily ? 3 : 1);
+    if (size != null && Number(size) <= Number(tenantReq.maxHouseholdSize)) score++;
+    else fails.push("maxHouseholdSize");
+  }
+
+  if (tenantReq.roommatePreference && tenantReq.roommatePreference !== 'any') {
+    checks++;
+    const willing = Boolean(user.isWillingToHaveRoommate);
+    if (
+      (tenantReq.roommatePreference === 'roommates_only' && willing) ||
+      (tenantReq.roommatePreference === 'no_roommates' && !willing)
+    ) {
+      score++;
+    } else {
+      fails.push('roommatePreference');
+    }
+  }
+
   return { score, checks, fails };
 };
 

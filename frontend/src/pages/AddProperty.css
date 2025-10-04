@@ -1,0 +1,126 @@
+.add-property-container {
+  min-height: 100vh;
+  background: radial-gradient(
+      700px circle at 16% 12%,
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0) 45%
+    ),
+    linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+}
+
+.add-property-card {
+  width: 100%;
+  max-width: 860px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 40px rgba(15, 97, 52, 0.12);
+}
+
+.add-property-alert {
+  border-radius: 0.75rem;
+}
+
+.add-property-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.add-property-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
+  padding: 1.75rem 1.5rem;
+  box-shadow: 0 8px 28px rgba(33, 87, 49, 0.05);
+}
+
+.section-header {
+  margin-bottom: 1.25rem;
+}
+
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #033;
+}
+
+.section-description {
+  font-size: 0.92rem;
+  color: #5f6c72;
+}
+
+.field-label {
+  font-weight: 500;
+  color: #1e3a2f;
+}
+
+.btn-onboarding-next {
+  background: linear-gradient(135deg, #006400, #90ee90);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 50rem;
+  padding: 0.75rem 1.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-onboarding-next:hover,
+.btn-onboarding-next:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 100, 0, 0.18);
+  color: #fff;
+}
+
+@media (max-width: 992px) {
+  .add-property-container {
+    padding: 2rem 1rem;
+  }
+
+  .add-property-card {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 768px) {
+  .add-property-container {
+    padding: 1.5rem 1rem 2rem;
+    align-items: flex-start;
+  }
+
+  .add-property-card {
+    border-radius: 1.5rem;
+  }
+
+  .add-property-section {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .add-property-form {
+    gap: 1.5rem;
+  }
+
+  .btn-onboarding-next {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .add-property-container {
+    padding: 1.25rem 0.85rem 1.75rem;
+  }
+
+  .add-property-section {
+    padding: 1.25rem 1rem;
+  }
+
+  .section-title {
+    font-size: 1.05rem;
+  }
+}

@@ -67,12 +67,18 @@ function mapIncomingPropertyPayload(src = {}) {
     const tr = src.tenantRequirements;
     if (tr.minTenantSalary != null) out.tenantRequirements.minTenantSalary = Number(tr.minTenantSalary);
     if (Array.isArray(tr.allowedOccupations)) out.tenantRequirements.allowedOccupations = tr.allowedOccupations.map(String);
+    if (tr.minTenantAge != null) out.tenantRequirements.minTenantAge = Number(tr.minTenantAge);
+    if (tr.maxTenantAge != null) out.tenantRequirements.maxTenantAge = Number(tr.maxTenantAge);
+    if (tr.maxHouseholdSize != null) out.tenantRequirements.maxHouseholdSize = Number(tr.maxHouseholdSize);
+    if (tr.roommatePreference)
+      out.tenantRequirements.roommatePreference = String(tr.roommatePreference);
     if (typeof tr.furnished === 'boolean') out.tenantRequirements.furnished = tr.furnished;
     if (typeof tr.parking === 'boolean') out.tenantRequirements.parking = tr.parking;
     if (typeof tr.hasElevator === 'boolean') out.tenantRequirements.hasElevator = tr.hasElevator;
     if (typeof tr.pets === 'boolean') out.tenantRequirements.pets = tr.pets;
     if (typeof tr.smoker === 'boolean') out.tenantRequirements.smoker = tr.smoker;
     if (tr.familyStatus != null) out.tenantRequirements.familyStatus = String(tr.familyStatus);
+    if (tr.notes != null) out.tenantRequirements.notes = String(tr.notes);
   }
 
   return out;

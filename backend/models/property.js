@@ -5,12 +5,21 @@ const tenantRequirementsSchema = new mongoose.Schema(
   {
     minTenantSalary: { type: Number },              // € min μισθός
     allowedOccupations: [{ type: String, trim: true }],
+    minTenantAge: { type: Number, min: 0 },
+    maxTenantAge: { type: Number, min: 0 },
+    maxHouseholdSize: { type: Number, min: 1 },
+    roommatePreference: {
+      type: String,
+      enum: ['any', 'roommates_only', 'no_roommates'],
+      default: 'any',
+    },
     furnished: { type: Boolean },                   // απαιτείται να είναι επιπλωμένο;
     parking: { type: Boolean },                     // απαιτείται θέση πάρκινγκ;
     hasElevator: { type: Boolean },                 // απαιτείται ασανσέρ;
     pets: { type: Boolean },                        // επιτρέπονται κατοικίδια;
     smoker: { type: Boolean },                      // επιτρέπεται καπνιστής;
     familyStatus: { type: String, trim: true },     // προτιμώμενη οικογενειακή κατάσταση
+    notes: { type: String, trim: true },
   },
   { _id: false }
 );

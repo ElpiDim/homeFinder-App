@@ -38,6 +38,16 @@ const toArray = (v) => {
   return str.split(",").map((s) => s.trim()).filter(Boolean);
 };
 
+const normalizeRoommatePreference = (value) => {
+  if (!hasValue(value)) return undefined;
+  const val = String(value).toLowerCase();
+  if (['any', 'roommates_only', 'no_roommates'].includes(val)) return val;
+  if (['roommate', 'roommates', 'roommate_friendly', 'roommates-friendly'].includes(val))
+    return 'roommates_only';
+  if (['solo', 'private', 'no-roommates', 'noroommates'].includes(val)) return 'no_roommates';
+  return undefined;
+};
+
 // Map user.preferences -> keys που περιμένει το matching util
 const mapClientPrefs = (p = {}) => ({
   maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax ?? p.priceMax,
@@ -107,9 +117,21 @@ exports.createProperty = async (req, res) => {
 
     // Tenant reqs
     const minTenantSalary = toNum(b.minTenantSalary, parseFloat);
-    const familyStatus = b.familyStatus || undefined;
+    const familyStatus = b.familyStatus && b.familyStatus !== 'any' ? b.familyStatus : undefined;
     const reqs_pets = toBool(b.tenantRequirements_petsAllowed);
     const reqs_smoker = toBool(b.tenantRequirements_smokingAllowed);
+    const minTenantAge = toNum(b.minTenantAge ?? b.tenantRequirements_minTenantAge, parseInt);
+    const maxTenantAge = toNum(b.maxTenantAge ?? b.tenantRequirements_maxTenantAge, parseInt);
+    const maxHouseholdSize = toNum(
+      b.maxHouseholdSize ?? b.tenantRequirements_maxHouseholdSize,
+      parseInt
+    );
+    const roommatePreference = normalizeRoommatePreference(
+      b.roommatePreference ?? b.tenantRequirements_roommatePreference
+    );
+    const tenantNotes = hasValue(b.tenantRequirements_notes ?? b.tenantRequirementsNotes)
+      ? String(b.tenantRequirements_notes ?? b.tenantRequirementsNotes)
+      : undefined;
 
     // Geo
     const latitude = toNum(b.latitude, parseFloat);
@@ -186,6 +208,11 @@ exports.createProperty = async (req, res) => {
         familyStatus,
         pets: reqs_pets,
         smoker: reqs_smoker,
+        minTenantAge,
+        maxTenantAge,
+        maxHouseholdSize,
+        roommatePreference,
+        notes: tenantNotes,
       },
     });
 
@@ -505,11 +532,33 @@ exports.updateProperty = async (req, res) => {
     if (hasValue(minTenantSalary))
       property.tenantRequirements.minTenantSalary = minTenantSalary;
     if (hasValue(b.familyStatus))
-        property.tenantRequirements.familyStatus = b.familyStatus
+      property.tenantRequirements.familyStatus =
+        b.familyStatus === 'any' ? undefined : b.familyStatus;
     if (hasValue(b.tenantRequirements_petsAllowed))
-        property.tenantRequirements.pets = toBool(b.tenantRequirements_petsAllowed)
+      property.tenantRequirements.pets = toBool(b.tenantRequirements_petsAllowed);
     if (hasValue(b.tenantRequirements_smokingAllowed))
-        property.tenantRequirements.smoker = toBool(b.tenantRequirements_smokingAllowed)
+      property.tenantRequirements.smoker = toBool(b.tenantRequirements_smokingAllowed);
+    const minTenantAge = toNum(b.minTenantAge ?? b.tenantRequirements_minTenantAge, parseInt);
+    const maxTenantAge = toNum(b.maxTenantAge ?? b.tenantRequirements_maxTenantAge, parseInt);
+    const maxHouseholdSize = toNum(
+      b.maxHouseholdSize ?? b.tenantRequirements_maxHouseholdSize,
+      parseInt
+    );
+    const roommatePreference = normalizeRoommatePreference(
+      b.roommatePreference ?? b.tenantRequirements_roommatePreference
+    );
+    if (hasValue(minTenantAge))
+      property.tenantRequirements.minTenantAge = minTenantAge;
+    if (hasValue(maxTenantAge))
+      property.tenantRequirements.maxTenantAge = maxTenantAge;
+    if (hasValue(maxHouseholdSize))
+      property.tenantRequirements.maxHouseholdSize = maxHouseholdSize;
+    if (roommatePreference)
+      property.tenantRequirements.roommatePreference = roommatePreference;
+    if (hasValue(b.tenantRequirements_notes ?? b.tenantRequirementsNotes))
+      property.tenantRequirements.notes = String(
+        b.tenantRequirements_notes ?? b.tenantRequirementsNotes
+      );
     // images / floorplan
     if (newImages.length) {
       property.images = [...(property.images || []), ...newImages];
