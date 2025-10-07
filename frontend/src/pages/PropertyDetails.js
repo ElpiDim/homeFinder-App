@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
+import { sendMessage } from '../services/messagesService';
 
 function PropertyDetails() {
   const { propertyId } = useParams();
@@ -13,6 +14,11 @@ function PropertyDetails() {
   const [property, setProperty] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [leaseRequestState, setLeaseRequestState] = useState({
+    sending: false,
+    sent: false,
+    error: '',
+  });
 
   // Gallery state
   const [showGallery, setShowGallery] = useState(false);
@@ -84,6 +90,10 @@ function PropertyDetails() {
     };
   }, [propertyId, user]);
 
+  useEffect(() => {
+    setLeaseRequestState({ sending: false, sent: false, error: '' });
+  }, [propertyId]);
+
   const handleFavorite = async () => {
     try {
       if (!isFavorite) {
@@ -99,6 +109,32 @@ function PropertyDetails() {
       }
     } catch (err) {
       console.error("Error toggling favorite:", err);
+    }
+  };
+
+  const handleLeaseRequest = async () => {
+    if (leaseRequestState.sending) return;
+    const ownerId = property?.ownerId?._id || property?.ownerId;
+
+    if (!ownerId) {
+      setLeaseRequestState({ sending: false, sent: false, error: 'Owner details are unavailable for this property.' });
+      return;
+    }
+
+    if (user?.id && String(user.id) === String(ownerId)) {
+      return;
+    }
+
+    setLeaseRequestState({ sending: true, sent: false, error: '' });
+
+    try {
+      const ownerName = property?.ownerId?.name || 'there';
+      const leaseMessage = `Hi ${ownerName}, I'm interested in leasing ${property?.title || 'your property'}. Could you please share the next steps?`;
+      await sendMessage(ownerId, propertyId, leaseMessage);
+      setLeaseRequestState({ sending: false, sent: true, error: '' });
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Failed to send lease request. Please try again.';
+      setLeaseRequestState({ sending: false, sent: false, error: message });
     }
   };
 
@@ -232,6 +268,29 @@ function PropertyDetails() {
               >
                 Contact Owner
               </button>
+            )}
+            {!isOwner && user && property.type === 'rent' && property.status === 'available' && (
+              <button
+                className="btn btn-outline-success rounded-pill px-4"
+                onClick={handleLeaseRequest}
+                disabled={leaseRequestState.sending || leaseRequestState.sent}
+              >
+                {leaseRequestState.sending
+                  ? 'Sending lease request…'
+                  : leaseRequestState.sent
+                  ? 'Lease request sent'
+                  : 'Lease this property'}
+              </button>
+            )}
+            {leaseRequestState.error && (
+              <div className="small text-danger text-center">
+                {leaseRequestState.error}
+              </div>
+            )}
+            {leaseRequestState.sent && !leaseRequestState.error && (
+              <div className="small text-success text-center">
+                We let the owner know you want to lease this home.
+              </div>
             )}
           </div>
         </div>
