@@ -18,9 +18,15 @@ function truthy(v) {
   return v === true || v === "true" || v === "1";
 }
 
-function computeMatchScore(clientFilters = {}, ownerReqsRaw = {}, prop = {}) {
+function computeMatchScore(
+  clientFilters = {},
+  ownerReqsRaw = {},
+  prop = {},
+  tenantProfile = {}
+) {
   const owner = normalizeOwnerReqs(ownerReqsRaw);
   const client = { ...clientFilters };
+  const tenant = tenantProfile || {};
 
   const hardFails = [];
   let considered = 0;
@@ -75,16 +81,83 @@ function computeMatchScore(clientFilters = {}, ownerReqsRaw = {}, prop = {}) {
 
   // Pets / smoker (owner μπορεί να απαγορεύει)
   if (owner.pets === false) {
-    considered++;
-    if (client.pets === true) {
-      // mismatch
-    } else matched++;
+    const hasPets = tenant.hasPets ?? tenant.pets ?? client.pets;
+    if (hasPets === undefined || hasPets === true || hasPets === "true") {
+      hardFails.push("tenant_pets");
+    }
   }
   if (owner.smoker === false) {
-    considered++;
-    if (client.smoker === true) {
-      // mismatch
-    } else matched++;
+    const isSmoker = tenant.smoker ?? client.smoker;
+    if (isSmoker === undefined || isSmoker === true || isSmoker === "true") {
+      hardFails.push("tenant_smoker");
+    }
+  }
+
+  // --- Owner hard requirements vs tenant profile ---
+  const tenantStatus = (() => {
+    const size = tenant.householdSize ?? (tenant.hasFamily ? 3 : undefined);
+    if (size == null) return undefined;
+    if (Number(size) <= 1) return "single";
+    if (Number(size) === 2) return "couple";
+    return "family";
+  })();
+
+  if (owner.minTenantSalary !== undefined) {
+    const salary = tenant.salary != null ? Number(tenant.salary) : undefined;
+    if (salary === undefined || salary < Number(owner.minTenantSalary)) {
+      hardFails.push("tenant_minTenantSalary");
+    }
+  }
+
+  if (owner.allowedOccupations) {
+    const list = Array.isArray(owner.allowedOccupations)
+      ? owner.allowedOccupations
+      : String(owner.allowedOccupations)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+    if (list.length) {
+      const occ = tenant.occupation ? String(tenant.occupation).toLowerCase() : "";
+      const ok = list.some((o) => String(o).toLowerCase() === occ);
+      if (!ok) hardFails.push("tenant_allowedOccupations");
+    }
+  }
+
+  if (owner.familyStatus && owner.familyStatus !== "any") {
+    if (!tenantStatus || tenantStatus !== String(owner.familyStatus).toLowerCase()) {
+      hardFails.push("tenant_familyStatus");
+    }
+  }
+
+  if (owner.minTenantAge !== undefined) {
+    const age = tenant.age != null ? Number(tenant.age) : undefined;
+    if (age === undefined || age < Number(owner.minTenantAge)) {
+      hardFails.push("tenant_minTenantAge");
+    }
+  }
+
+  if (owner.maxTenantAge !== undefined) {
+    const age = tenant.age != null ? Number(tenant.age) : undefined;
+    if (age === undefined || age > Number(owner.maxTenantAge)) {
+      hardFails.push("tenant_maxTenantAge");
+    }
+  }
+
+  if (owner.maxHouseholdSize !== undefined) {
+    const size = tenant.householdSize != null ? Number(tenant.householdSize) : undefined;
+    if (size === undefined || size > Number(owner.maxHouseholdSize)) {
+      hardFails.push("tenant_maxHouseholdSize");
+    }
+  }
+
+  if (owner.roommatePreference && owner.roommatePreference !== "any") {
+    const willing = tenant.isWillingToHaveRoommate;
+    if (owner.roommatePreference === "roommates_only" && willing !== true) {
+      hardFails.push("tenant_roommatePreference");
+    }
+    if (owner.roommatePreference === "no_roommates" && willing !== false) {
+      hardFails.push("tenant_roommatePreference");
+    }
   }
 
   if (hardFails.length) return { score: 0, considered, matched, hardFails };

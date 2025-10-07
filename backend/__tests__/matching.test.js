@@ -6,8 +6,9 @@ describe("computeMatchScore", () => {
     const client = { maxPrice: 900, minSqm: 70, familyStatus: "Single", furnished: true };
     const ownerReqs = { furnished: true, familyStatus: "Single" };
     const prop = { rent: 800, squareMeters: 80, bedrooms: 2, bathrooms: 1 };
+    const tenant = { householdSize: 1 };
 
-    const r = computeMatchScore(client, ownerReqs, prop);
+    const r = computeMatchScore(client, ownerReqs, prop, tenant);
     expect(r.hardFails).toBeUndefined();
     expect(r.score).toBeGreaterThanOrEqual(0.5);
   });
@@ -17,7 +18,7 @@ describe("computeMatchScore", () => {
     const ownerReqs = { furnished: true };
     const prop = { rent: 800, squareMeters: 60 };
 
-    const r = computeMatchScore(client, ownerReqs, prop);
+    const r = computeMatchScore(client, ownerReqs, prop, {});
     expect(r.score).toBe(0);
     expect(r.hardFails).toContain("budget");
   });
@@ -27,7 +28,7 @@ describe("computeMatchScore", () => {
     const ownerReqs = {};
     const prop = { rent: 1000, squareMeters: 70 };
 
-    const r = computeMatchScore(client, ownerReqs, prop);
+    const r = computeMatchScore(client, ownerReqs, prop, {});
     expect(r.score).toBe(0);
     expect(r.hardFails).toContain("sqm");
   });
@@ -37,8 +38,22 @@ describe("computeMatchScore", () => {
     const ownerReqs = { furnished: true, familyStatus: "Couple", parking: true };
     const prop = { rent: 950, squareMeters: 60, bedrooms: 2, bathrooms: 1 };
 
-    const r = computeMatchScore(client, ownerReqs, prop);
+    const tenant = { householdSize: 2, hasFamily: false };
+    const r = computeMatchScore(client, ownerReqs, prop, tenant);
     expect(r.hardFails).toBeUndefined();
     expect(r.score).toBeGreaterThanOrEqual(0.5);
+  });
+
+  test("excludes when tenant fails owner requirements", () => {
+    const client = { maxPrice: 1200, minSqm: 50 };
+    const ownerReqs = { minTenantSalary: 3000, pets: false };
+    const prop = { rent: 900, squareMeters: 70 };
+    const tenant = { salary: 2500, hasPets: true };
+
+    const r = computeMatchScore(client, ownerReqs, prop, tenant);
+    expect(r.score).toBe(0);
+    expect(r.hardFails).toEqual(
+      expect.arrayContaining(["tenant_minTenantSalary", "tenant_pets"])
+    );
   });
 });

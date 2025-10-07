@@ -327,7 +327,12 @@ exports.getAllProperties = async (req, res) => {
       const filtered = [];
       for (const p of properties) {
         const ownerReqs = p.tenantRequirements || {};
-        const { score, hardFails } = computeMatchScore(prefs, ownerReqs, p);
+        const { score, hardFails } = computeMatchScore(
+          prefs,
+          ownerReqs,
+          p,
+          currentUser
+        );
         if (!hardFails?.length && score >= 0.5) {
           filtered.push({ ...p, matchScore: score });
         }
