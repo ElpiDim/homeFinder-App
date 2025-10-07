@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, Modal } from 'react-bootstrap';
 import {
   GoogleMap,
   Marker,
@@ -183,6 +183,7 @@ export default function AddProperty() {
   const [floorPlan, setFloorPlan] = useState(null);
   const [featureTags, setFeatureTags] = useState([]);
   const [currentPhase, setCurrentPhase] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
   const [latLng, setLatLng] = useState(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [map, setMap] = useState(null);
@@ -200,6 +201,33 @@ export default function AddProperty() {
     : { id: MAP_LOADER_ID, libraries: GOOGLE_LIBRARIES };
 
   const { isLoaded: mapLoaded } = useJsApiLoader(loaderConfig);
+
+  const combinedFeatureTags = useMemo(() => {
+    const featureSet = new Set(featureTags);
+
+    if (form.propertyZone) {
+      const zoneLabel = ZONE_OPTIONS.find((option) => option.value === form.propertyZone)?.label;
+      if (zoneLabel) featureSet.add(`Zone: ${zoneLabel}`);
+    }
+
+    if (form.heatingMedium) {
+      const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
+        (option) => option.value === form.heatingMedium
+      )?.label;
+      if (mediumLabel) featureSet.add(`Heating medium: ${mediumLabel}`);
+    }
+
+    if (form.energyClass) {
+      const energyLabel = ENERGY_CLASS_OPTIONS.find((option) => option.value === form.energyClass)?.label;
+      if (energyLabel) featureSet.add(`Energy class: ${energyLabel}`);
+    }
+
+    if (form.dateAvailable) {
+      featureSet.add(`Available from: ${form.dateAvailable}`);
+    }
+
+    return Array.from(featureSet);
+  }, [featureTags, form.propertyZone, form.heatingMedium, form.energyClass, form.dateAvailable]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -263,11 +291,13 @@ export default function AddProperty() {
     return null;
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submitForm = async () => {
     setMsg('');
     const err = validate();
-    if (err) return setMsg(err);
+    if (err) {
+      setMsg(err);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -323,33 +353,8 @@ export default function AddProperty() {
         fd.append('parkingSpaces', '1');
       }
 
-      const featureSet = new Set(featureTags);
-
-      if (form.propertyZone) {
-        const zoneLabel = ZONE_OPTIONS.find((option) => option.value === form.propertyZone)?.label;
-        if (zoneLabel) featureSet.add(`Zone: ${zoneLabel}`);
-      }
-
-      if (form.heatingMedium) {
-        const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
-          (option) => option.value === form.heatingMedium
-        )?.label;
-        if (mediumLabel) featureSet.add(`Heating medium: ${mediumLabel}`);
-      }
-
-      if (form.energyClass) {
-        const energyLabel = ENERGY_CLASS_OPTIONS.find(
-          (option) => option.value === form.energyClass
-        )?.label;
-        if (energyLabel) featureSet.add(`Energy class: ${energyLabel}`);
-      }
-
-      if (form.dateAvailable) {
-        featureSet.add(`Available from: ${form.dateAvailable}`);
-      }
-
-      if (featureSet.size > 0) {
-        fd.append('features', Array.from(featureSet).join(','));
+      if (combinedFeatureTags.length > 0) {
+        fd.append('features', combinedFeatureTags.join(','));
       }
 
       images.forEach((file) => fd.append('images', file));
@@ -371,6 +376,14 @@ export default function AddProperty() {
     }
   };
 
+  const submit = async (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    if (saving) return;
+    await submitForm();
+  };
+
   const handleNextPhase = () => {
     const err = validatePhase(currentPhase);
     if (err) {
@@ -387,6 +400,33 @@ export default function AddProperty() {
     setCurrentPhase((prev) => Math.max(prev - 1, 0));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handlePhaseClick = (index) => {
+    if (saving) return;
+    if (index === currentPhase) return;
+    if (index > currentPhase) {
+      const err = validatePhase(currentPhase);
+      if (err) {
+        setMsg(err);
+        return;
+      }
+    }
+    setMsg('');
+    setCurrentPhase(index);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openPreview = () => {
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    if (!saving) {
+      setShowPreview(false);
+    }
+  };
+
+  const formatBoolean = (value) => (value ? 'Yes' : 'No');
 
   const onPlacesChanged = () => {
     if (!searchBoxRef.current) return;
@@ -439,15 +479,18 @@ export default function AddProperty() {
 
           <div className="phase-progress mb-4">
             {PHASES.map((phase, index) => (
-              <div
+              <button
                 key={phase.key}
                 className={`phase-step ${
                   index === currentPhase ? 'active' : index < currentPhase ? 'completed' : ''
                 }`}
+                type="button"
+                onClick={() => handlePhaseClick(index)}
+                aria-current={index === currentPhase ? 'step' : undefined}
               >
                 <span className="step-index">{index + 1}</span>
                 <span className="step-label">{phase.label}</span>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -1173,36 +1216,349 @@ export default function AddProperty() {
             )}
 
             <div className="phase-navigation">
-              {currentPhase > 0 && (
-                <Button
-                  type="button"
-                  variant="outline-secondary"
-                  className="rounded-pill px-4"
-                  onClick={handlePrevPhase}
-                  disabled={saving}
-                >
-                  Back
-                </Button>
-              )}
+              <div className="phase-nav-slot">
+                {currentPhase > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline-secondary"
+                    className="rounded-pill px-4"
+                    onClick={handlePrevPhase}
+                    disabled={saving}
+                  >
+                    Back
+                  </Button>
+                )}
+              </div>
 
-              {!isLastPhase ? (
-                <Button
-                  type="button"
-                  className="btn-onboarding-next"
-                  onClick={handleNextPhase}
-                  disabled={saving}
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button type="submit" className="btn-onboarding-next" disabled={saving}>
-                  {saving ? 'Saving…' : 'Create listing'}
-                </Button>
-              )}
+              <div className="phase-nav-slot phase-nav-center">
+                {isLastPhase && (
+                  <Button
+                    type="button"
+                    variant="outline-primary"
+                    className="rounded-pill px-4"
+                    onClick={openPreview}
+                    disabled={saving}
+                  >
+                    Preview
+                  </Button>
+                )}
+              </div>
+
+              <div className="phase-nav-slot phase-nav-right">
+                {!isLastPhase ? (
+                  <Button
+                    type="button"
+                    className="btn-onboarding-next"
+                    onClick={handleNextPhase}
+                    disabled={saving}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button type="submit" className="btn-onboarding-next" disabled={saving}>
+                    {saving ? 'Saving…' : 'Finish'}
+                  </Button>
+                )}
+              </div>
             </div>
           </Form>
         </Card.Body>
       </Card>
+
+      <Modal
+        show={showPreview}
+        onHide={closePreview}
+        size="lg"
+        centered
+        scrollable
+        backdrop={saving ? 'static' : true}
+        keyboard={!saving}
+      >
+        <Modal.Header closeButton={!saving}>
+          <Modal.Title>Listing preview</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {msg && (
+            <div
+              className={`alert ${
+                msg.toLowerCase().includes('fail') ? 'alert-danger' : 'alert-success'
+              } mb-4`}
+            >
+              {msg}
+            </div>
+          )}
+
+          <div className="preview-section">
+            <h6 className="preview-title">Overview</h6>
+            <Row className="gy-2">
+              <Col md={6}>
+                <div className="preview-label">Title</div>
+                <div className="preview-value">{form.title || 'Not specified'}</div>
+              </Col>
+              <Col md={3}>
+                <div className="preview-label">Type</div>
+                <div className="preview-value">{form.type === 'rent' ? 'Rent' : 'Sale'}</div>
+              </Col>
+              <Col md={3}>
+                <div className="preview-label">Status</div>
+                <div className="preview-value">{form.status || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Property type</div>
+                <div className="preview-value">
+                  {
+                    PROPERTY_TYPE_OPTIONS.find((option) => option.value === form.propertyType)?.label ||
+                    'Not specified'
+                  }
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Price</div>
+                <div className="preview-value">{form.price ? `${form.price} €` : 'Not specified'}</div>
+              </Col>
+            </Row>
+          </div>
+
+          <div className="preview-section">
+            <h6 className="preview-title">Location</h6>
+            <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">City</div>
+                <div className="preview-value">{form.city || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Area</div>
+                <div className="preview-value">{form.area || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Address</div>
+                <div className="preview-value">{form.address || 'Not specified'}</div>
+              </Col>
+              <Col md={6}>
+                <div className="preview-label">Latitude</div>
+                <div className="preview-value">{latLng?.lat ?? 'Not specified'}</div>
+              </Col>
+              <Col md={6}>
+                <div className="preview-label">Longitude</div>
+                <div className="preview-value">{latLng?.lng ?? 'Not specified'}</div>
+              </Col>
+            </Row>
+          </div>
+
+          <div className="preview-section">
+            <h6 className="preview-title">Main characteristics</h6>
+            <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">Square meters</div>
+                <div className="preview-value">{form.squareMeters || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Plot size</div>
+                <div className="preview-value">{form.plotSize || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Floor</div>
+                <div className="preview-value">{form.floor || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">On top floor</div>
+                <div className="preview-value">{formatBoolean(form.onTopFloor)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Orientation</div>
+                <div className="preview-value">
+                  {ORIENTATION_OPTIONS.find((option) => option.value === form.orientation)?.label ||
+                    'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">View</div>
+                <div className="preview-value">
+                  {VIEW_OPTIONS.find((option) => option.value === form.view)?.label || 'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Bedrooms</div>
+                <div className="preview-value">{form.bedrooms || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Bathrooms</div>
+                <div className="preview-value">{form.bathrooms || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">WC</div>
+                <div className="preview-value">{form.wc || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Kitchens</div>
+                <div className="preview-value">{form.kitchens || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Living rooms</div>
+                <div className="preview-value">{form.livingRooms || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Year built</div>
+                <div className="preview-value">{form.yearBuilt || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Parking spaces</div>
+                <div className="preview-value">{form.parkingSpaces || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Heating type</div>
+                <div className="preview-value">
+                  {HEATING_TYPE_OPTIONS.find((option) => option.value === form.heatingType)?.label ||
+                    'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Heating medium</div>
+                <div className="preview-value">
+                  {HEATING_MEDIUM_OPTIONS.find((option) => option.value === form.heatingMedium)?.label ||
+                    'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Energy class</div>
+                <div className="preview-value">
+                  {ENERGY_CLASS_OPTIONS.find((option) => option.value === form.energyClass)?.label ||
+                    'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Monthly common expenses</div>
+                <div className="preview-value">
+                  {form.monthlyCommonExpenses ? `${form.monthlyCommonExpenses} €` : 'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Available from</div>
+                <div className="preview-value">{form.dateAvailable || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Property zone</div>
+                <div className="preview-value">
+                  {ZONE_OPTIONS.find((option) => option.value === form.propertyZone)?.label ||
+                    'Not specified'}
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          <div className="preview-section">
+            <h6 className="preview-title">Lifestyle & amenities</h6>
+            <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">Furnished</div>
+                <div className="preview-value">{formatBoolean(form.furnished)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Pets allowed</div>
+                <div className="preview-value">{formatBoolean(form.petsAllowed)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Smoking allowed</div>
+                <div className="preview-value">{formatBoolean(form.smokingAllowed)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Has parking</div>
+                <div className="preview-value">{formatBoolean(form.hasParking)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Has elevator</div>
+                <div className="preview-value">{formatBoolean(form.hasElevator)}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Has storage</div>
+                <div className="preview-value">{formatBoolean(form.hasStorage)}</div>
+              </Col>
+              <Col xs={12}>
+                <div className="preview-label">Additional features</div>
+                <div className="preview-value">
+                  {combinedFeatureTags.length > 0 ? (
+                    <ul className="preview-tag-list">
+                      {combinedFeatureTags.map((feature) => (
+                        <li key={feature}>{feature}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    'Not specified'
+                  )}
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          <div className="preview-section">
+            <h6 className="preview-title">Media & description</h6>
+            <div className="preview-label">Description</div>
+            <div className="preview-value mb-3">
+              {form.description ? form.description : 'No description provided'}
+            </div>
+            <Row className="gy-2">
+              <Col md={6}>
+                <div className="preview-label">Video URL</div>
+                <div className="preview-value">{form.videoUrl || 'Not specified'}</div>
+              </Col>
+              <Col md={6}>
+                <div className="preview-label">Floor plan</div>
+                <div className="preview-value">{floorPlan?.name || 'Not uploaded'}</div>
+              </Col>
+              <Col xs={12}>
+                <div className="preview-label">Images</div>
+                <div className="preview-value">
+                  {images.length > 0 ? (
+                    <ul className="preview-tag-list">
+                      {images.map((file) => (
+                        <li key={file.name}>{file.name}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    'No images selected'
+                  )}
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          <div className="preview-section">
+            <h6 className="preview-title">Contact</h6>
+            <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">Name</div>
+                <div className="preview-value">{form.contactName || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Phone</div>
+                <div className="preview-value">{form.contactPhone || 'Not specified'}</div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Email</div>
+                <div className="preview-value">{form.contactEmail || 'Not specified'}</div>
+              </Col>
+            </Row>
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="preview-footer">
+          <Button
+            type="button"
+            variant="outline-secondary"
+            onClick={closePreview}
+            disabled={saving}
+          >
+            Close
+          </Button>
+          <Button
+            type="button"
+            className="btn-onboarding-next"
+            onClick={submit}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Finish'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
