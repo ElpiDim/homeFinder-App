@@ -141,7 +141,7 @@ const PHASES = [
   { key: 'main', label: 'Main characteristics' },
   { key: 'features', label: 'Features & amenities' },
   { key: 'media', label: 'Media & description' },
-  { key: 'contact', label: 'Contact details' },
+  { key: 'contact', label: 'Tenant requirements / contact details' },
 ];
 
 const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
@@ -229,14 +229,15 @@ export default function AddProperty() {
       if (zoneLabel) featureSet.add(`Zone: ${zoneLabel}`);
     }
 
-    if (form.heatingMedium) {
-       if (form.type === 'rent' && form.leaseDuration) {
+    if (form.type === 'rent' && form.leaseDuration) {
       featureSet.add(
         form.leaseDuration === 'long'
           ? 'Preferred lease: Long term (≥ 12 months)'
           : 'Preferred lease: Short stay (< 12 months)'
       );
     }
+
+    if (form.heatingMedium) {
       const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
         (option) => option.value === form.heatingMedium
       )?.label;
@@ -279,10 +280,10 @@ export default function AddProperty() {
       if (!form.city.trim()) return 'City is required.';
       if (!form.price || Number(form.price) <= 0)
         return 'Please provide a valid positive price.';
-      if (form.type === 'rent' && !form.leaseDuration)
-        return 'Please select a lease duration.';
     }
     if (phaseIndex === PHASES.length - 1) {
+      if (form.type === 'rent' && !form.leaseDuration)
+        return 'Please select a preferred lease duration.';
       if (!form.contactName.trim()) return 'Contact name is required.';
       if (!form.contactPhone.trim()) return 'Contact phone is required.';
     }
@@ -294,6 +295,8 @@ export default function AddProperty() {
     if (!form.title.trim()) return 'Title is required.';
     if (!form.city.trim()) return 'City is required.';
     if (!Number.isFinite(priceNum) || priceNum <= 0) return 'Price must be a positive number.';
+    if (form.type === 'rent' && !form.leaseDuration)
+      return 'Please select a preferred lease duration.';
     if (!form.contactName.trim()) return 'Contact name is required.';
     if (!form.contactPhone.trim()) return 'Contact phone is required.';
 
@@ -307,7 +310,7 @@ export default function AddProperty() {
     const livingRoomsNum = toNumOrUndef(form.livingRooms);
     const parkingSpacesNum = toNumOrUndef(form.parkingSpaces);
     const maintenanceFee = toNumOrUndef(form.monthlyCommonExpenses);
-     const minTenantSalary = toNumOrUndef(form.minTenantSalary);
+    const minTenantSalary = toNumOrUndef(form.minTenantSalary);
 
     if (beds !== undefined && beds < 0) return 'Bedrooms cannot be negative.';
     if (baths !== undefined && baths < 0) return 'Bathrooms cannot be negative.';
@@ -323,7 +326,7 @@ export default function AddProperty() {
       return 'Parking spaces cannot be negative.';
     if (maintenanceFee !== undefined && maintenanceFee < 0)
       return 'Monthly common expenses cannot be negative.';
-     if (minTenantSalary !== undefined && minTenantSalary < 0)
+    if (minTenantSalary !== undefined && minTenantSalary < 0)
       return 'Minimum tenant salary cannot be negative.';
 
     return null;
@@ -617,28 +620,6 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
-                 {form.type === 'rent' && (
-                  <Row className="g-3">
-                    <Col md={6}>
-                      <Form.Group controlId="leaseDuration">
-                        <Form.Label className="field-label">
-                          Preferred lease duration <span className="text-danger">*</span>
-                        </Form.Label>
-                        <Form.Select
-                          name="leaseDuration"
-                          value={form.leaseDuration}
-                          onChange={onChange}
-                        >
-                          {LEASE_DURATION_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                )}
 
                 <Row className="g-3">
                   <Col md={4}>
@@ -1174,15 +1155,99 @@ export default function AddProperty() {
                   </Col>
                 </Row>
                 
-                <hr className="my-4" />
+              </section>
+            )}
 
+            {currentPhase === 4 && (
+              <section className="add-property-section">
                 <header className="section-header">
-                  <h5 className="section-title mb-1">Tenant requirements</h5>
+                  <h5 className="section-title mb-1">Media & description</h5>
                   <p className="section-description mb-0">
-                    Outline the tenant profile that best fits this listing so we can match with the
-                    right clients.
+                    Upload visuals and describe the property and neighborhood advantages.
                   </p>
                 </header>
+
+                <Form.Group className="mb-3" controlId="description">
+                  <Form.Label className="field-label">Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    name="description"
+                    value={form.description}
+                    onChange={onChange}
+                    placeholder="Provide more information about the property and neighborhood advantages."
+                  />
+                </Form.Group>
+
+                <Form.Group controlId="propertyImages" className="mb-3">
+                  <Form.Label className="field-label">Images</Form.Label>
+                  <Form.Control
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setImages(Array.from(e.target.files || []))}
+                  />
+                  {images.length === 0 && (
+                    <Form.Text className="text-muted">
+                      Adding at least one photo improves visibility in the client dashboard.
+                    </Form.Text>
+                  )}
+                </Form.Group>
+
+                <Form.Group controlId="floorPlan" className="mb-3">
+                  <Form.Label className="field-label">Floor plan (optional)</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
+                  />
+                </Form.Group>
+
+                <Form.Group controlId="videoUrl">
+                  <Form.Label className="field-label">Video tour URL</Form.Label>
+                  <Form.Control
+                    type="url"
+                    name="videoUrl"
+                    value={form.videoUrl}
+                    onChange={onChange}
+                    placeholder="Paste a YouTube or Vimeo link"
+                  />
+                </Form.Group>
+              </section>
+            )}
+
+            {currentPhase === 5 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Tenant requirements / contact details</h5>
+                  <p className="section-description mb-0">
+                    Summarize the preferred tenant profile and let interested clients know how to
+                    reach you.
+                  </p>
+                </header>
+
+                {form.type === 'rent' && (
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group controlId="leaseDuration">
+                        <Form.Label className="field-label">
+                          Preferred lease duration <span className="text-danger">*</span>
+                        </Form.Label>
+                        <Form.Select
+                          name="leaseDuration"
+                          value={form.leaseDuration}
+                          onChange={onChange}
+                        >
+                          {LEASE_DURATION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                )}
 
                 <Row className="g-3">
                   <Col md={6}>
@@ -1265,75 +1330,8 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
-              </section>
-            )}
 
-            {currentPhase === 4 && (
-              <section className="add-property-section">
-                <header className="section-header">
-                  <h5 className="section-title mb-1">Media & description</h5>
-                  <p className="section-description mb-0">
-                    Upload visuals and describe the property and neighborhood advantages.
-                  </p>
-                </header>
-
-                <Form.Group className="mb-3" controlId="description">
-                  <Form.Label className="field-label">Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    name="description"
-                    value={form.description}
-                    onChange={onChange}
-                    placeholder="Provide more information about the property and neighborhood advantages."
-                  />
-                </Form.Group>
-
-                <Form.Group controlId="propertyImages" className="mb-3">
-                  <Form.Label className="field-label">Images</Form.Label>
-                  <Form.Control
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => setImages(Array.from(e.target.files || []))}
-                  />
-                  {images.length === 0 && (
-                    <Form.Text className="text-muted">
-                      Adding at least one photo improves visibility in the client dashboard.
-                    </Form.Text>
-                  )}
-                </Form.Group>
-
-                <Form.Group controlId="floorPlan" className="mb-3">
-                  <Form.Label className="field-label">Floor plan (optional)</Form.Label>
-                  <Form.Control
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
-                  />
-                </Form.Group>
-
-                <Form.Group controlId="videoUrl">
-                  <Form.Label className="field-label">Video tour URL</Form.Label>
-                  <Form.Control
-                    type="url"
-                    name="videoUrl"
-                    value={form.videoUrl}
-                    onChange={onChange}
-                    placeholder="Paste a YouTube or Vimeo link"
-                  />
-                </Form.Group>
-              </section>
-            )}
-
-            {currentPhase === 5 && (
-              <section className="add-property-section">
-                <header className="section-header">
-                  <h5 className="section-title mb-1">Contact details</h5>
-                  <p className="section-description mb-0">
-                    Provide the contact details that interested clients should use.
-                  </p>
-                </header>
+                <hr className="my-4" />
 
                 <Row className="g-3">
                   <Col md={6}>
@@ -1667,6 +1665,15 @@ export default function AddProperty() {
           <div className="preview-section">
             <h6 className="preview-title">Tenant requirements</h6>
             <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">Preferred lease</div>
+                <div className="preview-value">
+                  {form.type === 'rent'
+                    ? LEASE_DURATION_OPTIONS.find((option) => option.value === form.leaseDuration)
+                        ?.label || 'Not specified'
+                    : 'Not applicable'}
+                </div>
+              </Col>
               <Col md={4}>
                 <div className="preview-label">Minimum salary</div>
                 <div className="preview-value">
