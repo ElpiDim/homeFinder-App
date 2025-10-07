@@ -141,7 +141,7 @@ const PHASES = [
   { key: 'main', label: 'Main characteristics' },
   { key: 'features', label: 'Features & amenities' },
   { key: 'media', label: 'Media & description' },
-  { key: 'contact', label: 'Contact details' },
+  { key: 'contact', label: 'Tenant requirements / contact details' },
 ];
 
 const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
@@ -1138,6 +1138,7 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
+                
               </section>
             )}
 
@@ -1202,11 +1203,96 @@ export default function AddProperty() {
             {currentPhase === 5 && (
               <section className="add-property-section">
                 <header className="section-header">
-                  <h5 className="section-title mb-1">Contact details</h5>
+                  <h5 className="section-title mb-1">Tenant requirements / contact details</h5>
                   <p className="section-description mb-0">
-                    Provide the contact details that interested clients should use.
+                    Summarize the preferred tenant profile and let interested clients know how to
+                    reach you.
                   </p>
                 </header>
+
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="minTenantSalary">
+                      <Form.Label className="field-label">Minimum annual salary (€)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        name="minTenantSalary"
+                        value={form.minTenantSalary}
+                        onChange={onChange}
+                        placeholder="Optional"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="allowedOccupations">
+                      <Form.Label className="field-label">Preferred occupations</Form.Label>
+                      <Form.Control
+                        name="allowedOccupations"
+                        value={form.allowedOccupations}
+                        onChange={onChange}
+                        placeholder="e.g., Engineer, Teacher (comma separated)"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="familyStatus">
+                      <Form.Label className="field-label">Family status preference</Form.Label>
+                      <Form.Select
+                        name="familyStatus"
+                        value={form.familyStatus}
+                        onChange={onChange}
+                      >
+                        {FAMILY_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      type="checkbox"
+                      id="tenantRequirements_petsAllowed"
+                      label="Pets allowed for tenant"
+                      name="tenantRequirements_petsAllowed"
+                      checked={form.tenantRequirements_petsAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      type="checkbox"
+                      id="tenantRequirements_smokingAllowed"
+                      label="Smoking allowed for tenant"
+                      name="tenantRequirements_smokingAllowed"
+                      checked={form.tenantRequirements_smokingAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={12}>
+                    <Form.Group controlId="tenantRequirementsNotes">
+                      <Form.Label className="field-label">Additional notes for tenants</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        name="tenantRequirementsNotes"
+                        value={form.tenantRequirementsNotes}
+                        onChange={onChange}
+                        placeholder="Share extra expectations or clarifications"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <hr className="my-4" />
 
                 <Row className="g-3">
                   <Col md={6}>
