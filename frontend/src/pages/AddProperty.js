@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import { Card, Row, Col, Form, Button, ButtonGroup, ToggleButton } from 'react-bootstrap';
 import {
   GoogleMap,
   Marker,
@@ -177,6 +177,12 @@ export default function AddProperty() {
     contactName: '',
     contactPhone: '',
     contactEmail: '',
+    leaseDuration: '',
+    minTenantSalary: '',
+    allowedOccupations: '',
+    familyStatus: '',
+    tenantRequirements_petsAllowed: false,
+    tenantRequirements_smokingAllowed: false,
   });
 
   const [images, setImages] = useState([]);
@@ -200,6 +206,15 @@ export default function AddProperty() {
     : { id: MAP_LOADER_ID, libraries: GOOGLE_LIBRARIES };
 
   const { isLoaded: mapLoaded } = useJsApiLoader(loaderConfig);
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.type === 'rent' || !prev.leaseDuration) {
+        return prev;
+      }
+      return { ...prev, leaseDuration: '' };
+    });
+  }, [form.type]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -244,6 +259,7 @@ export default function AddProperty() {
     const livingRoomsNum = toNumOrUndef(form.livingRooms);
     const parkingSpacesNum = toNumOrUndef(form.parkingSpaces);
     const maintenanceFee = toNumOrUndef(form.monthlyCommonExpenses);
+    const minTenantSalary = toNumOrUndef(form.minTenantSalary);
 
     if (beds !== undefined && beds < 0) return 'Bedrooms cannot be negative.';
     if (baths !== undefined && baths < 0) return 'Bathrooms cannot be negative.';
@@ -259,6 +275,8 @@ export default function AddProperty() {
       return 'Parking spaces cannot be negative.';
     if (maintenanceFee !== undefined && maintenanceFee < 0)
       return 'Monthly common expenses cannot be negative.';
+    if (minTenantSalary !== undefined && minTenantSalary < 0)
+      return 'Minimum tenant salary cannot be negative.';
 
     return null;
   };
@@ -286,6 +304,9 @@ export default function AddProperty() {
       fd.append('price', form.price);
       fd.append('type', form.type);
       fd.append('status', form.status);
+      if (form.type === 'rent' && form.leaseDuration) {
+        fd.append('leaseDuration', form.leaseDuration);
+      }
 
       if (form.squareMeters) fd.append('squareMeters', form.squareMeters);
       if (form.plotSize) fd.append('plotSize', form.plotSize);
@@ -318,10 +339,20 @@ export default function AddProperty() {
       fd.append('parking', form.hasParking);
       fd.append('hasElevator', form.hasElevator);
       fd.append('hasStorage', form.hasStorage);
+      if (form.minTenantSalary) fd.append('minTenantSalary', form.minTenantSalary);
+      if (form.familyStatus) fd.append('familyStatus', form.familyStatus);
+      fd.append('tenantRequirements_petsAllowed', form.tenantRequirements_petsAllowed);
+      fd.append('tenantRequirements_smokingAllowed', form.tenantRequirements_smokingAllowed);
 
       if (form.hasParking && !form.parkingSpaces) {
         fd.append('parkingSpaces', '1');
       }
+
+      String(form.allowedOccupations || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((occupation) => fd.append('allowedOccupations[]', occupation));
 
       const featureSet = new Set(featureTags);
 
@@ -496,6 +527,37 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
+
+                {form.type === 'rent' && (
+                  <div className="mt-2">
+                    <Form.Label className="field-label d-block">Preferred stay length</Form.Label>
+                    <ButtonGroup className="d-flex flex-wrap gap-2" role="group">
+                      {[
+                        { value: 'short', label: 'Short stay (< 12 months)' },
+                        { value: 'long', label: 'Long term (≥ 12 months)' },
+                      ].map((option) => (
+                        <ToggleButton
+                          key={option.value}
+                          id={`leaseDuration-${option.value}`}
+                          type="radio"
+                          variant="outline-success"
+                          name="leaseDuration"
+                          value={option.value}
+                          checked={form.leaseDuration === option.value}
+                          onChange={() =>
+                            setForm((prev) => ({ ...prev, leaseDuration: option.value }))
+                          }
+                          className="px-3"
+                        >
+                          {option.label}
+                        </ToggleButton>
+                      ))}
+                    </ButtonGroup>
+                    <Form.Text className="text-muted d-block mt-1">
+                      Helps us match tenants looking for the same commitment length.
+                    </Form.Text>
+                  </div>
+                )}
 
                 <Row className="g-3">
                   <Col md={6}>
@@ -1055,6 +1117,73 @@ export default function AddProperty() {
                         onChange={onChange}
                       />
                     </Form.Group>
+                  </Col>
+                </Row>
+
+                <hr className="my-4" />
+
+                <div className="mb-2">
+                  <h6 className="fw-bold mb-1">Tenant requirements</h6>
+                  <p className="text-muted small mb-3">Outline who your ideal tenant is so we can surface the best matches.</p>
+                </div>
+
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="minTenantSalary">
+                      <Form.Label className="field-label">Minimum tenant salary (€)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        name="minTenantSalary"
+                        value={form.minTenantSalary}
+                        onChange={onChange}
+                        placeholder="Optional"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="allowedOccupations">
+                      <Form.Label className="field-label">Preferred occupations</Form.Label>
+                      <Form.Control
+                        name="allowedOccupations"
+                        value={form.allowedOccupations}
+                        onChange={onChange}
+                        placeholder="Comma separated e.g. Engineer, Teacher"
+                      />
+                      <Form.Text className="text-muted">Leave empty to welcome any occupation.</Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3 mt-1">
+                  <Col md={4}>
+                    <Form.Group controlId="familyStatus">
+                      <Form.Label className="field-label">Family status</Form.Label>
+                      <Form.Select name="familyStatus" value={form.familyStatus} onChange={onChange}>
+                        <option value="">Any</option>
+                        <option value="single">Single</option>
+                        <option value="couple">Couple</option>
+                        <option value="family">Family</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      id="tenantRequirements_petsAllowed"
+                      label="Pets allowed for tenants"
+                      name="tenantRequirements_petsAllowed"
+                      checked={form.tenantRequirements_petsAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      id="tenantRequirements_smokingAllowed"
+                      label="Smoking allowed for tenants"
+                      name="tenantRequirements_smokingAllowed"
+                      checked={form.tenantRequirements_smokingAllowed}
+                      onChange={onChange}
+                    />
                   </Col>
                 </Row>
               </section>

@@ -38,6 +38,14 @@ const toArray = (v) => {
   return str.split(",").map((s) => s.trim()).filter(Boolean);
 };
 
+const normalizeLeaseDuration = (value) => {
+  if (!hasValue(value)) return undefined;
+  const val = String(value).toLowerCase();
+  if (val === 'short' || val.includes('short')) return 'short';
+  if (val === 'long' || val.includes('long')) return 'long';
+  return undefined;
+};
+
 const normalizeRoommatePreference = (value) => {
   if (!hasValue(value)) return undefined;
   const val = String(value).toLowerCase();
@@ -151,6 +159,7 @@ exports.createProperty = async (req, res) => {
       // listing
       type: b.type, // 'rent'|'sale'
       status: b.status,
+      leaseDuration: normalizeLeaseDuration(b.leaseDuration),
 
       // dimensions (support alias sqm)
       squareMeters: toNum(b.squareMeters ?? b.sqm, parseInt),
@@ -427,6 +436,10 @@ exports.updateProperty = async (req, res) => {
     // type/status
     if (hasValue(b.type)) property.type = b.type;
     if (hasValue(b.status)) property.status = b.status;
+    if (b.leaseDuration !== undefined) {
+      const normalizedLease = normalizeLeaseDuration(b.leaseDuration);
+      property.leaseDuration = normalizedLease ?? '';
+    }
 
     // metrics (support alias 'sqm')
     property.squareMeters = setIfProvided(

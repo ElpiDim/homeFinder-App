@@ -42,6 +42,7 @@ const propertySchema = new mongoose.Schema(
 
     // status
     status: { type: String, enum: ["available", "rented", "sold"], default: "available" },
+    leaseDuration: { type: String, enum: ['', 'short', 'long'], default: '' },
 
     // --- dimensions / βασικά ---
     squareMeters: { type: Number, min: 0 }, // primary

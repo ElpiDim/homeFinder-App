@@ -75,6 +75,7 @@ function EditProperty() {
     price: '',            // 💶 unified (reads old rent if exists)
     type: 'sale',
     status: 'available',
+    leaseDuration: '',
 
     // basics
     description: '',
@@ -185,6 +186,7 @@ function EditProperty() {
           price: p.price ?? p.rent ?? '',        // 💶 read both, prefer price
           type: p.type || 'sale',
           status: p.status || 'available',
+          leaseDuration: p.leaseDuration || '',
 
           description: p.description || '',
           floor: p.floor ?? '',
@@ -247,6 +249,12 @@ function EditProperty() {
     fetchProperty();
   }, [propertyId]);
 
+  useEffect(() => {
+    if (formData.type !== 'rent' && formData.leaseDuration) {
+      setFormData((prev) => ({ ...prev, leaseDuration: '' }));
+    }
+  }, [formData.type, formData.leaseDuration]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -296,6 +304,7 @@ function EditProperty() {
       address: formData.address,
       type: formData.type,
       status: formData.status,
+      leaseDuration: formData.leaseDuration,
       price: priceNum, // 💶 send price (not rent)
 
       // basics
@@ -463,6 +472,33 @@ function EditProperty() {
               </select>
             </div>
           </div>
+
+          {formData.type === 'rent' && (
+            <div className="mt-3">
+              <Form.Label className="form-label d-block">Preferred stay length</Form.Label>
+              <div className="d-flex flex-wrap gap-3">
+                <Form.Check
+                  type="radio"
+                  id="leaseDuration-short"
+                  label="Short stay (< 12 months)"
+                  name="leaseDuration"
+                  value="short"
+                  checked={formData.leaseDuration === 'short'}
+                  onChange={handleChange}
+                />
+                <Form.Check
+                  type="radio"
+                  id="leaseDuration-long"
+                  label="Long term (≥ 12 months)"
+                  name="leaseDuration"
+                  value="long"
+                  checked={formData.leaseDuration === 'long'}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-text">Helps match tenants looking for the same commitment length.</div>
+            </div>
+          )}
 
           {/* DESCRIPTION */}
           <div className="mb-3 mt-3">
