@@ -36,39 +36,51 @@
 /* ----------------------------- */
 /* Phase progress styling        */
 /* ----------------------------- */
+
 .phase-progress {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
   margin-bottom: 2rem;
 }
 
 .phase-step {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.9rem 1rem;
-  border-radius: 0.85rem;
-  background: rgba(3, 51, 27, 0.05);
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(3, 51, 27, 0.08);
+  background: rgba(3, 51, 27, 0.04);
   color: #0f5132;
   font-weight: 500;
-  transition: background 0.2s ease, color 0.2s ease;
+  min-height: 70px;
+  flex: 1 1 180px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.phase-step:hover {
+  border-color: rgba(0, 100, 0, 0.25);
+  transform: translateY(-2px);
 }
 
 .phase-step .step-index {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(3, 51, 27, 0.15);
   font-size: 0.95rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .phase-step.active {
   background: rgba(0, 100, 0, 0.12);
+  border-color: rgba(0, 100, 0, 0.35);
   color: #064420;
 }
 
@@ -79,6 +91,7 @@
 
 .phase-step.completed {
   background: linear-gradient(135deg, rgba(0, 100, 0, 0.85), rgba(144, 238, 144, 0.85));
+  border-color: transparent;
   color: #fff;
 }
 
@@ -191,7 +204,7 @@
   }
 
   .phase-progress {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.75rem;
   }
 }
 
@@ -249,6 +262,8 @@
   }
 
   .phase-step {
-    padding: 0.6rem 0.75rem;
+    flex: 1 1 150px;
+    min-height: 64px;
+    padding: 0.7rem 0.9rem;
   }
 }
