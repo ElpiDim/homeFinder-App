@@ -229,14 +229,14 @@ export default function AddProperty() {
       if (zoneLabel) featureSet.add(`Zone: ${zoneLabel}`);
     }
 
-    if (form.heatingMedium) {
-       if (form.type === 'rent' && form.leaseDuration) {
+     if (form.type === 'rent' && form.leaseDuration) {
       featureSet.add(
         form.leaseDuration === 'long'
           ? 'Preferred lease: Long term (≥ 12 months)'
           : 'Preferred lease: Short stay (< 12 months)'
       );
     }
+    if (form.heatingMedium) {
       const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
         (option) => option.value === form.heatingMedium
       )?.label;
@@ -264,7 +264,17 @@ export default function AddProperty() {
   ]);
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+     setForm((prev) => {
+      if (name === 'type') {
+        return {
+          ...prev,
+          type: value,
+          leaseDuration: value === 'rent' ? prev.leaseDuration : '',
+        };
+      }
+
+      return { ...prev, [name]: type === 'checkbox' ? checked : value };
+    });
   };
 
   const toggleFeatureTag = (value) => {
@@ -375,6 +385,8 @@ export default function AddProperty() {
         fd.append('monthlyMaintenanceFee', form.monthlyCommonExpenses);
       if (form.dateAvailable) fd.append('availableFrom', form.dateAvailable);
       if (form.view) fd.append('view', form.view);
+      if (form.type === 'rent' && form.leaseDuration)
+        fd.append('leaseDuration', form.leaseDuration);
       if (form.videoUrl) fd.append('videoUrl', form.videoUrl);
       if (form.contactName) fd.append('contactName', form.contactName);
       if (form.contactPhone) fd.append('contactPhone', form.contactPhone);
@@ -650,6 +662,29 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
+ {form.type === 'rent' && (
+                  <Row className="g-3">
+                    <Col md={4}>
+                      <Form.Group controlId="leaseDuration">
+                        <Form.Label className="field-label">
+                          Lease time <span className="text-danger">*</span>
+                        </Form.Label>
+                        <Form.Select
+                          name="leaseDuration"
+                          value={form.leaseDuration}
+                          onChange={onChange}
+                          required
+                        >
+                          {LEASE_DURATION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                )}
 
                 <Row className="g-3">
                   <Col md={4}>
@@ -1442,7 +1477,17 @@ export default function AddProperty() {
               </Col>
             </Row>
           </div>
-
+ {form.type === 'rent' && (
+                <Col md={4}>
+                  <div className="preview-label">Lease time</div>
+                  <div className="preview-value">
+                    {
+                      LEASE_DURATION_OPTIONS.find((option) => option.value === form.leaseDuration)
+                        ?.label || 'Not specified'
+                    }
+                  </div>
+                </Col>
+              )}
           <div className="preview-section">
             <h6 className="preview-title">Location</h6>
             <Row className="gy-2">
