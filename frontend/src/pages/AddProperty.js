@@ -118,6 +118,18 @@ const ENERGY_CLASS_OPTIONS = [
   { value: 'G', label: 'G' },
 ];
 
+const LEASE_DURATION_OPTIONS = [
+  { value: '', label: 'Select lease duration' },
+  { value: 'short', label: 'Short stay (< 12 months)' },
+  { value: 'long', label: 'Long term (≥ 12 months)' },
+];
+
+const FAMILY_STATUS_OPTIONS = [
+  { value: '', label: 'Any' },
+  { value: 'single', label: 'Single' },
+  { value: 'couple', label: 'Couple' },
+  { value: 'family', label: 'Family' },
+];
 const GOOGLE_LIBRARIES = ['places'];
 const MAP_LOADER_ID = 'add-property-map';
 const MAP_CONTAINER_STYLE = { width: '100%', height: '320px' };
@@ -177,6 +189,13 @@ export default function AddProperty() {
     contactName: '',
     contactPhone: '',
     contactEmail: '',
+    leaseDuration: '',
+    minTenantSalary: '',
+    allowedOccupations: '',
+    familyStatus: '',
+    tenantRequirements_petsAllowed: false,
+    tenantRequirements_smokingAllowed: false,
+    tenantRequirementsNotes: '',
   });
 
   const [images, setImages] = useState([]);
@@ -211,6 +230,13 @@ export default function AddProperty() {
     }
 
     if (form.heatingMedium) {
+       if (form.type === 'rent' && form.leaseDuration) {
+      featureSet.add(
+        form.leaseDuration === 'long'
+          ? 'Preferred lease: Long term (≥ 12 months)'
+          : 'Preferred lease: Short stay (< 12 months)'
+      );
+    }
       const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
         (option) => option.value === form.heatingMedium
       )?.label;
@@ -227,8 +253,15 @@ export default function AddProperty() {
     }
 
     return Array.from(featureSet);
-  }, [featureTags, form.propertyZone, form.heatingMedium, form.energyClass, form.dateAvailable]);
-
+  }, [
+    featureTags,
+    form.propertyZone,
+    form.heatingMedium,
+    form.energyClass,
+    form.dateAvailable,
+    form.type,
+    form.leaseDuration,
+  ]);
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -246,6 +279,8 @@ export default function AddProperty() {
       if (!form.city.trim()) return 'City is required.';
       if (!form.price || Number(form.price) <= 0)
         return 'Please provide a valid positive price.';
+      if (form.type === 'rent' && !form.leaseDuration)
+        return 'Please select a lease duration.';
     }
     if (phaseIndex === PHASES.length - 1) {
       if (!form.contactName.trim()) return 'Contact name is required.';
@@ -272,6 +307,7 @@ export default function AddProperty() {
     const livingRoomsNum = toNumOrUndef(form.livingRooms);
     const parkingSpacesNum = toNumOrUndef(form.parkingSpaces);
     const maintenanceFee = toNumOrUndef(form.monthlyCommonExpenses);
+     const minTenantSalary = toNumOrUndef(form.minTenantSalary);
 
     if (beds !== undefined && beds < 0) return 'Bedrooms cannot be negative.';
     if (baths !== undefined && baths < 0) return 'Bathrooms cannot be negative.';
@@ -287,6 +323,8 @@ export default function AddProperty() {
       return 'Parking spaces cannot be negative.';
     if (maintenanceFee !== undefined && maintenanceFee < 0)
       return 'Monthly common expenses cannot be negative.';
+     if (minTenantSalary !== undefined && minTenantSalary < 0)
+      return 'Minimum tenant salary cannot be negative.';
 
     return null;
   };
@@ -341,7 +379,20 @@ export default function AddProperty() {
       if (form.contactName) fd.append('contactName', form.contactName);
       if (form.contactPhone) fd.append('contactPhone', form.contactPhone);
       if (form.contactEmail) fd.append('contactEmail', form.contactEmail);
-
+      if (form.type === 'rent' && form.leaseDuration) fd.append('leaseDuration', form.leaseDuration);
+      if (form.minTenantSalary) fd.append('minTenantSalary', form.minTenantSalary);
+      if (form.allowedOccupations) fd.append('allowedOccupations', form.allowedOccupations);
+      if (form.familyStatus) fd.append('familyStatus', form.familyStatus);
+      fd.append(
+        'tenantRequirements_petsAllowed',
+        form.tenantRequirements_petsAllowed ? 'true' : 'false'
+      );
+      fd.append(
+        'tenantRequirements_smokingAllowed',
+        form.tenantRequirements_smokingAllowed ? 'true' : 'false'
+      );
+      if (form.tenantRequirementsNotes)
+        fd.append('tenantRequirements_notes', form.tenantRequirementsNotes);
       fd.append('furnished', form.furnished);
       fd.append('petsAllowed', form.petsAllowed);
       fd.append('smokingAllowed', form.smokingAllowed);
@@ -566,6 +617,28 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
+                 {form.type === 'rent' && (
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group controlId="leaseDuration">
+                        <Form.Label className="field-label">
+                          Preferred lease duration <span className="text-danger">*</span>
+                        </Form.Label>
+                        <Form.Select
+                          name="leaseDuration"
+                          value={form.leaseDuration}
+                          onChange={onChange}
+                        >
+                          {LEASE_DURATION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                )}
 
                 <Row className="g-3">
                   <Col md={4}>
@@ -1100,6 +1173,98 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
+                
+                <hr className="my-4" />
+
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Tenant requirements</h5>
+                  <p className="section-description mb-0">
+                    Outline the tenant profile that best fits this listing so we can match with the
+                    right clients.
+                  </p>
+                </header>
+
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="minTenantSalary">
+                      <Form.Label className="field-label">Minimum annual salary (€)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        name="minTenantSalary"
+                        value={form.minTenantSalary}
+                        onChange={onChange}
+                        placeholder="Optional"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="allowedOccupations">
+                      <Form.Label className="field-label">Preferred occupations</Form.Label>
+                      <Form.Control
+                        name="allowedOccupations"
+                        value={form.allowedOccupations}
+                        onChange={onChange}
+                        placeholder="e.g., Engineer, Teacher (comma separated)"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="familyStatus">
+                      <Form.Label className="field-label">Family status preference</Form.Label>
+                      <Form.Select
+                        name="familyStatus"
+                        value={form.familyStatus}
+                        onChange={onChange}
+                      >
+                        {FAMILY_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      type="checkbox"
+                      id="tenantRequirements_petsAllowed"
+                      label="Pets allowed for tenant"
+                      name="tenantRequirements_petsAllowed"
+                      checked={form.tenantRequirements_petsAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      type="checkbox"
+                      id="tenantRequirements_smokingAllowed"
+                      label="Smoking allowed for tenant"
+                      name="tenantRequirements_smokingAllowed"
+                      checked={form.tenantRequirements_smokingAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={12}>
+                    <Form.Group controlId="tenantRequirementsNotes">
+                      <Form.Label className="field-label">Additional notes for tenants</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        name="tenantRequirementsNotes"
+                        value={form.tenantRequirementsNotes}
+                        onChange={onChange}
+                        placeholder="Share extra expectations or clarifications"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
               </section>
             )}
 
@@ -1316,6 +1481,16 @@ export default function AddProperty() {
                 <div className="preview-label">Price</div>
                 <div className="preview-value">{form.price ? `${form.price} €` : 'Not specified'}</div>
               </Col>
+               {form.type === 'rent' && (
+                <Col md={4}>
+                  <div className="preview-label">Lease duration</div>
+                  <div className="preview-value">
+                    {form.leaseDuration
+                      ? LEASE_DURATION_OPTIONS.find((option) => option.value === form.leaseDuration)?.label
+                      : 'Not specified'}
+                  </div>
+                </Col>
+              )}
             </Row>
           </div>
 
@@ -1485,6 +1660,50 @@ export default function AddProperty() {
                   ) : (
                     'Not specified'
                   )}
+                </div>
+              </Col>
+            </Row>
+          </div>
+          <div className="preview-section">
+            <h6 className="preview-title">Tenant requirements</h6>
+            <Row className="gy-2">
+              <Col md={4}>
+                <div className="preview-label">Minimum salary</div>
+                <div className="preview-value">
+                  {form.minTenantSalary ? `${form.minTenantSalary} €` : 'Not specified'}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Family status</div>
+                <div className="preview-value">
+                  {
+                    FAMILY_STATUS_OPTIONS.find((option) => option.value === form.familyStatus)?.label ||
+                    'Any'
+                  }
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Pets allowed</div>
+                <div className="preview-value">
+                  {formatBoolean(form.tenantRequirements_petsAllowed)}
+                </div>
+              </Col>
+              <Col md={4}>
+                <div className="preview-label">Smoking allowed</div>
+                <div className="preview-value">
+                  {formatBoolean(form.tenantRequirements_smokingAllowed)}
+                </div>
+              </Col>
+              <Col md={8}>
+                <div className="preview-label">Preferred occupations</div>
+                <div className="preview-value">
+                  {form.allowedOccupations ? form.allowedOccupations : 'Not specified'}
+                </div>
+              </Col>
+              <Col md={12}>
+                <div className="preview-label">Notes</div>
+                <div className="preview-value">
+                  {form.tenantRequirementsNotes ? form.tenantRequirementsNotes : 'No additional notes'}
                 </div>
               </Col>
             </Row>
