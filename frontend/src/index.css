@@ -267,4 +267,47 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 @media (min-width: 992px){ .logo-in-nav .logo-word{ font-size:28px; } }
 @media (min-width: 1400px){ .logo-in-nav .logo-word{ font-size:30px; } }
 
+/* Dashboard 3-column layouts */
+.dashboard-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1.5rem;
+}
+
+.dashboard-metric-card{
+  display:flex;
+  align-items:stretch;
+}
+
+.dashboard-metric-card > *{
+  width:100%;
+}
+
+.dashboard-listings-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1.5rem;
+}
+
+.dashboard-listing-card,
+.dashboard-listing-card > *{
+  height:100%;
+}
+
+@media (max-width: 991.98px){
+  .dashboard-metrics,
+  .dashboard-listings-grid{
+    display:flex;
+    gap:1.5rem;
+    overflow-x:auto;
+    padding-bottom:0.75rem;
+    scroll-snap-type:x mandatory;
+  }
+
+  .dashboard-metric-card,
+  .dashboard-listing-card{
+    flex:0 0 300px;
+    scroll-snap-align:start;
+  }
+}
 

@@ -561,7 +561,7 @@ function Dashboard() {
       </nav>
 
       {/* HERO */}
-      <div className="container pt-4" style={{ maxWidth: 1120 }}>
+      <div className="container-fluid pt-4 px-4 px-lg-5">
         <div className="mb-3">
           <h2 className="fw-bold mb-1">Hi, {user?.name?.split(' ')[0] || 'there'}</h2>
           <div className="text-muted">
@@ -573,14 +573,14 @@ function Dashboard() {
 
         {/* Owner donut stats — FRACTIONS */}
         {user?.role === 'owner' && (
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-md-4">
+           <div className="dashboard-metrics mb-4">
+            <div className="dashboard-metric-card">
               <Donut icon="💚" label="Favorited" value={likedListings} max={totalListings} />
             </div>
-            <div className="col-12 col-md-4">
+           <div className="dashboard-metric-card">
               <Donut icon="👁️" label="Seen" value={seenListings} max={totalListings} />
             </div>
-            <div className="col-12 col-md-4">
+            <div className="dashboard-metric-card">
               <Donut icon="🏡" label="Rented" value={rentedListings} max={totalListings} />
             </div>
           </div>
@@ -593,7 +593,7 @@ function Dashboard() {
       </div>
 
       {/* CONTENT: Listings grid */}
-      <div className="container pb-4" style={{ maxWidth: 1120 }}>
+            <div className="container-fluid pb-4 px-4 px-lg-5">
         <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
           <h4 className="fw-bold mb-0">
             {user?.role === 'owner' ? 'Your Listings' : 'Featured Properties'}
@@ -633,9 +633,9 @@ function Dashboard() {
           <p className="text-muted">No properties found.</p>
         ) : (
           <>
-            <div className="row g-3">
+            <div className="dashboard-listings-grid">
               {properties.map((prop) => (
-                <div className="col-sm-6 col-lg-4" key={prop._id}>
+                 <div className="dashboard-listing-card" key={prop._id}>
                   <PropertyCard
                     prop={prop}
                     isFavorite={favorites.includes(prop._id)}

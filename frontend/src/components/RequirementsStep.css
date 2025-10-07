@@ -86,9 +86,64 @@
 
 @media (max-width: 576px) {
 
+/* ============ AMENITIES SECTION ============ */
+
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem 2.5rem;
+  margin-top: 1.25rem;
+}
+
+.amenity-card {
+  background: #ffffff;
+  border: 1px solid #edf1ee;
+  border-radius: 18px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.amenity-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.field-label {
+  font-weight: 600;
+  color: #033;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.text-muted {
+  font-size: 0.85rem;
+  color: #6c757d !important;
+}
+
+.amenity-card select.form-select {
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  border-color: #dbe3dd;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.amenity-card select.form-select:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.25);
+}
+
+/* --- responsive --- */
+@media (max-width: 768px) {
   .amenities-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
+  .amenity-card {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
 
   .tile-button {
     flex: 1 1 100%;

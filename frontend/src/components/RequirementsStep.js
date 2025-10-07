@@ -355,32 +355,33 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
     </p>
   </header>
 
-  <Row className="g-3">
+  <div className="amenities-grid">
     {amenityFields.map((field) => (
-      <Col key={field.name} xs={12} md={6}>
-        <Form.Group controlId={field.name} className="mb-3">
+      <div key={field.name} className="amenity-card">
+        <Form.Group controlId={field.name}>
           <Form.Label className="field-label">
             {field.label}
-            {field.helper && (
-              <Form.Text className="text-muted d-block small">
-                {field.helper}
-              </Form.Text>
-            )}
           </Form.Label>
+          {field.helper && (
+            <Form.Text className="text-muted d-block mb-2 small">
+              {field.helper}
+            </Form.Text>
+          )}
           <Form.Select
             name={field.name}
             value={normalizeValue(prefs[field.name])}
             onChange={(e) => handleToggle(field.name, e.target.value)}
           >
-            <option value="any">Any</option>
+            <option value="any">I don't Mind</option>
             <option value="true">Yes</option>
             <option value="false">No</option>
           </Form.Select>
         </Form.Group>
-      </Col>
+      </div>
     ))}
-  </Row>
+  </div>
 </section>
+
 
     </div>
   );
