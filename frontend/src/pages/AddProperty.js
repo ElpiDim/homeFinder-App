@@ -141,7 +141,7 @@ const PHASES = [
   { key: 'main', label: 'Main characteristics' },
   { key: 'features', label: 'Features & amenities' },
   { key: 'media', label: 'Media & description' },
-  { key: 'contact', label: 'Contact details' },
+  { key: 'contact', label: 'Tenant requirements / contact details' },
 ];
 
 const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
@@ -1174,13 +1174,74 @@ export default function AddProperty() {
                   </Col>
                 </Row>
                 
-                <hr className="my-4" />
+              </section>
+            )}
 
+            {currentPhase === 4 && (
+              <section className="add-property-section">
                 <header className="section-header">
-                  <h5 className="section-title mb-1">Tenant requirements</h5>
+                  <h5 className="section-title mb-1">Media & description</h5>
                   <p className="section-description mb-0">
-                    Outline the tenant profile that best fits this listing so we can match with the
-                    right clients.
+                    Upload visuals and describe the property and neighborhood advantages.
+                  </p>
+                </header>
+
+                <Form.Group className="mb-3" controlId="description">
+                  <Form.Label className="field-label">Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    name="description"
+                    value={form.description}
+                    onChange={onChange}
+                    placeholder="Provide more information about the property and neighborhood advantages."
+                  />
+                </Form.Group>
+
+                <Form.Group controlId="propertyImages" className="mb-3">
+                  <Form.Label className="field-label">Images</Form.Label>
+                  <Form.Control
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setImages(Array.from(e.target.files || []))}
+                  />
+                  {images.length === 0 && (
+                    <Form.Text className="text-muted">
+                      Adding at least one photo improves visibility in the client dashboard.
+                    </Form.Text>
+                  )}
+                </Form.Group>
+
+                <Form.Group controlId="floorPlan" className="mb-3">
+                  <Form.Label className="field-label">Floor plan (optional)</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
+                  />
+                </Form.Group>
+
+                <Form.Group controlId="videoUrl">
+                  <Form.Label className="field-label">Video tour URL</Form.Label>
+                  <Form.Control
+                    type="url"
+                    name="videoUrl"
+                    value={form.videoUrl}
+                    onChange={onChange}
+                    placeholder="Paste a YouTube or Vimeo link"
+                  />
+                </Form.Group>
+              </section>
+            )}
+
+            {currentPhase === 5 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Tenant requirements / contact details</h5>
+                  <p className="section-description mb-0">
+                    Summarize the preferred tenant profile and let interested clients know how to
+                    reach you.
                   </p>
                 </header>
 
@@ -1265,75 +1326,8 @@ export default function AddProperty() {
                     </Form.Group>
                   </Col>
                 </Row>
-              </section>
-            )}
 
-            {currentPhase === 4 && (
-              <section className="add-property-section">
-                <header className="section-header">
-                  <h5 className="section-title mb-1">Media & description</h5>
-                  <p className="section-description mb-0">
-                    Upload visuals and describe the property and neighborhood advantages.
-                  </p>
-                </header>
-
-                <Form.Group className="mb-3" controlId="description">
-                  <Form.Label className="field-label">Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    name="description"
-                    value={form.description}
-                    onChange={onChange}
-                    placeholder="Provide more information about the property and neighborhood advantages."
-                  />
-                </Form.Group>
-
-                <Form.Group controlId="propertyImages" className="mb-3">
-                  <Form.Label className="field-label">Images</Form.Label>
-                  <Form.Control
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => setImages(Array.from(e.target.files || []))}
-                  />
-                  {images.length === 0 && (
-                    <Form.Text className="text-muted">
-                      Adding at least one photo improves visibility in the client dashboard.
-                    </Form.Text>
-                  )}
-                </Form.Group>
-
-                <Form.Group controlId="floorPlan" className="mb-3">
-                  <Form.Label className="field-label">Floor plan (optional)</Form.Label>
-                  <Form.Control
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
-                  />
-                </Form.Group>
-
-                <Form.Group controlId="videoUrl">
-                  <Form.Label className="field-label">Video tour URL</Form.Label>
-                  <Form.Control
-                    type="url"
-                    name="videoUrl"
-                    value={form.videoUrl}
-                    onChange={onChange}
-                    placeholder="Paste a YouTube or Vimeo link"
-                  />
-                </Form.Group>
-              </section>
-            )}
-
-            {currentPhase === 5 && (
-              <section className="add-property-section">
-                <header className="section-header">
-                  <h5 className="section-title mb-1">Contact details</h5>
-                  <p className="section-description mb-0">
-                    Provide the contact details that interested clients should use.
-                  </p>
-                </header>
+                <hr className="my-4" />
 
                 <Row className="g-3">
                   <Col md={6}>
