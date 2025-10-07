@@ -67,7 +67,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
             value={prefs.location}
             onChange={onChange}
             isInvalid={!!errors.location}
-            placeholder="e.g. Athens, Center or Marousi"
+            placeholder="e.g. Athens"
           />
           <Form.Control.Feedback type="invalid">{errors.location}</Form.Control.Feedback>
         </Form.Group>
@@ -372,7 +372,7 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
             value={normalizeValue(prefs[field.name])}
             onChange={(e) => handleToggle(field.name, e.target.value)}
           >
-            <option value="any">I don't Mind</option>
+            <option value="any">I don't mind</option>
             <option value="true">Yes</option>
             <option value="false">No</option>
           </Form.Select>
