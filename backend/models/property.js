@@ -69,7 +69,7 @@ const propertySchema = new mongoose.Schema(
     },
     energyClass: {
       type: String,
-      enum: ["", "A+", "A", "B", "C", "D", "E", "F", "G"],
+      enum: ["", "A+", "A", "B+", "B", "C", "D", "E", "F", "G"],
       default: "",
     },
     orientation: {

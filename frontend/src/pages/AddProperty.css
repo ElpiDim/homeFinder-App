@@ -33,6 +33,57 @@
   gap: 1.75rem;
 }
 
+.phase-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.phase-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(3, 51, 27, 0.05);
+  color: #0f5132;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.phase-step .step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(3, 51, 27, 0.15);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.phase-step.active {
+  background: rgba(0, 100, 0, 0.12);
+  color: #064420;
+}
+
+.phase-step.active .step-index {
+  background: linear-gradient(135deg, #006400, #90ee90);
+  color: #fff;
+}
+
+.phase-step.completed {
+  background: rgba(0, 100, 0, 0.18);
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(0, 100, 0, 0.85), rgba(144, 238, 144, 0.85));
+}
+
+.phase-step.completed .step-index {
+  background: rgba(255, 255, 255, 0.85);
+  color: #006400;
+}
+
 .add-property-section {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 1rem;
@@ -77,6 +128,21 @@
   color: #fff;
 }
 
+.phase-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.map-wrapper {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(3, 51, 27, 0.1);
+  height: 320px;
+}
+
 @media (max-width: 992px) {
   .add-property-container {
     padding: 2rem 1rem;
@@ -84,6 +150,10 @@
 
   .add-property-card {
     max-width: 720px;
+  }
+
+  .phase-progress {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   }
 }
 
@@ -109,6 +179,15 @@
     width: 100%;
     justify-content: center;
   }
+
+  .phase-progress {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .phase-navigation {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
 }
 
 @media (max-width: 576px) {
@@ -122,5 +201,9 @@
 
   .section-title {
     font-size: 1.05rem;
+  }
+
+  .phase-step {
+    padding: 0.6rem 0.75rem;
   }
 }

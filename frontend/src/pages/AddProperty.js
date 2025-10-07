@@ -1,27 +1,138 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button } from 'react-bootstrap';
+import {
+  GoogleMap,
+  Marker,
+  StandaloneSearchBox,
+  useJsApiLoader,
+} from '@react-google-maps/api';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
 import './AddProperty.css';
 
-const AMENITY_OPTIONS = [
-  'Elevator',
-  'Balcony',
-  'Air Conditioning',
-  'Garden',
-  'Storage',
-  'Fireplace',
-  'Swimming Pool',
-  'Security Door',
-  'Solar Water Heater',
-  'Renovated',
-  'Energy-efficient',
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'studio_flat', label: 'Studio Flat' },
+  { value: 'maisonette', label: 'Maisonette' },
+  { value: 'detached_house', label: 'Detached House' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'loft', label: 'Loft' },
+  { value: 'bungalow', label: 'Bungalow' },
+  { value: 'building', label: 'Building' },
+  { value: 'apartment_complex', label: 'Apartment Complex' },
+  { value: 'farm', label: 'Farm' },
+  { value: 'houseboat', label: 'Houseboat' },
 ];
 
-const toNumOrUndef = (v) =>
-  v === '' || v === null || v === undefined ? undefined : Number(v);
+const ORIENTATION_OPTIONS = [
+  { value: '', label: 'Select orientation' },
+  { value: 'north', label: 'North' },
+  { value: 'north-east', label: 'North-East' },
+  { value: 'east', label: 'East' },
+  { value: 'south-east', label: 'South-East' },
+  { value: 'south', label: 'South' },
+  { value: 'south-west', label: 'South-West' },
+  { value: 'west', label: 'West' },
+  { value: 'north-west', label: 'North-West' },
+];
+
+const VIEW_OPTIONS = [
+  { value: '', label: 'Select view' },
+  { value: 'sea', label: 'Sea' },
+  { value: 'mountain', label: 'Mountain' },
+  { value: 'park', label: 'Park' },
+  { value: 'city', label: 'City' },
+  { value: 'none', label: 'No specific view' },
+];
+
+const ZONE_OPTIONS = [
+  { value: '', label: 'Select property zone' },
+  { value: 'residential', label: 'Residential' },
+  { value: 'agricultural', label: 'Agricultural' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'industrial', label: 'Industrial' },
+  { value: 'recreational', label: 'Recreational' },
+  { value: 'unincorporated', label: 'Unincorporated' },
+];
+
+const HEATING_TYPE_OPTIONS = [
+  { value: '', label: 'Select heating type' },
+  { value: 'autonomous', label: 'Autonomous' },
+  { value: 'central', label: 'Central' },
+  { value: 'none', label: 'None' },
+];
+
+const HEATING_MEDIUM_OPTIONS = [
+  { value: '', label: 'Select heating medium' },
+  { value: 'petrol', label: 'Petrol' },
+  { value: 'natural gas', label: 'Natural gas' },
+  { value: 'gas heating system', label: 'Gas heating system' },
+  { value: 'current', label: 'Electric current' },
+  { value: 'stove', label: 'Stove' },
+  { value: 'thermal accumulator', label: 'Thermal accumulator' },
+  { value: 'pellet', label: 'Pellet' },
+  { value: 'infrared', label: 'Infrared' },
+  { value: 'fan coil', label: 'Fan coil' },
+  { value: 'wood', label: 'Wood' },
+  { value: 'teleheating', label: 'Teleheating' },
+  { value: 'geothermal energy', label: 'Geothermal energy' },
+];
+
+const OTHER_HEATING_OPTIONS = [
+  { value: 'Air condition', label: 'Air condition' },
+  { value: 'Underfloor heating', label: 'Underfloor heating' },
+  { value: 'Night power', label: 'Night power' },
+];
+
+const LIFESTYLE_FEATURES = [
+  { value: 'Secure door', label: 'Secure door' },
+  { value: 'Alarm', label: 'Alarm' },
+  { value: 'Fireplace', label: 'Fireplace' },
+  { value: 'Balcony', label: 'Balcony' },
+  { value: 'Internal staircase', label: 'Internal staircase' },
+  { value: 'Garden', label: 'Garden' },
+  { value: 'Swimming pool', label: 'Swimming pool' },
+  { value: 'Playroom', label: 'Playroom' },
+  { value: 'Attic', label: 'Attic' },
+  { value: 'Solar water heating', label: 'Solar water heating' },
+  { value: 'Suitable for students', label: 'Suitable for students' },
+  { value: 'Renovated', label: 'Renovated' },
+  { value: 'Luxurious', label: 'Luxurious' },
+  { value: 'Unfinished', label: 'Unfinished' },
+  { value: 'Under construction', label: 'Under construction' },
+  { value: 'Neoclassical', label: 'Neoclassical' },
+];
+
+const ENERGY_CLASS_OPTIONS = [
+  { value: '', label: 'Select energy class' },
+  { value: 'A+', label: 'A+' },
+  { value: 'A', label: 'A' },
+  { value: 'B+', label: 'B+' },
+  { value: 'B', label: 'B' },
+  { value: 'C', label: 'C' },
+  { value: 'D', label: 'D' },
+  { value: 'E', label: 'E' },
+  { value: 'F', label: 'F' },
+  { value: 'G', label: 'G' },
+];
+
+const GOOGLE_LIBRARIES = ['places'];
+const MAP_LOADER_ID = 'add-property-map';
+const MAP_CONTAINER_STYLE = { width: '100%', height: '320px' };
+const DEFAULT_CENTER = { lat: 37.9838, lng: 23.7275 };
+
+const PHASES = [
+  { key: 'overview', label: 'Listing overview' },
+  { key: 'location', label: 'Location' },
+  { key: 'main', label: 'Main characteristics' },
+  { key: 'features', label: 'Features & amenities' },
+  { key: 'media', label: 'Media & description' },
+  { key: 'contact', label: 'Contact details' },
+];
+
+const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
 
 export default function AddProperty() {
   const { user } = useAuth();
@@ -37,44 +148,82 @@ export default function AddProperty() {
     type: 'rent',
     status: 'available',
     squareMeters: '',
+    plotSize: '',
+    floor: '',
+    onTopFloor: false,
+    orientation: '',
     bedrooms: '',
     bathrooms: '',
+    wc: '',
+    kitchens: '',
+    livingRooms: '',
     propertyType: 'apartment',
+    yearBuilt: '',
+    parkingSpaces: '',
     furnished: false,
     hasParking: false,
+    hasElevator: false,
+    hasStorage: false,
     petsAllowed: false,
     smokingAllowed: false,
-    heating: '',
-    amenitiesInput: '',
-    yearBuilt: '', // 🆕 new field
-  });
-
-  const [tenantReqs, setTenantReqs] = useState({
-    minTenantSalary: '',
-    allowedOccupations: '',
-    minTenantAge: '',
-    maxTenantAge: '',
-    maxHouseholdSize: '',
-    roommatePreference: 'any',
-    familyStatus: 'any',
-    petsAllowed: false,
-    smokingAllowed: false,
-    notes: '',
+    view: '',
+    propertyZone: '',
+    heatingType: '',
+    heatingMedium: '',
+    energyClass: '',
+    monthlyCommonExpenses: '',
+    dateAvailable: '',
+    videoUrl: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: '',
   });
 
   const [images, setImages] = useState([]);
   const [floorPlan, setFloorPlan] = useState(null);
+  const [featureTags, setFeatureTags] = useState([]);
+  const [currentPhase, setCurrentPhase] = useState(0);
+  const [latLng, setLatLng] = useState(null);
+  const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
+  const [map, setMap] = useState(null);
+  const searchBoxRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
+  const apiKey =
+    process.env.REACT_APP_GOOGLE_MAPS_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    '';
+
+  const loaderConfig = apiKey
+    ? { id: MAP_LOADER_ID, googleMapsApiKey: apiKey, libraries: GOOGLE_LIBRARIES }
+    : { id: MAP_LOADER_ID, libraries: GOOGLE_LIBRARIES };
+
+  const { isLoaded: mapLoaded } = useJsApiLoader(loaderConfig);
+
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  const onReqsChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setTenantReqs((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+  const toggleFeatureTag = (value) => {
+    setFeatureTags((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    );
+  };
+
+  const validatePhase = (phaseIndex) => {
+    if (phaseIndex === 0) {
+      if (!form.title.trim()) return 'Title is required.';
+      if (!form.city.trim()) return 'City is required.';
+      if (!form.price || Number(form.price) <= 0)
+        return 'Please provide a valid positive price.';
+    }
+    if (phaseIndex === PHASES.length - 1) {
+      if (!form.contactName.trim()) return 'Contact name is required.';
+      if (!form.contactPhone.trim()) return 'Contact phone is required.';
+    }
+    return null;
   };
 
   const validate = () => {
@@ -82,27 +231,34 @@ export default function AddProperty() {
     if (!form.title.trim()) return 'Title is required.';
     if (!form.city.trim()) return 'City is required.';
     if (!Number.isFinite(priceNum) || priceNum <= 0) return 'Price must be a positive number.';
+    if (!form.contactName.trim()) return 'Contact name is required.';
+    if (!form.contactPhone.trim()) return 'Contact phone is required.';
 
     const beds = toNumOrUndef(form.bedrooms);
     const baths = toNumOrUndef(form.bathrooms);
     const sqm = toNumOrUndef(form.squareMeters);
     const year = toNumOrUndef(form.yearBuilt);
+    const floorNum = toNumOrUndef(form.floor);
+    const wcNum = toNumOrUndef(form.wc);
+    const kitchensNum = toNumOrUndef(form.kitchens);
+    const livingRoomsNum = toNumOrUndef(form.livingRooms);
+    const parkingSpacesNum = toNumOrUndef(form.parkingSpaces);
+    const maintenanceFee = toNumOrUndef(form.monthlyCommonExpenses);
 
     if (beds !== undefined && beds < 0) return 'Bedrooms cannot be negative.';
     if (baths !== undefined && baths < 0) return 'Bathrooms cannot be negative.';
     if (sqm !== undefined && sqm <= 0) return 'Square meters must be positive.';
     if (year !== undefined && (year < 1800 || year > new Date().getFullYear()))
       return 'Please enter a valid construction year.';
-
-    const minAge = toNumOrUndef(tenantReqs.minTenantAge);
-    const maxAge = toNumOrUndef(tenantReqs.maxTenantAge);
-    const maxHouseholdSize = toNumOrUndef(tenantReqs.maxHouseholdSize);
-    if (minAge !== undefined && minAge < 18) return 'Minimum tenant age must be at least 18.';
-    if (maxAge !== undefined && maxAge < 18) return 'Maximum tenant age must be at least 18.';
-    if (minAge !== undefined && maxAge !== undefined && maxAge < minAge)
-      return 'Maximum tenant age must be greater than or equal to minimum tenant age.';
-    if (maxHouseholdSize !== undefined && maxHouseholdSize <= 0)
-      return 'Maximum household size must be a positive number.';
+    if (floorNum !== undefined && floorNum < 0) return 'Floor cannot be negative.';
+    if (wcNum !== undefined && wcNum < 0) return 'WC count cannot be negative.';
+    if (kitchensNum !== undefined && kitchensNum < 0) return 'Kitchens cannot be negative.';
+    if (livingRoomsNum !== undefined && livingRoomsNum < 0)
+      return 'Living rooms cannot be negative.';
+    if (parkingSpacesNum !== undefined && parkingSpacesNum < 0)
+      return 'Parking spaces cannot be negative.';
+    if (maintenanceFee !== undefined && maintenanceFee < 0)
+      return 'Monthly common expenses cannot be negative.';
 
     return null;
   };
@@ -116,14 +272,15 @@ export default function AddProperty() {
     setSaving(true);
     try {
       const fd = new FormData();
-
       fd.append('title', form.title.trim());
       if (form.description) fd.append('description', form.description);
       if (form.address) fd.append('address', form.address);
+      if (form.propertyType) {
+        fd.append('propertyCategory', form.propertyType);
+        fd.append('propertyType', form.propertyType);
+      }
 
-      const displayLocation = [form.city.trim(), form.area.trim()]
-        .filter(Boolean)
-        .join(', ');
+      const displayLocation = [form.city.trim(), form.area.trim()].filter(Boolean).join(', ');
       fd.append('location', displayLocation);
 
       fd.append('price', form.price);
@@ -131,52 +288,128 @@ export default function AddProperty() {
       fd.append('status', form.status);
 
       if (form.squareMeters) fd.append('squareMeters', form.squareMeters);
+      if (form.plotSize) fd.append('plotSize', form.plotSize);
+      if (form.floor) fd.append('floor', form.floor);
+      fd.append('onTopFloor', form.onTopFloor);
+      if (form.orientation) fd.append('orientation', form.orientation);
       if (form.bedrooms) fd.append('bedrooms', form.bedrooms);
       if (form.bathrooms) fd.append('bathrooms', form.bathrooms);
-      if (form.propertyType) fd.append('propertyType', form.propertyType);
-      if (form.heating) fd.append('heating', form.heating);
-      if (form.yearBuilt) fd.append('yearBuilt', form.yearBuilt); // 🆕 send to backend
+      if (form.wc) fd.append('wc', form.wc);
+      if (form.kitchens) fd.append('kitchens', form.kitchens);
+      if (form.livingRooms) fd.append('livingRooms', form.livingRooms);
+      if (form.parkingSpaces) fd.append('parkingSpaces', form.parkingSpaces);
+      if (form.heatingType) fd.append('heatingType', form.heatingType);
+      if (form.heatingMedium) fd.append('heatingMedium', form.heatingMedium);
+      if (form.energyClass) fd.append('energyClass', form.energyClass);
+      if (form.yearBuilt) fd.append('yearBuilt', form.yearBuilt);
+      if (form.propertyZone) fd.append('zone', form.propertyZone);
+      if (form.monthlyCommonExpenses)
+        fd.append('monthlyMaintenanceFee', form.monthlyCommonExpenses);
+      if (form.dateAvailable) fd.append('availableFrom', form.dateAvailable);
+      if (form.view) fd.append('view', form.view);
+      if (form.videoUrl) fd.append('videoUrl', form.videoUrl);
+      if (form.contactName) fd.append('contactName', form.contactName);
+      if (form.contactPhone) fd.append('contactPhone', form.contactPhone);
+      if (form.contactEmail) fd.append('contactEmail', form.contactEmail);
 
       fd.append('furnished', form.furnished);
       fd.append('petsAllowed', form.petsAllowed);
       fd.append('smokingAllowed', form.smokingAllowed);
       fd.append('parking', form.hasParking);
+      fd.append('hasElevator', form.hasElevator);
+      fd.append('hasStorage', form.hasStorage);
 
-      const features = (form.amenitiesInput || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (features.length) fd.append('features', features.join(','));
+      if (form.hasParking && !form.parkingSpaces) {
+        fd.append('parkingSpaces', '1');
+      }
 
-      // tenant requirements
-      if (tenantReqs.minTenantSalary) fd.append('minTenantSalary', tenantReqs.minTenantSalary);
-      if (tenantReqs.allowedOccupations)
-        fd.append('allowedOccupations', tenantReqs.allowedOccupations);
-      if (tenantReqs.familyStatus && tenantReqs.familyStatus !== 'any')
-        fd.append('familyStatus', tenantReqs.familyStatus);
-      fd.append('tenantRequirements_petsAllowed', tenantReqs.petsAllowed);
-      fd.append('tenantRequirements_smokingAllowed', tenantReqs.smokingAllowed);
-      if (tenantReqs.minTenantAge) fd.append('minTenantAge', tenantReqs.minTenantAge);
-      if (tenantReqs.maxTenantAge) fd.append('maxTenantAge', tenantReqs.maxTenantAge);
-      if (tenantReqs.maxHouseholdSize)
-        fd.append('maxHouseholdSize', tenantReqs.maxHouseholdSize);
-      if (tenantReqs.roommatePreference && tenantReqs.roommatePreference !== 'any')
-        fd.append('roommatePreference', tenantReqs.roommatePreference);
-      if (tenantReqs.notes) fd.append('tenantRequirements_notes', tenantReqs.notes);
+      const featureSet = new Set(featureTags);
+
+      if (form.propertyZone) {
+        const zoneLabel = ZONE_OPTIONS.find((option) => option.value === form.propertyZone)?.label;
+        if (zoneLabel) featureSet.add(`Zone: ${zoneLabel}`);
+      }
+
+      if (form.heatingMedium) {
+        const mediumLabel = HEATING_MEDIUM_OPTIONS.find(
+          (option) => option.value === form.heatingMedium
+        )?.label;
+        if (mediumLabel) featureSet.add(`Heating medium: ${mediumLabel}`);
+      }
+
+      if (form.energyClass) {
+        const energyLabel = ENERGY_CLASS_OPTIONS.find(
+          (option) => option.value === form.energyClass
+        )?.label;
+        if (energyLabel) featureSet.add(`Energy class: ${energyLabel}`);
+      }
+
+      if (form.dateAvailable) {
+        featureSet.add(`Available from: ${form.dateAvailable}`);
+      }
+
+      if (featureSet.size > 0) {
+        fd.append('features', Array.from(featureSet).join(','));
+      }
 
       images.forEach((file) => fd.append('images', file));
       if (floorPlan) fd.append('floorPlanImage', floorPlan);
 
-      await api.post('/properties', fd);
+      if (latLng) {
+        fd.append('latitude', latLng.lat);
+        fd.append('longitude', latLng.lng);
+      }
 
+      await api.post('/properties', fd);
       setMsg('Property created!');
       navigate('/dashboard', { replace: true });
-    } catch (err) {
-      console.error('create property failed', err);
-      setMsg(err?.response?.data?.message || 'Failed to create property');
+    } catch (error) {
+      console.error('create property failed', error);
+      setMsg(error?.response?.data?.message || 'Failed to create property');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleNextPhase = () => {
+    const err = validatePhase(currentPhase);
+    if (err) {
+      setMsg(err);
+      return;
+    }
+    setMsg('');
+    setCurrentPhase((prev) => Math.min(prev + 1, PHASES.length - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevPhase = () => {
+    setMsg('');
+    setCurrentPhase((prev) => Math.max(prev - 1, 0));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const onPlacesChanged = () => {
+    if (!searchBoxRef.current) return;
+    const places = searchBoxRef.current.getPlaces();
+    if (!places || !places.length) return;
+    const place = places[0];
+    if (!place) return;
+    const location = place.geometry?.location;
+    if (location) {
+      const coords = { lat: location.lat(), lng: location.lng() };
+      setLatLng(coords);
+      setMapCenter(coords);
+      if (map) map.panTo(coords);
+    }
+    if (place.formatted_address) {
+      setForm((prev) => (prev.address ? prev : { ...prev, address: place.formatted_address }));
+    }
+  };
+
+  const onMapClick = (event) => {
+    const coords = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+    setLatLng(coords);
+    setMapCenter(coords);
   };
 
   if (!user || user.role !== 'owner') {
@@ -188,6 +421,8 @@ export default function AddProperty() {
       </div>
     );
   }
+
+  const isLastPhase = currentPhase === PHASES.length - 1;
 
   return (
     <div className="add-property-container">
@@ -202,6 +437,20 @@ export default function AddProperty() {
             </p>
           </div>
 
+          <div className="phase-progress mb-4">
+            {PHASES.map((phase, index) => (
+              <div
+                key={phase.key}
+                className={`phase-step ${
+                  index === currentPhase ? 'active' : index < currentPhase ? 'completed' : ''
+                }`}
+              >
+                <span className="step-index">{index + 1}</span>
+                <span className="step-label">{phase.label}</span>
+              </div>
+            ))}
+          </div>
+
           {msg && (
             <div
               className={`alert ${
@@ -213,322 +462,743 @@ export default function AddProperty() {
           )}
 
           <Form onSubmit={submit} noValidate className="add-property-form">
-            <section className="add-property-section">
-              <header className="section-header">
-                <h5 className="section-title mb-1">Listing Overview</h5>
-                <p className="section-description mb-0">
-                  Basic information that helps clients discover your property during matching.
-                </p>
-              </header>
+            {currentPhase === 0 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Listing Overview</h5>
+                  <p className="section-description mb-0">
+                    Basic information that helps clients discover your property during matching.
+                  </p>
+                </header>
 
-              {/* Title + Type */}
-              <Row className="g-3">
-                <Col md={8}>
-                  <Form.Group controlId="title">
-                    <Form.Label className="field-label">
-                      Title <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      name="title"
-                      value={form.title}
-                      onChange={onChange}
-                      placeholder="e.g., Bright 2-bedroom apartment in Athens"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="listing-type">
-                    <Form.Label className="field-label">Listing Type</Form.Label>
-                    <Form.Select name="type" value={form.type} onChange={onChange}>
-                      <option value="rent">Rent</option>
-                      <option value="sale">Sale</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row className="g-3">
+                  <Col md={8}>
+                    <Form.Group controlId="title">
+                      <Form.Label className="field-label">
+                        Title <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        name="title"
+                        value={form.title}
+                        onChange={onChange}
+                        placeholder="e.g., Bright 2-bedroom apartment in Athens"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="listing-type">
+                      <Form.Label className="field-label">Listing Type</Form.Label>
+                      <Form.Select name="type" value={form.type} onChange={onChange}>
+                        <option value="rent">Rent</option>
+                        <option value="sale">Sale</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-              {/* City + Area */}
-              <Row className="g-3">
-                <Col md={6}>
-                  <Form.Group controlId="city">
-                    <Form.Label className="field-label">
-                      City <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      name="city"
-                      value={form.city}
-                      onChange={onChange}
-                      placeholder="e.g., Athens"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group controlId="area">
-                    <Form.Label className="field-label">Area (optional)</Form.Label>
-                    <Form.Control
-                      name="area"
-                      value={form.area}
-                      onChange={onChange}
-                      placeholder="e.g., Koukaki"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="propertyType">
+                      <Form.Label className="field-label">
+                        Property Type <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Select name="propertyType" value={form.propertyType} onChange={onChange}>
+                        {PROPERTY_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="status">
+                      <Form.Label className="field-label">Status</Form.Label>
+                      <Form.Select name="status" value={form.status} onChange={onChange}>
+                        <option value="available">Available</option>
+                        <option value="rented">Rented</option>
+                        <option value="sold">Sold</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-              {/* Address + Status */}
-              <Row className="g-3">
-                <Col md={8}>
-                  <Form.Group controlId="address">
-                    <Form.Label className="field-label">Address (optional)</Form.Label>
-                    <Form.Control
-                      name="address"
-                      value={form.address}
-                      onChange={onChange}
-                      placeholder="Street & number"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="status">
-                    <Form.Label className="field-label">Status</Form.Label>
-                    <Form.Select name="status" value={form.status} onChange={onChange}>
-                      <option value="available">Available</option>
-                      <option value="rented">Rented</option>
-                      <option value="sold">Sold</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="price">
+                      <Form.Label className="field-label">
+                        {form.type === 'sale' ? 'Price (€)' : 'Rent (€)'}{' '}
+                        <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="1"
+                        step="1"
+                        name="price"
+                        value={form.price}
+                        onChange={onChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="squareMeters">
+                      <Form.Label className="field-label">Property area (m²)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="squareMeters"
+                        value={form.squareMeters}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="plotSize">
+                      <Form.Label className="field-label">Lot area size (m²)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="plotSize"
+                        value={form.plotSize}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-              {/* Price + sqm + property type */}
-              <Row className="g-3">
-                <Col md={4}>
-                  <Form.Group controlId="price">
-                    <Form.Label className="field-label">
-                      {form.type === 'sale' ? 'Price (€)' : 'Rent (€)'}{' '}
-                      <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="1"
-                      step="1"
-                      name="price"
-                      value={form.price}
-                      onChange={onChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="squareMeters">
-                    <Form.Label className="field-label">Square meters</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      step="1"
-                      name="squareMeters"
-                      value={form.squareMeters}
-                      onChange={onChange}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="propertyType">
-                    <Form.Label className="field-label">Property Type</Form.Label>
-                    <Form.Select name="propertyType" value={form.propertyType} onChange={onChange}>
-                      <option value="">Any</option>
-                      <option value="apartment">Apartment</option>
-                      <option value="studio">Studio</option>
-                      <option value="house">House</option>
-                      <option value="maisonette">Maisonette</option>
-                      <option value="loft">Loft</option>
-                      <option value="duplex">Duplex</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="city">
+                      <Form.Label className="field-label">
+                        City <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        name="city"
+                        value={form.city}
+                        onChange={onChange}
+                        placeholder="e.g., Athens"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="area">
+                      <Form.Label className="field-label">Area</Form.Label>
+                      <Form.Control
+                        name="area"
+                        value={form.area}
+                        onChange={onChange}
+                        placeholder="e.g., Koukaki"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="address">
+                      <Form.Label className="field-label">Street address</Form.Label>
+                      <Form.Control
+                        name="address"
+                        value={form.address}
+                        onChange={onChange}
+                        placeholder="Street & number"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-              {/* Year built + rooms + heating */}
-              <Row className="g-3">
-                <Col md={4}>
-                  <Form.Group controlId="yearBuilt">
-                    <Form.Label className="field-label">Year built (optional)</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="yearBuilt"
-                      min="1800"
-                      max={new Date().getFullYear()}
-                      value={form.yearBuilt}
-                      onChange={onChange}
-                      placeholder="e.g., 1998"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="bedrooms">
-                    <Form.Label className="field-label">Bedrooms</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      step="1"
-                      name="bedrooms"
-                      value={form.bedrooms}
-                      onChange={onChange}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group controlId="bathrooms">
-                    <Form.Label className="field-label">Bathrooms</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      step="1"
-                      name="bathrooms"
-                      value={form.bathrooms}
-                      onChange={onChange}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="yearBuilt">
+                      <Form.Label className="field-label">Construction year</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="yearBuilt"
+                        min="1800"
+                        max={new Date().getFullYear()}
+                        value={form.yearBuilt}
+                        onChange={onChange}
+                        placeholder="e.g., 1998"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="dateAvailable">
+                      <Form.Label className="field-label">Date available</Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="dateAvailable"
+                        value={form.dateAvailable}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="propertyZone">
+                      <Form.Label className="field-label">Property zone</Form.Label>
+                      <Form.Select
+                        name="propertyZone"
+                        value={form.propertyZone}
+                        onChange={onChange}
+                      >
+                        {ZONE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </section>
+            )}
 
-              {/* Heating */}
-              <Row className="g-3">
-                <Col md={6}>
-                  <Form.Group controlId="heating">
-                    <Form.Label className="field-label">Heating (optional)</Form.Label>
-                    <Form.Control
-                      name="heating"
-                      value={form.heating}
-                      onChange={onChange}
-                      placeholder="e.g., natural gas, heat pump"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+            {currentPhase === 1 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Property Location</h5>
+                  <p className="section-description mb-0">
+                    Pin the property on the map to help interested tenants understand where it is
+                    located.
+                  </p>
+                </header>
 
-              {/* Checkboxes */}
-              <Row className="g-3 align-items-center mt-2">
-                <Col sm={3}>
-                  <Form.Check
-                    id="furnished"
-                    label="Furnished"
-                    name="furnished"
-                    checked={form.furnished}
+                <Form.Group controlId="searchLocation" className="mb-3">
+                  <Form.Label className="field-label">Search address</Form.Label>
+                  {apiKey ? (
+                    mapLoaded ? (
+                      <StandaloneSearchBox
+                        onLoad={(ref) => {
+                          searchBoxRef.current = ref;
+                        }}
+                        onPlacesChanged={onPlacesChanged}
+                      >
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Street, number, area"
+                        />
+                      </StandaloneSearchBox>
+                    ) : (
+                      <Form.Control disabled placeholder="Loading map…" />
+                    )
+                  ) : (
+                    <Form.Control
+                      disabled
+                      placeholder="Enable Google Maps by setting an API key"
+                    />
+                  )}
+                </Form.Group>
+
+                <div className="small text-muted mb-2">
+                  Click on the map to pin the exact location of the property.
+                </div>
+
+                <div className="map-wrapper mb-3">
+                  {apiKey ? (
+                    mapLoaded ? (
+                      <GoogleMap
+                        onLoad={(instance) => setMap(instance)}
+                        mapContainerStyle={MAP_CONTAINER_STYLE}
+                        center={mapCenter}
+                        zoom={latLng ? 14 : 11}
+                        onClick={onMapClick}
+                        options={{ disableDefaultUI: true, zoomControl: true }}
+                      >
+                        {latLng && <Marker position={latLng} />}
+                      </GoogleMap>
+                    ) : (
+                      <div className="d-flex align-items-center justify-content-center h-100">
+                        Loading map…
+                      </div>
+                    )
+                  ) : (
+                    <div className="d-flex align-items-center justify-content-center h-100">
+                      Google Maps disabled (missing API key)
+                    </div>
+                  )}
+                </div>
+
+                <Row className="g-2" style={{ maxWidth: 420 }}>
+                  <Col>
+                    <Form.Control
+                      value={latLng?.lat ?? ''}
+                      readOnly
+                      placeholder="Latitude"
+                    />
+                  </Col>
+                  <Col>
+                    <Form.Control
+                      value={latLng?.lng ?? ''}
+                      readOnly
+                      placeholder="Longitude"
+                    />
+                  </Col>
+                </Row>
+              </section>
+            )}
+
+            {currentPhase === 2 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Main characteristics</h5>
+                  <p className="section-description mb-0">
+                    Share details about the interior layout to help tenants understand if it fits
+                    their needs.
+                  </p>
+                </header>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="floor">
+                      <Form.Label className="field-label">Floor</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="floor"
+                        min="0"
+                        value={form.floor}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Form.Check
+                      id="onTopFloor"
+                      label="Is on top floor"
+                      name="onTopFloor"
+                      checked={form.onTopFloor}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="orientation">
+                      <Form.Label className="field-label">Orientation</Form.Label>
+                      <Form.Select
+                        name="orientation"
+                        value={form.orientation}
+                        onChange={onChange}
+                      >
+                        {ORIENTATION_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="bedrooms">
+                      <Form.Label className="field-label">Bedrooms</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="bedrooms"
+                        value={form.bedrooms}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="bathrooms">
+                      <Form.Label className="field-label">Bathrooms</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="bathrooms"
+                        value={form.bathrooms}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="wc">
+                      <Form.Label className="field-label">WC</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="wc"
+                        value={form.wc}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="kitchens">
+                      <Form.Label className="field-label">Kitchens</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="kitchens"
+                        value={form.kitchens}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="livingRooms">
+                      <Form.Label className="field-label">Living rooms</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="livingRooms"
+                        value={form.livingRooms}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="view">
+                      <Form.Label className="field-label">View</Form.Label>
+                      <Form.Select name="view" value={form.view} onChange={onChange}>
+                        {VIEW_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="parkingSpaces">
+                      <Form.Label className="field-label">Parking spaces</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="parkingSpaces"
+                        value={form.parkingSpaces}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </section>
+            )}
+
+            {currentPhase === 3 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Features & amenities</h5>
+                  <p className="section-description mb-0">
+                    Highlight amenities and heating details that make the property stand out.
+                  </p>
+                </header>
+
+                <Row className="g-3">
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="furnished"
+                      label="Furnished"
+                      name="furnished"
+                      checked={form.furnished}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="hasParking"
+                      label="Parking"
+                      name="hasParking"
+                      checked={form.hasParking}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="hasElevator"
+                      label="Elevator"
+                      name="hasElevator"
+                      checked={form.hasElevator}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="hasStorage"
+                      label="Storage"
+                      name="hasStorage"
+                      checked={form.hasStorage}
+                      onChange={onChange}
+                    />
+                  </Col>
+                </Row>
+
+                <Row className="g-3 mt-1">
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="petsAllowed"
+                      label="Pets allowed"
+                      name="petsAllowed"
+                      checked={form.petsAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                  <Col md={3} sm={6} xs={6}>
+                    <Form.Check
+                      id="smokingAllowed"
+                      label="Smoking allowed"
+                      name="smokingAllowed"
+                      checked={form.smokingAllowed}
+                      onChange={onChange}
+                    />
+                  </Col>
+                </Row>
+
+                <hr className="my-4" />
+
+                <Row className="g-3">
+                  <Col md={4}>
+                    <Form.Group controlId="heatingType">
+                      <Form.Label className="field-label">Heating type</Form.Label>
+                      <Form.Select
+                        name="heatingType"
+                        value={form.heatingType}
+                        onChange={onChange}
+                      >
+                        {HEATING_TYPE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="heatingMedium">
+                      <Form.Label className="field-label">Heating medium</Form.Label>
+                      <Form.Select
+                        name="heatingMedium"
+                        value={form.heatingMedium}
+                        onChange={onChange}
+                      >
+                        {HEATING_MEDIUM_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group controlId="energyClass">
+                      <Form.Label className="field-label">Energy class</Form.Label>
+                      <Form.Select
+                        name="energyClass"
+                        value={form.energyClass}
+                        onChange={onChange}
+                      >
+                        {ENERGY_CLASS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="g-3 mt-1">
+                  {OTHER_HEATING_OPTIONS.map((option) => (
+                    <Col md={4} sm={6} xs={6} key={option.value}>
+                      <Form.Check
+                        type="checkbox"
+                        id={`heating-${option.value}`}
+                        label={option.label}
+                        checked={featureTags.includes(option.label)}
+                        onChange={() => toggleFeatureTag(option.label)}
+                      />
+                    </Col>
+                  ))}
+                </Row>
+
+                <hr className="my-4" />
+
+                <Row className="g-3">
+                  {LIFESTYLE_FEATURES.map((feature) => (
+                    <Col md={4} sm={6} xs={6} key={feature.value}>
+                      <Form.Check
+                        type="checkbox"
+                        id={feature.value}
+                        label={feature.label}
+                        checked={featureTags.includes(feature.label)}
+                        onChange={() => toggleFeatureTag(feature.label)}
+                      />
+                    </Col>
+                  ))}
+                </Row>
+
+                <Row className="g-3 mt-1">
+                  <Col md={6}>
+                    <Form.Group controlId="monthlyCommonExpenses">
+                      <Form.Label className="field-label">Monthly common expenses (€)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        name="monthlyCommonExpenses"
+                        value={form.monthlyCommonExpenses}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </section>
+            )}
+
+            {currentPhase === 4 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Media & description</h5>
+                  <p className="section-description mb-0">
+                    Upload visuals and describe the property and neighborhood advantages.
+                  </p>
+                </header>
+
+                <Form.Group className="mb-3" controlId="description">
+                  <Form.Label className="field-label">Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    name="description"
+                    value={form.description}
                     onChange={onChange}
+                    placeholder="Provide more information about the property and neighborhood advantages."
                   />
-                </Col>
-                <Col sm={3}>
-                  <Form.Check
-                    id="hasParking"
-                    label="Parking"
-                    name="hasParking"
-                    checked={form.hasParking}
+                </Form.Group>
+
+                <Form.Group controlId="propertyImages" className="mb-3">
+                  <Form.Label className="field-label">Images</Form.Label>
+                  <Form.Control
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setImages(Array.from(e.target.files || []))}
+                  />
+                  {images.length === 0 && (
+                    <Form.Text className="text-muted">
+                      Adding at least one photo improves visibility in the client dashboard.
+                    </Form.Text>
+                  )}
+                </Form.Group>
+
+                <Form.Group controlId="floorPlan" className="mb-3">
+                  <Form.Label className="field-label">Floor plan (optional)</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
+                  />
+                </Form.Group>
+
+                <Form.Group controlId="videoUrl">
+                  <Form.Label className="field-label">Video tour URL</Form.Label>
+                  <Form.Control
+                    type="url"
+                    name="videoUrl"
+                    value={form.videoUrl}
                     onChange={onChange}
+                    placeholder="Paste a YouTube or Vimeo link"
                   />
-                </Col>
-                <Col sm={3}>
-                  <Form.Check
-                    id="petsAllowed"
-                    label="Pets allowed"
-                    name="petsAllowed"
-                    checked={form.petsAllowed}
-                    onChange={onChange}
-                  />
-                </Col>
-                <Col sm={3}>
-                  <Form.Check
-                    id="smokingAllowed"
-                    label="Smoking allowed"
-                    name="smokingAllowed"
-                    checked={form.smokingAllowed}
-                    onChange={onChange}
-                  />
-                </Col>
-              </Row>
+                </Form.Group>
+              </section>
+            )}
 
-                        <Form.Group className="mt-3" controlId="amenities">
-            <Form.Label className="field-label">Amenities</Form.Label>
-            <Row className="g-2">
-              {AMENITY_OPTIONS.map((amenity) => (
-                <Col xs={6} md={4} key={amenity}>
-                  <Form.Check
-                    type="checkbox"
-                    label={amenity}
-                    checked={(form.amenitiesInput || '').split(',').includes(amenity)}
-                    onChange={(e) => {
-                      const selected = new Set((form.amenitiesInput || '').split(',').filter(Boolean));
-                      if (e.target.checked) selected.add(amenity);
-                      else selected.delete(amenity);
-                      setForm((prev) => ({
-                        ...prev,
-                        amenitiesInput: Array.from(selected).join(','),
-                      }));
-                    }}
-                  />
-                </Col>
-              ))}
-            </Row>
-            <Form.Text className="text-muted">
-              Select all amenities that apply to this property.
-            </Form.Text>
-          </Form.Group>
+            {currentPhase === 5 && (
+              <section className="add-property-section">
+                <header className="section-header">
+                  <h5 className="section-title mb-1">Contact details</h5>
+                  <p className="section-description mb-0">
+                    Provide the contact details that interested clients should use.
+                  </p>
+                </header>
 
-              {/* Description */}
-              <Form.Group className="mt-3" controlId="description">
-                <Form.Label className="field-label">Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={4}
-                  name="description"
-                  value={form.description}
-                  onChange={onChange}
-                  placeholder="Highlight what makes this property great for your ideal tenant."
-                />
-              </Form.Group>
-            </section>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="contactName">
+                      <Form.Label className="field-label">
+                        Contact name <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        name="contactName"
+                        value={form.contactName}
+                        onChange={onChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group controlId="contactPhone">
+                      <Form.Label className="field-label">
+                        Contact phone <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        name="contactPhone"
+                        value={form.contactPhone}
+                        onChange={onChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-            {/* Tenant fit + media stay identical */}
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group controlId="contactEmail">
+                      <Form.Label className="field-label">Contact email</Form.Label>
+                      <Form.Control
+                        type="email"
+                        name="contactEmail"
+                        value={form.contactEmail}
+                        onChange={onChange}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </section>
+            )}
 
-            <section className="add-property-section">
-              <header className="section-header">
-                <h5 className="section-title mb-1">Media</h5>
-                <p className="section-description mb-0">
-                  Upload visuals that help clients fall in love with your property.
-                </p>
-              </header>
+            <div className="phase-navigation">
+              {currentPhase > 0 && (
+                <Button
+                  type="button"
+                  variant="outline-secondary"
+                  className="rounded-pill px-4"
+                  onClick={handlePrevPhase}
+                  disabled={saving}
+                >
+                  Back
+                </Button>
+              )}
 
-              <Form.Group controlId="propertyImages" className="mb-3">
-                <Form.Label className="field-label">Images</Form.Label>
-                <Form.Control
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => setImages(Array.from(e.target.files || []))}
-                />
-                {images.length === 0 && (
-                  <Form.Text className="text-muted">
-                    Adding at least one photo improves visibility in the client dashboard.
-                  </Form.Text>
-                )}
-              </Form.Group>
-
-              <Form.Group controlId="floorPlan" className="mb-0">
-                <Form.Label className="field-label">Floor plan (optional)</Form.Label>
-                <Form.Control
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => setFloorPlan(e.target.files?.[0] || null)}
-                />
-              </Form.Group>
-            </section>
-
-            <div className="d-flex justify-content-end mt-4">
-              <Button type="submit" className="btn-onboarding-next" disabled={saving}>
-                {saving ? 'Saving…' : 'Create listing'}
-              </Button>
+              {!isLastPhase ? (
+                <Button
+                  type="button"
+                  className="btn-onboarding-next"
+                  onClick={handleNextPhase}
+                  disabled={saving}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button type="submit" className="btn-onboarding-next" disabled={saving}>
+                  {saving ? 'Saving…' : 'Create listing'}
+                </Button>
+              )}
             </div>
           </Form>
         </Card.Body>
