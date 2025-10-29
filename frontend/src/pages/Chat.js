@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
@@ -67,6 +67,34 @@ const assetUrl = (src, fallback) => {
   return `${API_ORIGIN}${normalizeUploadPath(src)}`;
 };
 
+const iconForType = (t) => {
+  switch (t) {
+    case 'appointment':
+      return '📅';
+    case 'favorite':
+      return '⭐';
+    case 'property_removed':
+      return '🏠❌';
+    case 'message':
+      return '💬';
+    default:
+      return '🔔';
+  }
+};
+
+const titleForNote = (n) => {
+  if (n?.message) return n.message;
+  switch (n?.type) {
+    case 'favorite':
+      return `${n?.senderId?.name || 'Someone'} added your property to favorites.`;
+    case 'property_removed':
+      return 'A property you interacted with was removed.';
+    case 'message':
+      return 'New message received.';
+    default:
+      return 'Notification';
+  }
+};
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
   const { user, token, logout } = useAuth();
@@ -100,7 +128,35 @@ function Chat() {
         ? user.profilePicture
         : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
+const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await api.get('/notifications');
+      const list = Array.isArray(res.data) ? res.data : [];
+      setNotifications(list);
+      setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, []);
 
+  const fetchUnreadMessages = useCallback(async () => {
+    try {
+      const msgs = await getMessages();
+      const lastCheck = localStorage.getItem('lastMessageCheck');
+      const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
+      const count = msgs.filter(
+        (m) =>
+          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
+          new Date(m.timeStamp) > lastDate
+      ).length;
+      setUnreadMessages(count);
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+      setUnreadMessages(0);
+    }
+  }, [user?.id]);
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -131,6 +187,54 @@ function Chat() {
       fetchMessages();
     }
   }, [propertyId, receiverId, token, user.id]);
+   useEffect(() => {
+    const now = new Date();
+    localStorage.setItem('lastMessageCheck', now.toISOString());
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchNotifications();
+    fetchUnreadMessages();
+
+    const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
+    api
+      .get(endpoint)
+      .then((res) => {
+        const appts = Array.isArray(res.data) ? res.data : [];
+        const hasActiveAppts = appts.some((appt) => {
+          const status = (appt.status || '').toLowerCase();
+          return status === 'pending' || status === 'confirmed';
+        });
+        setHasAppointments(hasActiveAppts);
+      })
+      .catch(() => {
+        setHasAppointments(false);
+      });
+  }, [user, fetchNotifications, fetchUnreadMessages]);
+
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(id);
+  }, [user, fetchNotifications]);
+
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(fetchUnreadMessages, 30000);
+    return () => clearInterval(id);
+  }, [user, fetchUnreadMessages]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!user?.id || !SOCKET_URL) return undefined;
@@ -316,6 +420,36 @@ function Chat() {
     navigate('/');
   };
 
+  const handleToggleNotifications = async () => {
+    const nextOpen = !showNotifications;
+    setShowNotifications(nextOpen);
+    if (nextOpen) {
+      const unread = notifications.filter((n) => !n.readAt && !n.read);
+      if (unread.length) {
+        try {
+          await Promise.all(unread.map((n) => api.patch(`/notifications/${n._id}/read`)));
+          const now = new Date().toISOString();
+          setNotifications((prev) =>
+            prev.map((n) => (unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n))
+          );
+          setUnreadCount(0);
+        } catch (err) {
+          console.error('Failed to mark notifications as read:', err);
+        }
+      }
+    }
+  };
+
+  const handleNotificationClick = (note) => {
+    if (!note) return;
+    if (note.type === 'appointment') {
+      navigate('/appointments');
+    } else if (note.referenceId) {
+      navigate(`/property/${note.referenceId}`);
+    }
+    setShowNotifications(false);
+  };
+
   const otherUserAvatar = otherUser?.profilePicture
     ? assetUrl(otherUser.profilePicture, '/default-avatar.jpg')
     : '/default-avatar.jpg';
@@ -358,10 +492,87 @@ function Chat() {
         </button>
         <div className="collapse navbar-collapse" id="navContent">
           <div className="navbar-nav ms-auto align-items-center">
-            <Link to="/messages" className="nav-link text-dark position-relative">Messages</Link>
+            <Link to="/messages" className="nav-link text-dark position-relative">
+              Messages
+              {unreadMessages > 0 && (
+                <span
+                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  style={{ fontSize: '0.65rem' }}
+                >
+                  {unreadMessages}
+                </span>
+              )}
+            </Link>
+            {user?.role === 'client' && (
+              <Link
+                to="/appointments"
+                className={`nav-link position-relative ${hasAppointments ? 'fw-semibold text-success' : 'text-dark'}`}
+              >
+                Appointments
+                {hasAppointments && (
+                  <span
+                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
+                    style={{ fontSize: '0.65rem' }}
+                  >
+                    New
+                  </span>
+                )}
+              </Link>
+            )}
             {user?.role !== 'owner' && (
               <Link to="/favorites" className="nav-link text-dark">Favorites</Link>
             )}
+            <div ref={dropdownRef} className="nav-item position-relative">
+              <button
+                className="btn btn-link nav-link text-decoration-none text-dark p-0 position-relative"
+                onClick={handleToggleNotifications}
+              >
+                Notifications
+                {unreadCount > 0 && (
+                  <span
+                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                    style={{ fontSize: '0.65rem' }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <div
+                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
+                  style={{ width: 320, zIndex: 6500 }}
+                >
+                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div className="p-3 text-center text-muted">No notifications.</div>
+                    ) : (
+                      <ul className="list-group list-group-flush mb-0">
+                        {notifications.map((note) => (
+                          <li
+                            key={note._id}
+                            className="list-group-item list-group-item-action d-flex gap-2"
+                            style={{ cursor: 'pointer', background: note.readAt || note.read ? '#fff' : '#f8fafc' }}
+                            onClick={() => handleNotificationClick(note)}
+                          >
+                            <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
+                            <span className="small flex-grow-1">{titleForNote(note)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="border-top text-center">
+                    <Link
+                      to="/notifications"
+                      className="d-block py-2 small"
+                      onClick={() => setShowNotifications(false)}
+                    >
+                      View all
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
             <Link to="/profile" className="nav-link">
               <img
                 src={profileImg}
