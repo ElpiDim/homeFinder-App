@@ -5,6 +5,95 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import GoogleMapView from '../components/GoogleMapView';
 
+const ORIENTATION_LABELS = {
+  north: "North",
+  "north-east": "North-East",
+  east: "East",
+  "south-east": "South-East",
+  south: "South",
+  "south-west": "South-West",
+  west: "West",
+  "north-west": "North-West",
+};
+
+const VIEW_LABELS = {
+  sea: "Sea",
+  mountain: "Mountain",
+  park: "Park",
+  city: "City",
+  none: "No specific view",
+};
+
+const HEATING_LABELS = {
+  none: "None",
+  central: "Central heating",
+  autonomous: "Autonomous heating",
+  gas: "Gas heating",
+  ac: "Air conditioning",
+  other: "Other",
+};
+
+const HEATING_MEDIUM_LABELS = {
+  petrol: "Petrol",
+  "natural gas": "Natural gas",
+  "gas heating system": "Gas heating system",
+  current: "Electric current",
+  stove: "Stove",
+  "thermal accumulator": "Thermal accumulator",
+  pellet: "Pellet",
+  infrared: "Infrared",
+  "fan coil": "Fan coil",
+  wood: "Wood",
+  teleheating: "Teleheating",
+  "geothermal energy": "Geothermal energy",
+};
+
+const LEASE_DURATION_LABELS = {
+  short: "Short stay (< 12 months)",
+  long: "Long term (≥ 12 months)",
+};
+
+const CONDITION_LABELS = {
+  new: "New",
+  renovated: "Renovated",
+  good: "Good",
+  "needs renovation": "Needs renovation",
+};
+
+const ZONE_LABELS = {
+  residential: "Residential",
+  agricultural: "Agricultural",
+  commercial: "Commercial",
+  industrial: "Industrial",
+  recreational: "Recreational",
+  unincorporated: "Unincorporated",
+};
+
+const FAMILY_STATUS_LABELS = {
+  single: "Single",
+  couple: "Couple",
+  family: "Family",
+};
+
+const ROOMMATE_PREFERENCE_LABELS = {
+  any: "Any",
+  roommates_only: "Roommates only",
+  no_roommates: "No roommates",
+};
+
+const humanize = (value) => {
+  if (value === undefined || value === null) return "—";
+  const str = String(value);
+  const withSpaces = str.replace(/_/g, " ");
+  const capitalized = withSpaces.replace(/\b\w/g, (char) => char.toUpperCase());
+  return capitalized.replace(/-([a-z])/g, (_, char) => `-${char.toUpperCase()}`);
+};
+
+const formatEnumValue = (value, dictionary = {}) => {
+  if (value === undefined || value === null || value === "") return "—";
+  return dictionary[value] || humanize(value);
+};
+
 function PropertyDetails() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
@@ -152,18 +241,264 @@ function PropertyDetails() {
     ? { lat: Number(property.latitude), lng: Number(property.longitude) }
     : { lat: 37.9838, lng: 23.7275 }; // Athens fallback
 
-  const money = (n) =>
-    typeof n === "number" && !Number.isNaN(n)
-      ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : n ?? "—";
-  const boolTick = (v) => (v ? "Yes" : "No");
+const money = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num)
+      ? num.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : value ?? "—";
+  };
+  const boolTick = (v) => (v === true ? "Yes" : v === false ? "No" : "—");
 
-  const reqs = property.requirements || {};
+  const formatValue = (value) => {
+    if (value === undefined || value === null) return "—";
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed === "" ? "—" : trimmed;
+    }
+    return String(value);
+  };
+
+  const formatUnit = (value, unit) => {
+    const base = formatValue(value);
+    return base === "—" ? base : `${base} ${unit}`;
+  };
+
+  const formatListText = (values) => {
+    if (!values || (Array.isArray(values) && values.length === 0)) return "—";
+    if (Array.isArray(values)) {
+      const cleaned = values
+        .map((item) => formatValue(item))
+        .filter((item) => item !== "—");
+      return cleaned.length ? cleaned.join(", ") : "—";
+    }
+    return formatValue(values);
+  };
+
+  const tenantReqs = property.tenantRequirements || property.requirements || {};
   const areaForPpsm = Number(property.squareMeters || property.surface || 0);
   const pricePerSqm =
     areaForPpsm > 0 && property.price != null
       ? Math.round(Number(property.price) / areaForPpsm)
       : null;
+const locationParts = property.location
+    ? property.location
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean)
+    : [];
+  const city = property.city || locationParts[0] || "";
+  const area =
+    property.area ||
+    (locationParts.length > 1 ? locationParts.slice(1).join(", ") : "");
+
+  const propertyCategory = property.propertyCategory || property.propertyType;
+  const heatingValue = property.heatingType || property.heating;
+  const heatingMediumValue = property.heatingMedium;
+  const zoneValue = property.zone || property.propertyZone;
+  const monthlyMaintenance =
+    property.monthlyCommonExpenses ?? property.monthlyMaintenanceFee;
+  const leaseDurationValue =
+    property.leaseDuration || tenantReqs.leaseDuration || property.preferredLease;
+  const availableFrom =
+    property.availableFrom ||
+    property.available_from ||
+    property.dateAvailable ||
+    property.availableDate;
+  const videoUrl = property.videoUrl || property.videoURL;
+  const contactName = property.contactName || property.contact?.name;
+  const contactPhone = property.contactPhone || property.contact?.phone;
+  const contactEmail = property.contactEmail || property.contact?.email;
+  const hasParkingValue =
+    property.hasParking ??
+    property.parking ??
+    (property.parkingSpaces != null ? property.parkingSpaces > 0 : undefined);
+
+  const allowedOccupations = Array.isArray(tenantReqs.allowedOccupations)
+    ? tenantReqs.allowedOccupations
+    : tenantReqs.allowedOccupations
+    ? String(tenantReqs.allowedOccupations)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  const tenantNotes =
+    tenantReqs.notes || tenantReqs.tenantRequirementsNotes || tenantReqs.note;
+
+  const minTenantSalaryText =
+    tenantReqs.minTenantSalary !== undefined &&
+    tenantReqs.minTenantSalary !== null &&
+    tenantReqs.minTenantSalary !== ""
+      ? `€ ${money(tenantReqs.minTenantSalary)}`
+      : "—";
+
+  const factGroups = [
+    {
+      title: "Location & Listing",
+      items: [
+        { label: "City", value: formatValue(city) },
+        { label: "Area", value: formatValue(area) },
+        { label: "Address", value: formatValue(property.address) },
+        { label: "Property Category", value: formatEnumValue(propertyCategory) },
+        { label: "Listing Type", value: formatEnumValue(property.type) },
+        { label: "Status", value: formatEnumValue(property.status) },
+        {
+          label: "Lease Duration",
+          value: formatEnumValue(leaseDurationValue, LEASE_DURATION_LABELS),
+        },
+        { label: "Available From", value: formatValue(availableFrom) },
+        { label: "Zone", value: formatEnumValue(zoneValue, ZONE_LABELS) },
+      ],
+    },
+    {
+      title: "Size & Layout",
+      items: [
+        { label: "Square Meters", value: formatUnit(property.squareMeters, "m²") },
+        { label: "Surface", value: formatUnit(property.surface, "m²") },
+        { label: "Plot Size", value: formatUnit(property.plotSize, "m²") },
+        { label: "Floor", value: formatValue(property.floor) },
+        { label: "Levels", value: formatValue(property.levels) },
+        { label: "On Top Floor", value: boolTick(property.onTopFloor) },
+        { label: "Bedrooms", value: formatValue(property.bedrooms) },
+        { label: "Bathrooms", value: formatValue(property.bathrooms) },
+        { label: "WC", value: formatValue(property.wc) },
+        { label: "Kitchens", value: formatValue(property.kitchens) },
+        { label: "Living Rooms", value: formatValue(property.livingRooms) },
+      ],
+    },
+    {
+      title: "Condition & Comfort",
+      items: [
+        { label: "Year Built", value: formatValue(property.yearBuilt) },
+        { label: "Condition", value: formatEnumValue(property.condition, CONDITION_LABELS) },
+        { label: "Orientation", value: formatEnumValue(property.orientation, ORIENTATION_LABELS) },
+        { label: "View", value: formatEnumValue(property.view, VIEW_LABELS) },
+        { label: "Heating Type", value: formatEnumValue(heatingValue, HEATING_LABELS) },
+        {
+          label: "Heating Medium",
+          value: formatEnumValue(heatingMediumValue, HEATING_MEDIUM_LABELS),
+        },
+        { label: "Energy Class", value: formatValue(property.energyClass) },
+        { label: "Insulation", value: boolTick(property.insulation) },
+      ],
+    },
+    {
+      title: "Amenities",
+      items: [
+        { label: "Furnished", value: boolTick(property.furnished) },
+        { label: "Pets Allowed", value: boolTick(property.petsAllowed) },
+        { label: "Smoking Allowed", value: boolTick(property.smokingAllowed) },
+        { label: "Has Parking", value: boolTick(hasParkingValue) },
+        { label: "Parking Spaces", value: formatValue(property.parkingSpaces) },
+        { label: "Has Elevator", value: boolTick(property.hasElevator) },
+        { label: "Has Storage", value: boolTick(property.hasStorage) },
+      ],
+    },
+    {
+      title: "Financial & Availability",
+      items: [
+        { label: "Price", value: `€ ${money(property.price)}` },
+        {
+          label: "Price per m²",
+          value: pricePerSqm ? `€ ${money(pricePerSqm)}` : "—",
+        },
+        {
+          label: "Monthly Maintenance Fee",
+          value:
+            monthlyMaintenance !== undefined &&
+            monthlyMaintenance !== null &&
+            monthlyMaintenance !== ""
+              ? `€ ${money(monthlyMaintenance)}`
+              : "—",
+        },
+      ],
+    },
+    {
+      title: "Media & Links",
+      items: [
+        {
+          label: "Video Tour",
+          value:
+            videoUrl && typeof videoUrl === "string" && videoUrl.trim() !== "" ? (
+              <a href={videoUrl} target="_blank" rel="noopener noreferrer">
+                {videoUrl}
+              </a>
+            ) : (
+              "—"
+            ),
+        },
+      ],
+    },
+  ];
+
+  const tenantRequirementItems = [
+    { label: "Minimum Tenant Salary", value: minTenantSalaryText },
+    {
+      label: "Allowed Occupations",
+      value: formatListText(allowedOccupations),
+    },
+    {
+      label: "Preferred Family Status",
+      value: formatEnumValue(tenantReqs.familyStatus, FAMILY_STATUS_LABELS),
+    },
+    { label: "Pets Allowed", value: boolTick(tenantReqs.pets) },
+    { label: "Smoking Allowed", value: boolTick(tenantReqs.smoker) },
+    { label: "Minimum Tenant Age", value: formatValue(tenantReqs.minTenantAge) },
+    { label: "Maximum Tenant Age", value: formatValue(tenantReqs.maxTenantAge) },
+    { label: "Max Household Size", value: formatValue(tenantReqs.maxHouseholdSize) },
+    { label: "Requires Furnished", value: boolTick(tenantReqs.furnished) },
+    { label: "Requires Parking", value: boolTick(tenantReqs.parking) },
+    { label: "Requires Elevator", value: boolTick(tenantReqs.hasElevator) },
+    {
+      label: "Roommate Preference",
+      value: formatEnumValue(
+        tenantReqs.roommatePreference,
+        ROOMMATE_PREFERENCE_LABELS
+      ),
+    },
+    { label: "Additional Notes", value: formatValue(tenantNotes) },
+  ];
+
+  const contactItems = [
+    { label: "Contact Name", value: formatValue(contactName) },
+    {
+      label: "Contact Phone",
+      value:
+        contactPhone && contactPhone !== "—"
+          ? (
+              <a href={`tel:${contactPhone}`}>{contactPhone}</a>
+            )
+          : "—",
+    },
+    {
+      label: "Contact Email",
+      value:
+        contactEmail && contactEmail !== "—"
+          ? (
+              <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+            )
+          : "—",
+    },
+  ];
+
+  const featuresList = Array.isArray(property.features)
+    ? property.features
+    : property.features
+    ? String(property.features)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  const renderFactRows = (items) => (
+    <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
+      {items.map((item) => (
+        <div key={item.label} className="col">
+          <strong>{item.label}:</strong> {item.value}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div style={pageGradient} className="py-5">
@@ -344,18 +679,45 @@ function PropertyDetails() {
         {/* Facts */}
         <hr />
         <h5 className="fw-bold">Facts</h5>
-        <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
-          <div className="col"><strong>Type:</strong> {property.type}</div>
-          <div className="col"><strong>Status:</strong> {property.status}</div>
-          <div className="col"><strong>Square Meters:</strong> {property.squareMeters ?? "—"} m²</div>
-          <div className="col"><strong>Bedrooms:</strong> {reqs.bedrooms ?? "—"}</div>
-          <div className="col"><strong>Bathrooms:</strong> {reqs.bathrooms ?? "—"}</div>
-          <div className="col"><strong>Parking:</strong> {reqs.parking != null ? boolTick(reqs.parking) : "—"}</div>
-          <div className="col"><strong>Furnished:</strong> {reqs.furnished != null ? boolTick(reqs.furnished) : "—"}</div>
-          <div className="col"><strong>Pets Allowed:</strong> {reqs.petsAllowed != null ? boolTick(reqs.petsAllowed) : "—"}</div>
-          <div className="col"><strong>Smoking Allowed:</strong> {reqs.smokingAllowed != null ? boolTick(reqs.smokingAllowed) : "—"}</div>
-          <div className="col"><strong>Heating:</strong> {reqs.heating || "—"}</div>
-        </div>
+ {factGroups.map((group, index) => (
+          <div
+            key={group.title}
+            className={index === 0 ? "mt-2" : "mt-4"}
+          >
+            <div className="text-uppercase text-muted small fw-semibold mb-1">
+              {group.title}
+            </div>
+            {renderFactRows(group.items)}
+          </div>
+        ))}
+
+        {/* Additional features */}
+        <hr />
+        <h5 className="fw-bold">Additional Features</h5>
+        {featuresList.length ? (
+          <div className="d-flex flex-wrap gap-2 mt-1">
+            {featuresList.map((feature, idx) => (
+              <span
+                key={`${feature}-${idx}`}
+                className="badge bg-light text-dark border"
+              >
+                {feature}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="text-muted">No additional features listed.</div>
+        )}
+
+        {/* Tenant requirements */}
+        <hr />
+        <h5 className="fw-bold">Tenant Requirements</h5>
+        {renderFactRows(tenantRequirementItems)}
+
+        {/* Contact details */}
+        <hr />
+        <h5 className="fw-bold">Contact Details</h5>
+        {renderFactRows(contactItems)}
 
         {/* Floor Plan */}
         {property.floorPlanImage && (
