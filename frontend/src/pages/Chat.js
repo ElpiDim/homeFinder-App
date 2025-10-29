@@ -110,8 +110,14 @@ function Chat() {
   const [proposalSuccess, setProposalSuccess] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [hasAppointments, setHasAppointments] = useState(false);
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
+    const dropdownRef = useRef(null);
 
   const SOCKET_URL = useMemo(() => resolveSocketUrl(), []);
   const pageGradient = useMemo(
