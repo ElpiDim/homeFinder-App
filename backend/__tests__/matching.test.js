@@ -23,6 +23,15 @@ describe("computeMatchScore", () => {
     expect(r.hardFails).toContain("budget");
   });
 
+  test("hard-fail on minimum budget (should exclude: score = 0)",()=>{
+    const client={minPrice: 900, maxPrice:1500};
+    const ownerReqs = {};
+    const prop = {rent:800,squareMeters: 70};
+
+    const r = computeMatchScore(client, ownerReqs, prop, {});
+    expect(r.score).toBe(0);
+    expect(r.hardFails).toContain("budget_min");
+  });
   test("fails on sqm (should exclude: score = 0)", () => {
     const client = { maxPrice: 1200, minSqm: 90 };
     const ownerReqs = {};

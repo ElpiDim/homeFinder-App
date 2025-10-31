@@ -36,6 +36,11 @@ function computeMatchScore(
   const sqm = prop.squareMeters ?? prop.surface;
 
   // --- Hard constraints: budget / sqm / bedrooms / bathrooms ---
+  if (client.minPrice !=null && rent !=null){
+    considered++;
+    if(Number(client.minPrice)> Number(rent)) hardFails.push("budget_min");
+    else matched++; 
+  }
   if (client.maxPrice != null && rent != null) {
     considered++;
     if (Number(client.maxPrice) < Number(rent)) hardFails.push("budget");
