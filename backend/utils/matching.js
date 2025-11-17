@@ -34,6 +34,10 @@ function computeMatchScore(
 
   const rent = prop.rent ?? prop.price;
   const sqm = prop.squareMeters ?? prop.surface;
+  
+  if (process.env.NODE_ENV === 'test') {
+  console.log('>>> PREFS DEBUG', client);
+}
 
   // --- Hard constraints: budget / sqm / bedrooms / bathrooms ---
   if (client.minPrice !=null && rent !=null){
@@ -61,6 +65,12 @@ function computeMatchScore(
     if (Number(client.minBathrooms) > Number(prop.bathrooms)) hardFails.push("bathrooms");
     else matched++;
   }
+  if (client.location && prop.location) {
+    considered++;
+    const rx = new RegExp(String(client.location).trim(), 'i');
+    if (!rx.test(String(prop.location))) hardFails.push('location');
+    else matched++;
+ }
 
   // --- Owner-driven prefs (μετράνε μόνο αν ο owner τα έχει ορίσει) ---
   const softBool = (keyProp, keyClient, keyOwner = keyProp) => {

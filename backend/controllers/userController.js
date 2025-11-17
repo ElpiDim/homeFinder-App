@@ -296,6 +296,7 @@ exports.saveOnboarding = async (req, res) => {
 
     // Preferences (virtual setters)
     if (preferences && typeof preferences === "object") {
+      if (!doc.preferences) doc.preferences = {};
       Object.entries(preferences).forEach(([k, v]) => {
         if (v !== undefined) doc.preferences[k] = v;
       });

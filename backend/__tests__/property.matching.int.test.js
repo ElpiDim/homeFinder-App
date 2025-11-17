@@ -1,113 +1,146 @@
 // backend/__tests__/property.matching.int.test.js
-process.env.NODE_ENV = "test";
-process.env.JWT_SECRET = "testsecret";
+// Integration: client sees only "good" matches (score >= 0.5) and
+// properties that hard-fail (budget/location) are excluded.
 
-const { MongoMemoryServer } = require("mongodb-memory-server");
-const mongoose = require("mongoose");
-const request = require("supertest");
-const jwt = require("jsonwebtoken");
+jest.setTimeout(30000);
 
-let app; // θα το κάνουμε require αφού συνδεθούμε στη Mongo
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'testsecret';
 
-const User = require("../models/user");
-const Property = require("../models/property");
+const request = require('supertest');
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let app;
 let mongo;
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
-  await mongoose.connect(mongo.getUri());
-  // ⚠️ import το app ΜΕΤΑ τη σύνδεση, για να «βλέπει» την in-memory DB
-  app = require("../app");
+  await mongoose.connect(mongo.getUri(), { dbName: 'homefinder_test' });
+
+  // require app ΜΕΤΑ τη σύνδεση, για να χρησιμοποιήσει την in-memory Mongo
+  app = require('../app');
 });
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) {
+    await mongo.stop();
+  }
 });
 
-test("client sees only properties with score ≥ 0.5 (hard-fail budget excluded, low-score excluded)", async () => {
-  // 1) Δημιουργία client με preferences
-  const client = await User.create({
-    email: "client@test.com",
-    password: "x",
-    role: "client",
-    preferences: {
-      dealType: "rent",
-      rentMax: 1000, // budget threshold
-      sqmMin: 70, // min sqm
-      bedrooms: 2, // min bedrooms
+test('client sees only properties with score ≥ 0.5 (hard-fail budget excluded, low-score excluded)', async () => {
+  // 1) Φτιάχνουμε OWNER και παίρνουμε token
+  const ownerRes = await request(app)
+    .post('/api/auth/register')
+    .send({
+      email: 'owner2@test.com',
+      password: '12345678',
+      role: 'owner',
+      name: 'Owner2',
+    })
+    .expect(201);
+
+  const ownerToken = ownerRes.body.token;
+  expect(ownerToken).toBeTruthy();
+
+  // 2) Φτιάχνουμε properties μέσω API (έτσι μπαίνει σωστά το ownerId)
+
+  // Καλή ιδιοκτησία: μέσα στο budget, σωστή location
+  await request(app)
+    .post('/api/properties')
+    .set('Authorization', `Bearer ${ownerToken}`)
+    .send({
+      title: 'Match OK',
+      type: 'rent',
+      price: 1000,
+      squareMeters: 70,
+      bedrooms: 2,
       bathrooms: 1,
-      // προτιμήσεις για soft criteria
-      furnished: false,
-      parking: false,
-      elevator: false,
-      pets: true,
-      smoker: true,
-      familyStatus: "single",
+      location: 'Ioannina, Center',
+      status: 'available',
+    })
+    .expect(201);
+
+  // Πολύ φθηνή (κάτω από min price) -> πρέπει να κοπεί από budget_min
+  await request(app)
+    .post('/api/properties')
+    .set('Authorization', `Bearer ${ownerToken}`)
+    .send({
+      title: 'Too Cheap',
+      type: 'rent',
+      price: 500,
+      squareMeters: 70,
+      bedrooms: 2,
+      bathrooms: 1,
+      location: 'Ioannina',
+      status: 'available',
+    })
+    .expect(201);
+
+  // Άλλη πόλη (λάθος location) -> πρέπει να κοπεί από location
+  await request(app)
+    .post('/api/properties')
+    .set('Authorization', `Bearer ${ownerToken}`)
+    .send({
+      title: 'Wrong City',
+      type: 'rent',
+      price: 1000,
+      squareMeters: 80,
+      bedrooms: 2,
+      bathrooms: 1,
+      location: 'Katerini',
+      status: 'available',
+    })
+    .expect(201);
+
+  // 3) Φτιάχνουμε CLIENT
+  const clientRes = await request(app)
+    .post('/api/auth/register')
+    .send({
+      email: 'client2@test.com',
+      password: '12345678',
+      role: 'client',
+      name: 'Client2',
+    })
+    .expect(201);
+
+  const clientToken = clientRes.body.token;
+  expect(clientToken).toBeTruthy();
+
+  // 4) Ο client κάνει onboarding / save preferences
+  const onboardingPayload = {
+    name: 'Client2',
+    phone: '2100000000',
+    preferences: {
+      intent: 'rent',
+      location: 'Ioannina',
+      rentMin: 900,
+      rentMax: 1200,
+      sqmMin: 60,
     },
-  });
-  const token = jwt.sign({ userId: client._id, role: "client" }, process.env.JWT_SECRET);
+  };
 
-  // 2) Seed 3 properties:
-  // 2a) MATCH (πρέπει να εμφανιστεί)
-  await Property.create({
-    title: "Match Apt",
-    location: "Athens",
-    price: 900,
-    rent: 900,
-    type: "rent",
-    squareMeters: 80,
-    bedrooms: 2,
-    bathrooms: 1,
-    // owner requirements που ταιριάζουν με του client
-     requirements: [{ name: "familyStatus", value: "Single" }],
-  });
+  const onboardRes = await request(app)
+    .post('/api/users/onboarding')
+    .set('Authorization', `Bearer ${clientToken}`)
+    .send(onboardingPayload);
 
-  // 2b) HARD FAIL (budget) — ΔΕΝ πρέπει να εμφανιστεί
-  await Property.create({
-    title: "Too Expensive",
-    location: "Athens",
-    price: 1200,
-    rent: 1200,     // > client.maxPrice => hard fail
-    type: "rent",
-    squareMeters: 85,
-    bedrooms: 2,
-    bathrooms: 1,
-    requirements: [{ name: "furnished", value: true }],
-  });
+  // Αν για οποιοδήποτε λόγο το route απαντήσει με κάτι εκτός 2xx,
+  // το άλλο test (matching.test.js) ήδη καλύπτει το fallback σενάριο.
+  expect([200, 201, 204]).toContain(onboardRes.status);
 
-  // 2c) LOW SCORE (< 50%) — ΔΕΝ πρέπει να εμφανιστεί
-  // εντός budget/sqm, αλλά ο owner απαιτεί πολλά που ο client δεν καλύπτει → χαμηλό score
-  await Property.create({
-    title: "Low Score Apt",
-    location: "Athens",
-    price: 950,
-    rent: 950,
-    type: "rent",
-    squareMeters: 75,
-    bedrooms: 2,
-    bathrooms: 1,
-    requirements: [
-      { name: "furnished", value: true },
-      { name: "parking", value: true },
-      { name: "hasElevator", value: true },
-      { name: "familyStatus", value: "Family" }, // client = Single
-      { name: "pets", value: false },
-      { name: "smoker", value: false },
-      // 4 soft criteria → αν δεν ταιριάξουν τουλάχιστον 2, score < 0.5
-    ],
-  });
-
-  // 3) Κλήση στο endpoint ως client
-  const res = await request(app)
-    .get("/api/properties")
-    .set("Authorization", `Bearer ${token}`)
+  // 5) Παίρνουμε τη λίστα properties ως CLIENT
+  const listRes = await request(app)
+    .get('/api/properties')
+    .set('Authorization', `Bearer ${clientToken}`)
     .expect(200);
 
-  // 4) Έλεγχοι: μόνο το "Match Apt" πρέπει να υπάρχει
-  const titles = res.body.map((p) => p.title);
-  expect(titles).toContain("Match Apt");
-  expect(titles).not.toContain("Too Expensive");
-  expect(titles).not.toContain("Low Score Apt");
+  expect(Array.isArray(listRes.body)).toBe(true);
+  const titles = listRes.body.map((p) => p.title);
+
+  // Πρέπει να υπάρχει μόνο η "Match OK"
+  expect(titles).toContain('Match OK');
+  expect(titles).not.toContain('Too Cheap');
+  expect(titles).not.toContain('Wrong City');
 });

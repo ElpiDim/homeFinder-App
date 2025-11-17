@@ -4,6 +4,8 @@ const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const User = require("../models/user");
 const { computeMatchScore } = require("../utils/matching");
+const Appointment = require("../models/appointments");
+
 
 /* ----------------------------- helpers ----------------------------- */
 const hasValue = (v) =>
@@ -50,6 +52,8 @@ const normalizeRoommatePreference = (value) => {
 
 // Map user.preferences -> keys που περιμένει το matching util
 const mapClientPrefs = (p = {}) => ({
+  location: p.location ?? p.city ?? p.preferredCity,
+  minPrice: p.minPrice ?? p.rentMin ?? p.saleMin ?? p.priceMin ?? p.budgetMin,
   maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax ?? p.priceMax,
   minSqm: p.minSqm ?? p.sqmMin,
   minBedrooms: p.minBedrooms ?? p.bedrooms,
@@ -308,7 +312,7 @@ exports.getAllProperties = async (req, res) => {
     // Fallback: load current user if middleware didn't attach it
     let currentUser = req.currentUser;
     if (!currentUser && req.user?.role === "client" && req.user?.userId) {
-      currentUser = await User.findById(req.user.userId).lean().exec();
+      currentUser = await User.findById(req.user.userId).exec();
     }
 
     const isClient =
@@ -582,34 +586,64 @@ exports.updateProperty = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 /* ---------------------------- DELETE PROPERTY ---------------------------- */
 exports.deleteProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.propertyId);
-    if (!property)
+    const propertyId = req.params.propertyId;
+    const property = await Property.findById(propertyId);
+
+    if (!property) {
       return res.status(404).json({ message: "Property not found" });
+    }
 
     if (String(property.ownerId) !== String(req.user.userId)) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    // users who favorited it
-    const favorites = await Favorites.find({ propertyId: property._id });
+    // 1) Φέρνουμε favorites & appointments που σχετίζονται με το property
+    const [favorites, appointments] = await Promise.all([
+      Favorites.find({ propertyId: property._id }).lean(),
+      Appointment.find({ propertyId: property._id }).lean(),
+    ]);
 
-    // notify them
-    const notifications = favorites.map((fav) => ({
-      userId: fav.userId,
-      type: "property_removed",
-      referenceId: property._id,
-      message: `The property "${property.title}" has been removed.`,
-    }));
-    if (notifications.length) {
+    // 2) Ακυρώνουμε όλα τα ραντεβού για αυτό το property (δεν τα σβήνουμε)
+    if (appointments.length) {
+      await Appointment.updateMany(
+        { propertyId: property._id },
+        { $set: { status: "cancelled" } }
+      );
+    }
+
+    // 3) Σβήνουμε τα favorites (δεν έχουν νόημα χωρίς property)
+    if (favorites.length) {
+      await Favorites.deleteMany({ propertyId: property._id });
+    }
+
+    // 4) Υπολογίζουμε σε ποιους χρήστες θα στείλουμε property_removed notification:
+    //    - users που είχαν favorite
+    //    - tenants από appointments
+    const favUserIds = favorites.map((f) => String(f.userId));
+    const tenantIds = appointments
+      .map((a) => (a.tenantId ? String(a.tenantId) : null))
+      .filter(Boolean);
+
+    const targetUserIds = [...new Set([...favUserIds, ...tenantIds])];
+
+    if (targetUserIds.length) {
+      const notifications = targetUserIds.map((uid) => ({
+        userId: uid,
+        type: "property_removed",
+        referenceId: property._id,
+        senderId: req.user.userId,
+        message: property.title
+          ? `The property "${property.title}" has been removed. Related appointments have been cancelled.`
+          : "A property you interacted with is no longer available. Related appointments have been cancelled.",
+      }));
+
       await Notification.insertMany(notifications);
     }
 
-    // cleanup
-    await Favorites.deleteMany({ propertyId: property._id });
+    // 5) Σβήνουμε το ίδιο το property
     await property.deleteOne();
 
     res.json({ message: "Property and related data deleted." });
