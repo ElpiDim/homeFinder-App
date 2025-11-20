@@ -161,9 +161,12 @@ function Chat() {
 
   // updated lastMessageCheck
   useEffect(() => {
+    if (!user) return;
+    
     const now = new Date();
     localStorage.setItem('lastMessageCheck', now.toISOString());
-  }, []);
+   setUnreadMessages(0);
+  }, [user, propertyId, receiverId]);
 
   // notifications / unread counters / appointments
   useEffect(() => {
