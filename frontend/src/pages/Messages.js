@@ -12,6 +12,13 @@ const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
   (typeof window !== 'undefined' ? window.location.origin : '');
 
+const normalizeId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
+
 function normalizeUploadPath(src) {
   if (!src) return '';
   if (src.startsWith('http')) return src;
@@ -110,7 +117,7 @@ function Messages() {
       const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
       const count = msgs.filter(
         (m) =>
-          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
+          normalizeId(m.receiverId) === normalizeId(user?.id) &&
           new Date(m.timeStamp) > lastDate
       ).length;
       setUnreadMessages(count);
@@ -128,7 +135,7 @@ function Messages() {
           const otherUser =
             msg.senderId._id === user.id ? msg.receiverId : msg.senderId;
           const property = msg.propertyId;
-          const key = `${property._id}-${otherUser._id}`;
+          const key = `${normalizeId(property)}-${normalizeId(otherUser)}`;
 
           if (!acc[key]) {
             acc[key] = {
@@ -206,14 +213,21 @@ function Messages() {
       const receiverId = msg.receiverId?._id || msg.receiverId;
       const property = msg.propertyId;
 
-      if (!property?._id || (senderId !== user.id && receiverId !== user.id)) return;
+      if (
+        !normalizeId(property) ||
+        (normalizeId(senderId) !== normalizeId(user.id) &&
+          normalizeId(receiverId) !== normalizeId(user.id))
+      )
+        return;
 
       const otherUser = senderId === user.id ? msg.receiverId : msg.senderId;
 
       setConversations((prev) => {
         const next = [...prev];
         const idx = next.findIndex(
-          (c) => c.property._id === property._id && c.otherUser._id === otherUser._id
+          (c) =>
+            normalizeId(c.property) === normalizeId(property) &&
+            normalizeId(c.otherUser) === normalizeId(otherUser)
         );
 
         const updatedEntry = { property, otherUser, lastMessage: msg };
@@ -230,7 +244,10 @@ function Messages() {
         return next;
       });
 
-      if (receiverId === user.id && new Date(msg.timeStamp) > lastCheckRef.current) {
+      if (
+        normalizeId(receiverId) === normalizeId(user.id) &&
+        new Date(msg.timeStamp) > lastCheckRef.current
+      ) {
         setUnreadMessages((prev) => prev + 1);
       }
     };

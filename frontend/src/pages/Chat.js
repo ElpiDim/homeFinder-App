@@ -25,6 +25,13 @@ const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
   (typeof window !== 'undefined' ? window.location.origin : '');
 
+const normalizeId = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  return String(value);
+};
+
 function normalizeUploadPath(src) {
   if (!src) return '';
   if (src.startsWith('http')) return src;
@@ -117,7 +124,7 @@ function Chat() {
       const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
       const count = msgs.filter(
         (m) =>
-          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
+          normalizeId(m.receiverId) === normalizeId(user?.id) &&
           new Date(m.timeStamp) > lastDate
       ).length;
       setUnreadMessages(count);
@@ -135,9 +142,11 @@ function Chat() {
         const filteredMessages = allMessages
           .filter(
             (msg) =>
-              msg.propertyId?._id === propertyId &&
-              ((msg.senderId?._id === user.id && msg.receiverId?._id === receiverId) ||
-                (msg.senderId?._id === receiverId && msg.receiverId?._id === user.id))
+              normalizeId(msg.propertyId) === normalizeId(propertyId) &&
+              ((normalizeId(msg.senderId) === normalizeId(user.id) &&
+                normalizeId(msg.receiverId) === normalizeId(receiverId)) ||
+                (normalizeId(msg.senderId) === normalizeId(receiverId) &&
+                  normalizeId(msg.receiverId) === normalizeId(user.id)))
           )
           .sort((a, b) => new Date(a.timeStamp) - new Date(b.timeStamp));
 
@@ -214,11 +223,11 @@ function Chat() {
 
     const handleNewMessage = (newMessage) => {
       if (
-        newMessage.propertyId?._id === propertyId &&
-        (
-          (newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
-          (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id)
-        )
+        normalizeId(newMessage.propertyId) === normalizeId(propertyId) &&
+        ((normalizeId(newMessage.senderId) === normalizeId(user.id) &&
+          normalizeId(newMessage.receiverId) === normalizeId(receiverId)) ||
+          (normalizeId(newMessage.senderId) === normalizeId(receiverId) &&
+            normalizeId(newMessage.receiverId) === normalizeId(user.id)))
       ) {
         setMessages((prev) => {
           if (newMessage?._id && prev.some((msg) => msg._id === newMessage._id)) {
@@ -298,11 +307,11 @@ function Chat() {
     try {
       const savedMessage = await sendMessage(receiverId, propertyId, newMessage);
       if (
-        savedMessage?.propertyId?._id === propertyId &&
-        (
-          (savedMessage.senderId?._id === user.id && savedMessage.receiverId?._id === receiverId) ||
-          (savedMessage.senderId?._id === receiverId && savedMessage.receiverId?._id === user.id)
-        )
+        normalizeId(savedMessage?.propertyId) === normalizeId(propertyId) &&
+        ((normalizeId(savedMessage.senderId) === normalizeId(user.id) &&
+          normalizeId(savedMessage.receiverId) === normalizeId(receiverId)) ||
+          (normalizeId(savedMessage.senderId) === normalizeId(receiverId) &&
+            normalizeId(savedMessage.receiverId) === normalizeId(user.id)))
       ) {
         setMessages((prev) => {
           if (savedMessage?._id && prev.some((msg) => msg._id === savedMessage._id)) {
