@@ -1,13 +1,15 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import {AuthProvider} from './context/AuthContext';
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+// src/index.js
+import "bootstrap/dist/css/bootstrap.min.css";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
 import api from "./api";
-import { BrowserRouter } from 'react-router-dom';
-
+import { BrowserRouter } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext"; // 👈 ΑΥΤΟ ΕΛΕΙΠΕ
+import {NotificationProvider} from "./context/NotificationContext"; 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -19,7 +21,11 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <SocketProvider>
+          <NotificationProvider>
+            <App />
+          </NotificationProvider>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

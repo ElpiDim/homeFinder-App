@@ -19,14 +19,14 @@ beforeAll(async () => {
 
   // import app ΜΕΤΑ τη σύνδεση
   app = require("../app");
-  User = require("../models/user");
+  User = require("../models/user");       // ταιριάξε στα δικά σου paths
   Property = require("../models/property");
   Message = require("../models/messages");
 });
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) await mongo.stop();
 });
 
 beforeEach(async () => {
@@ -42,32 +42,41 @@ describe("Messages + Socket events", () => {
     // 1) Δημιουργούμε sender & receiver users
     const sender = await User.create({
       email: "sender@test.com",
-      password: "hashed",
+      password: "12345678",
       role: "client",
     });
 
     const receiver = await User.create({
       email: "receiver@test.com",
-      password: "hashed",
+      password: "12345678",
       role: "owner",
     });
 
-    // 2) Δημιουργούμε property
-    const property = await Property.create({
-      title: "Chat Test Property",
-      ownerId: receiver._id,
-      price: 900,
-      location: "Ioannina",
-      type: "rent",
-    });
+ // 2) Δημιουργούμε property (με τα required fields)
+const property = await Property.create({
+  title: "Chat Test Property",
+  type: "rent",
+  price: 900,
+  squareMeters: 60,
+  location: "Ioannina",
+  status: "available",
+  ownerId: receiver._id,   // 👈 σωστό πεδίο για το schema σου
+});
 
+
+    const senderId = sender._id.toString();
+    const receiverId = receiver._id.toString();
+    const propertyId = property._id.toString();
+
+    // 3) Token για τον sender
+    // ⚠️ Πρόσεξε: το payload πρέπει να ταιριάζει με το auth middleware σου
     const senderToken = jwt.sign(
-      { userId: sender._id.toString(), role: sender.role },
+      { userId: senderId, role: sender.role }, // ή userId αν έτσι το περιμένεις
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // 3) Φτιάχνουμε ένα fake io για να καταγράψουμε τα emits
+    // 4) Φτιάχνουμε ένα fake io για να καταγράψουμε τα emits
     const emitted = [];
 
     const fakeIo = {
@@ -83,56 +92,58 @@ describe("Messages + Socket events", () => {
     // Το κρεμάμε στο app ώστε ο controller να κάνει req.app.get('io')
     app.set("io", fakeIo);
 
-    // 4) Καλούμε το API POST /api/messages
+    // 5) Καλούμε το API POST /api/messages
     const content = "Hello via API + socket";
 
     const res = await request(app)
       .post("/api/messages")
       .set("Authorization", `Bearer ${senderToken}`)
       .send({
-        receiverId: receiver._id.toString(),
-        propertyId: property._id.toString(),
+        receiverId,
+        propertyId,
         content,
       })
       .expect(201);
 
-    // 5) Ελέγχουμε την HTTP απόκριση (το μήνυμα που αποθηκεύτηκε)
-    expect(res.body).toEqual(
-      expect.objectContaining({
-        content,
-        senderId: expect.any(Object),
-        receiverId: expect.any(Object),
-        propertyId: expect.any(Object),
-      })
-    );
+    const body = res.body;
+    const getId = (field) =>
+      typeof field === "string" ? field : field?._id?.toString();
 
-    // 6) Ελέγχουμε ότι αποθηκεύτηκε στη βάση
+    // 6) Ελέγχουμε την HTTP απόκριση
+    expect(body.content).toBe(content);
+    expect(getId(body.sender || body.senderId)).toBe(senderId);
+    expect(getId(body.receiver || body.receiverId)).toBe(receiverId);
+    expect(getId(body.property || body.propertyId)).toBe(propertyId);
+
+    // 7) Ελέγχουμε ότι αποθηκεύτηκε στη βάση
     const allMessages = await Message.find({}).lean();
     expect(allMessages.length).toBe(1);
     expect(allMessages[0].content).toBe(content);
-    expect(String(allMessages[0].senderId)).toBe(String(sender._id));
-    expect(String(allMessages[0].receiverId)).toBe(String(receiver._id));
+    expect(String(allMessages[0].sender || allMessages[0].senderId)).toBe(
+      senderId
+    );
+    expect(String(allMessages[0].receiver || allMessages[0].receiverId)).toBe(
+      receiverId
+    );
+    expect(String(allMessages[0].property || allMessages[0].propertyId)).toBe(
+      propertyId
+    );
 
-    // 7) Ελέγχουμε ότι έκανε emit σε ΔΥΟ rooms: receiverId & senderId
+    // 8) Ελέγχουμε ότι έκανε emit σε ΔΥΟ rooms: receiverId & senderId
     expect(emitted.length).toBe(2);
 
     const rooms = emitted.map((e) => e.roomId);
-    expect(rooms).toContain(String(receiver._id));
-    expect(rooms).toContain(String(sender._id));
+    expect(rooms).toContain(receiverId);
+    expect(rooms).toContain(senderId);
 
     emitted.forEach((e) => {
       expect(e.event).toBe("newMessage");
       expect(e.payload.content).toBe(content);
-      // payload είναι populated:
-      expect(String(e.payload.senderId._id || e.payload.senderId)).toBe(
-        String(sender._id)
-      );
-      expect(String(e.payload.receiverId._id || e.payload.receiverId)).toBe(
-        String(receiver._id)
-      );
-      expect(String(e.payload.propertyId._id || e.payload.propertyId)).toBe(
-        String(property._id)
-      );
+
+      const p = e.payload;
+      expect(getId(p.sender || p.senderId)).toBe(senderId);
+      expect(getId(p.receiver || p.receiverId)).toBe(receiverId);
+      expect(getId(p.property || p.propertyId)).toBe(propertyId);
     });
   });
 });

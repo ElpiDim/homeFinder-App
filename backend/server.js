@@ -58,4 +58,4 @@ if (require.main === module) {
 }
 
 // optionally exportables (χρήσιμα αν τα χρειαστείς)
-module.exports = { app, start };
+module.exports = { app, start, server, io };

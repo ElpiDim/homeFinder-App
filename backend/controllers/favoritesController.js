@@ -4,7 +4,7 @@ const Property = require("../models/property");
 const User = require("../models/user");
 
 
-// ADD FAVORITE// ADD FAVORITE
+// ADD FAVORITE
 const addFavorite = async (req, res) => {
   const userId = req.user.userId;
   const { propertyId } = req.body;
@@ -32,13 +32,20 @@ const addFavorite = async (req, res) => {
       "A user";
 
     if (ownerId && ownerId.toString() !== userId) {
-      await Notification.create({
+      // 👉 Δημιουργία notification στη βάση
+      const notification = await Notification.create({
         userId: ownerId,
         type: "favorite",
         referenceId: property._id,
         senderId: userId,
         message: `${senderName} added your property "${property.title}" to favorites.`
       });
+
+      // 👉 Real-time emit μέσω Socket.IO
+      const io = req.app.get("io");
+      if (io) {
+        io.to(ownerId.toString()).emit("notification", notification);
+      }
     }
 
     res.status(201).json({ message: "Added to favorites" });
@@ -48,8 +55,6 @@ const addFavorite = async (req, res) => {
   }
 };
 
-
-// GET FAVORITES
 const getFavorites = async (req, res) => {
   const userId = req.user.userId;
   try {
@@ -61,7 +66,6 @@ const getFavorites = async (req, res) => {
   }
 };
 
-// DELETE FAVORITE
 const deleteFavorite = async (req, res) => {
   const userId = req.user.userId;
   const propertyId = req.params.propertyId;

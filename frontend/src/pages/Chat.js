@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import io from 'socket.io-client';
 import { getMessages, sendMessage } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
+import {useNotifications} from '../context/NotificationContext';
+
 import {
   Container,
   Card,
@@ -22,37 +24,6 @@ import './Chat.css';
 const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
   (typeof window !== 'undefined' ? window.location.origin : '');
-
-  const resolveSocketUrl = () => {
-  const toOrigin = (maybeUrl) => {
-    if (!maybeUrl) return '';
-    if (typeof window === 'undefined') return '';
-    try {
-      return new URL(maybeUrl, window.location.origin).origin;
-    } catch (_err) {
-      return '';
-    }
-  };
-
-  const explicitSocket = toOrigin(process.env.REACT_APP_SOCKET_URL);
-  if (explicitSocket) return explicitSocket;
-
-  const apiBased = toOrigin(process.env.REACT_APP_API_URL);
-  if (apiBased) return apiBased;
-
-  if (typeof window !== 'undefined') {
-    const { origin } = window.location;
-    if (/:(\d+)$/.test(origin)) {
-      const port = origin.split(':').pop();
-      if (port === '3000') {
-        return origin.replace(/:3000$/, ':5000');
-      }
-    }
-    return origin;
-  }
-
-  return '';
-};
 
 function normalizeUploadPath(src) {
   if (!src) return '';
@@ -95,10 +66,14 @@ const titleForNote = (n) => {
       return 'Notification';
   }
 };
+
 function Chat() {
   const { propertyId, userId: receiverId } = useParams();
   const { user, token, logout } = useAuth();
+  const socket = useSocket();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [property, setProperty] = useState(null);
@@ -110,16 +85,15 @@ function Chat() {
   const [proposalSuccess, setProposalSuccess] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [otherUser, setOtherUser] = useState(null);
-  const [notifications, setNotifications] = useState([]);
+
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [hasAppointments, setHasAppointments] = useState(false);
-  const socket = useRef(null);
-  const messagesEndRef = useRef(null);
-    const dropdownRef = useRef(null);
 
-  const SOCKET_URL = useMemo(() => resolveSocketUrl(), []);
+  const messagesEndRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+
   const pageGradient = useMemo(
     () => ({
       minHeight: '100vh',
@@ -134,18 +108,7 @@ function Chat() {
         ? user.profilePicture
         : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
-const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get('/notifications');
-      const list = Array.isArray(res.data) ? res.data : [];
-      setNotifications(list);
-      setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-  }, []);
+
 
   const fetchUnreadMessages = useCallback(async () => {
     try {
@@ -163,8 +126,10 @@ const fetchNotifications = useCallback(async () => {
       setUnreadMessages(0);
     }
   }, [user?.id]);
+
+  // αρχικό load messages για τη συγκεκριμένη συνομιλία
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchMessagesForChat = async () => {
       try {
         const allMessages = await getMessages();
         const filteredMessages = allMessages
@@ -190,18 +155,20 @@ const fetchNotifications = useCallback(async () => {
     };
 
     if (token) {
-      fetchMessages();
+      fetchMessagesForChat();
     }
   }, [propertyId, receiverId, token, user.id]);
-   useEffect(() => {
+
+  // updated lastMessageCheck
+  useEffect(() => {
     const now = new Date();
     localStorage.setItem('lastMessageCheck', now.toISOString());
   }, []);
 
+  // notifications / unread counters / appointments
   useEffect(() => {
     if (!user) return;
 
-    fetchNotifications();
     fetchUnreadMessages();
 
     const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
@@ -218,13 +185,8 @@ const fetchNotifications = useCallback(async () => {
       .catch(() => {
         setHasAppointments(false);
       });
-  }, [user, fetchNotifications, fetchUnreadMessages]);
+  }, [user,  fetchUnreadMessages]);
 
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(id);
-  }, [user, fetchNotifications]);
 
   useEffect(() => {
     if (!user) return;
@@ -232,6 +194,7 @@ const fetchNotifications = useCallback(async () => {
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
 
+  // ESC για να κλείνουν notifications
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -242,50 +205,49 @@ const fetchNotifications = useCallback(async () => {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // 🔹 Socket listener για newMessage (χωρίς να ανοίγουμε νέο socket εδώ)
   useEffect(() => {
-    if (!user?.id || !SOCKET_URL) return undefined;
-
-    socket.current = io(SOCKET_URL, {
-      reconnectionAttempts: 3,
-      transports: ['websocket'],
-      path: process.env.REACT_APP_SOCKET_PATH || '/socket.io',
-      withCredentials: true,
-      auth: token ? { token } : undefined,
-    });
-    socket.current.emit('join', user.id);
+    if (!user?.id || !socket) return;
 
     const handleNewMessage = (newMessage) => {
       if (
         newMessage.propertyId?._id === propertyId &&
-        ((newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
-          (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id))
+        (
+          (newMessage.senderId?._id === user.id && newMessage.receiverId?._id === receiverId) ||
+          (newMessage.senderId?._id === receiverId && newMessage.receiverId?._id === user.id)
+        )
       ) {
         setMessages((prev) => {
           if (newMessage?._id && prev.some((msg) => msg._id === newMessage._id)) {
             return prev;
           }
-           return [...prev, newMessage];
+          return [...prev, newMessage];
         });
+
         const participant =
-          newMessage.senderId?._id === user.id ? newMessage.receiverId : newMessage.senderId;
+          newMessage.senderId?._id === user.id
+            ? newMessage.receiverId
+            : newMessage.senderId;
+
         if (participant) {
           setOtherUser(participant);
         }
       }
     };
 
-      socket.current.on('newMessage', handleNewMessage);
+    socket.on('newMessage', handleNewMessage);
 
     return () => {
-      socket.current?.off('newMessage', handleNewMessage);
-      socket.current?.disconnect();
+      socket.off('newMessage', handleNewMessage);
     };
-  }, [SOCKET_URL, propertyId, receiverId, token, user?.id]);
+  }, [socket, propertyId, receiverId, user?.id]);
 
+  // auto-scroll στο κάτω μέρος
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // φόρτωση property info
   useEffect(() => {
     let ignore = false;
     const fetchProperty = async () => {
@@ -334,8 +296,10 @@ const fetchNotifications = useCallback(async () => {
       const savedMessage = await sendMessage(receiverId, propertyId, newMessage);
       if (
         savedMessage?.propertyId?._id === propertyId &&
-        ((savedMessage.senderId?._id === user.id && savedMessage.receiverId?._id === receiverId) ||
-          (savedMessage.senderId?._id === receiverId && savedMessage.receiverId?._id === user.id))
+        (
+          (savedMessage.senderId?._id === user.id && savedMessage.receiverId?._id === receiverId) ||
+          (savedMessage.senderId?._id === receiverId && savedMessage.receiverId?._id === user.id)
+        )
       ) {
         setMessages((prev) => {
           if (savedMessage?._id && prev.some((msg) => msg._id === savedMessage._id)) {
@@ -344,7 +308,9 @@ const fetchNotifications = useCallback(async () => {
           return [...prev, savedMessage];
         });
         const participant =
-          savedMessage.senderId?._id === user.id ? savedMessage.receiverId : savedMessage.senderId;
+          savedMessage.senderId?._id === user.id
+            ? savedMessage.receiverId
+            : savedMessage.senderId;
         if (participant) {
           setOtherUser(participant);
         }
@@ -355,6 +321,7 @@ const fetchNotifications = useCallback(async () => {
       alert('Failed to send message.');
     }
   };
+
   const handleProposalSlotChange = (index, value) => {
     setSlotInputs((prev) => {
       const next = [...prev];
@@ -420,31 +387,19 @@ const fetchNotifications = useCallback(async () => {
     }
   };
 
-
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const handleToggleNotifications = async () => {
+    const handleToggleNotifications = async () => {
     const nextOpen = !showNotifications;
     setShowNotifications(nextOpen);
     if (nextOpen) {
-      const unread = notifications.filter((n) => !n.readAt && !n.read);
-      if (unread.length) {
-        try {
-          await Promise.all(unread.map((n) => api.patch(`/notifications/${n._id}/read`)));
-          const now = new Date().toISOString();
-          setNotifications((prev) =>
-            prev.map((n) => (unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n))
-          );
-          setUnreadCount(0);
-        } catch (err) {
-          console.error('Failed to mark notifications as read:', err);
-        }
-      }
+      await markAllAsRead();
     }
   };
+
 
   const handleNotificationClick = (note) => {
     if (!note) return;
@@ -512,7 +467,9 @@ const fetchNotifications = useCallback(async () => {
             {user?.role === 'client' && (
               <Link
                 to="/appointments"
-                className={`nav-link position-relative ${hasAppointments ? 'fw-semibold text-success' : 'text-dark'}`}
+                className={`nav-link position-relative ${
+                  hasAppointments ? 'fw-semibold text-success' : 'text-dark'
+                }`}
               >
                 Appointments
                 {hasAppointments && (
@@ -526,7 +483,9 @@ const fetchNotifications = useCallback(async () => {
               </Link>
             )}
             {user?.role !== 'owner' && (
-              <Link to="/favorites" className="nav-link text-dark">Favorites</Link>
+              <Link to="/favorites" className="nav-link text-dark">
+                Favorites
+              </Link>
             )}
             <div ref={dropdownRef} className="nav-item position-relative">
               <button
@@ -557,7 +516,10 @@ const fetchNotifications = useCallback(async () => {
                           <li
                             key={note._id}
                             className="list-group-item list-group-item-action d-flex gap-2"
-                            style={{ cursor: 'pointer', background: note.readAt || note.read ? '#fff' : '#f8fafc' }}
+                            style={{
+                              cursor: 'pointer',
+                              background: note.readAt || note.read ? '#fff' : '#f8fafc',
+                            }}
                             onClick={() => handleNotificationClick(note)}
                           >
                             <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
@@ -666,7 +628,10 @@ const fetchNotifications = useCallback(async () => {
                             </Badge>
                           )}
                           {property?.status && (
-                            <Badge bg={property.status === 'available' ? 'success' : 'secondary'} pill>
+                            <Badge
+                              bg={property.status === 'available' ? 'success' : 'secondary'}
+                              pill
+                            >
                               {property.status}
                             </Badge>
                           )}
@@ -744,77 +709,76 @@ const fetchNotifications = useCallback(async () => {
         </Card>
 
         <Modal
-        show={showProposalModal}
-        onHide={() => {
-          setShowProposalModal(false);
-          resetProposalState();
-        }}
-        centered
-      >
-        <Form onSubmit={handlePropose}>
-          <Modal.Header closeButton>
-            <Modal.Title>Propose appointment times</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <p className="text-muted">
-              Suggest one or more date and time options for the tenant to choose
-              from.
-            </p>
-            {proposalError && (
-              <Alert variant="danger" onClose={() => setProposalError('')} dismissible>
-                {proposalError}
-              </Alert>
-            )}
-            {slotInputs.map((slot, index) => (
-              <InputGroup className="mb-2" key={`slot-${index}`}>
-                <Form.Control
-                  type="datetime-local"
-                  value={slot}
-                  onChange={(event) =>
-                    handleProposalSlotChange(index, event.target.value)
-                  }
-                  required
-                />
-                {slotInputs.length > 1 && (
-                  <Button
-                    variant="outline-danger"
-                    type="button"
-                    onClick={() => handleRemoveSlot(index)}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </InputGroup>
-            ))}
-            <Button
-              variant="outline-primary"
-              type="button"
-              onClick={handleAddSlot}
-            >
-              Add another option
-            </Button>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() => {
-                setShowProposalModal(false);
-                resetProposalState();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="success"
-              type="submit"
-              disabled={submittingProposal}
-            >
-              {submittingProposal ? 'Sending…' : 'Send proposal'}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+          show={showProposalModal}
+          onHide={() => {
+            setShowProposalModal(false);
+            resetProposalState();
+          }}
+          centered
+        >
+          <Form onSubmit={handlePropose}>
+            <Modal.Header closeButton>
+              <Modal.Title>Propose appointment times</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-muted">
+                Suggest one or more date and time options for the tenant to choose from.
+              </p>
+              {proposalError && (
+                <Alert variant="danger" onClose={() => setProposalError('')} dismissible>
+                  {proposalError}
+                </Alert>
+              )}
+              {slotInputs.map((slot, index) => (
+                <InputGroup className="mb-2" key={`slot-${index}`}>
+                  <Form.Control
+                    type="datetime-local"
+                    value={slot}
+                    onChange={(event) =>
+                      handleProposalSlotChange(index, event.target.value)
+                    }
+                    required
+                  />
+                  {slotInputs.length > 1 && (
+                    <Button
+                      variant="outline-danger"
+                      type="button"
+                      onClick={() => handleRemoveSlot(index)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </InputGroup>
+              ))}
+              <Button
+                variant="outline-primary"
+                type="button"
+                onClick={handleAddSlot}
+              >
+                Add another option
+              </Button>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => {
+                  setShowProposalModal(false);
+                  resetProposalState();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                type="submit"
+                disabled={submittingProposal}
+              >
+                {submittingProposal ? 'Sending…' : 'Send proposal'}
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal>
       </Container>
     </div>
   );
