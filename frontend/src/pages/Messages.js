@@ -6,6 +6,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import './Messages.css';
 import api from '../api';
+import {useSocket} from '../context/SocketContext'; 
 
 const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
@@ -56,11 +57,17 @@ const titleForNote = (n) => {
 function Messages() {
   const { user, token, logout } = useAuth();
   const [conversations, setConversations] = useState([]);
+   const socket = useSocket();
   const [lastChecked, setLastChecked] = useState(() => {
     const stored = localStorage.getItem('lastMessageCheck');
     return stored ? new Date(stored).toLocaleString() : null;
   });
-   const [notifications, setNotifications] = useState([]);
+  const lastCheckRef = useRef(
+    localStorage.getItem('lastMessageCheck')
+      ? new Date(localStorage.getItem('lastMessageCheck'))
+      : new Date(0)
+  );
+  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -146,6 +153,7 @@ function Messages() {
         const now = new Date();
         setLastChecked(now.toLocaleString());
         localStorage.setItem('lastMessageCheck', now.toISOString());
+        lastCheckRef.current = now;
       } catch (err) {
         console.error('Failed to load messages', err);
         setConversations([]);
@@ -190,6 +198,49 @@ function Messages() {
     const id = setInterval(fetchUnreadMessages, 30000);
     return () => clearInterval(id);
   }, [user, fetchUnreadMessages]);
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleNewMessage = (msg) => {
+      const senderId = msg.senderId?._id || msg.senderId;
+      const receiverId = msg.receiverId?._id || msg.receiverId;
+      const property = msg.propertyId;
+
+      if (!property?._id || (senderId !== user.id && receiverId !== user.id)) return;
+
+      const otherUser = senderId === user.id ? msg.receiverId : msg.senderId;
+
+      setConversations((prev) => {
+        const next = [...prev];
+        const idx = next.findIndex(
+          (c) => c.property._id === property._id && c.otherUser._id === otherUser._id
+        );
+
+        const updatedEntry = { property, otherUser, lastMessage: msg };
+
+        if (idx === -1) {
+          next.push(updatedEntry);
+        } else if (new Date(msg.timeStamp) > new Date(next[idx].lastMessage.timeStamp)) {
+          next[idx] = { ...next[idx], lastMessage: msg };
+        }
+
+        next.sort(
+          (a, b) => new Date(b.lastMessage.timeStamp) - new Date(a.lastMessage.timeStamp)
+        );
+        return next;
+      });
+
+      if (receiverId === user.id && new Date(msg.timeStamp) > lastCheckRef.current) {
+        setUnreadMessages((prev) => prev + 1);
+      }
+    };
+
+    socket.on('newMessage', handleNewMessage);
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+    };
+  }, [socket, user?.id]);
+
 
   useEffect(() => {
     const onKeyDown = (e) => {
