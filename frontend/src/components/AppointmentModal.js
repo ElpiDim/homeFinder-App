@@ -25,6 +25,9 @@ function AppointmentModal({ appointmentId, onClose }) {
         const res = await api.get(`/appointments/${appointmentId}`, { headers });
         if (!alive) return;
         setAppointment(res.data);
+        if (!selectedSlot && res.data?.status === 'pending' && res.data.availableSlots?.length) {
+          setSelectedSlot(res.data.availableSlots[0]);
+        }
       } catch (err) {
         if (!alive) return;
         console.error("Error fetching appointment:", err);
@@ -42,10 +45,9 @@ function AppointmentModal({ appointmentId, onClose }) {
     setLoading(true);
     setError("");
     try {
-      // ✅ σωστό path + method σύμφωνα με το backend
-      await api.put(
-        `/appointments/confirm/${appointmentId}`,
-        { selectedSlot },     // ✅ στέλνουμε το original string
+      await api.patch(
+        `/appointments/${appointmentId}/accept`,
+        { selectedSlot },
         { headers }
       );
       onClose?.(true);
@@ -77,6 +79,10 @@ function AppointmentModal({ appointmentId, onClose }) {
             ✅ Already confirmed for{" "}
             <strong>{new Date(appointment.selectedSlot).toLocaleString()}</strong>
           </p>
+        ) : appointment.status === "declined" ? (
+          <p className="text-danger mb-0">This appointment was declined.</p>
+        ) : appointment.status === "cancelled" ? (
+          <p className="text-danger mb-0">This appointment was cancelled.</p>
         ) : (
           <>
             <p>Select one of the proposed times:</p>
@@ -109,7 +115,7 @@ function AppointmentModal({ appointmentId, onClose }) {
         <Button variant="secondary rounded-pill px-4" onClick={() => onClose?.()}>
           Cancel
         </Button>
-        {appointment && appointment.status !== "confirmed" && (
+        {appointment && appointment.status === "pending" && (
           <Button
             variant="primary"
             onClick={handleConfirm}

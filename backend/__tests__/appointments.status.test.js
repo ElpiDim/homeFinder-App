@@ -95,8 +95,11 @@ describe("Appointments — update status notifications", () => {
 
     expect(res.body).toEqual(
       expect.objectContaining({
-        _id: appt._id.toString(),
-        status: "cancelled",
+        message: "Appointment cancelled",
+        appointment: expect.objectContaining({
+          _id: appt._id.toString(),
+          status: "cancelled",
+        }),
       })
     );
 
@@ -108,7 +111,7 @@ describe("Appointments — update status notifications", () => {
     expect(note.type).toBe("appointment");
     expect(String(note.referenceId)).toBe(String(appt._id));
     expect(String(note.senderId)).toBe(String(owner._id));
-    expect(note.message).toMatch(/rejected|cancelled|updated/i);
+    expect(note.message).toMatch(/declined|cancelled|updated/i);
   });
 
   test("tenant cancels appointment -> owner gets appointment notification", async () => {
@@ -161,7 +164,12 @@ describe("Appointments — update status notifications", () => {
       .send({ status: "cancelled" })
       .expect(200);
 
-    expect(res.body.status).toBe("cancelled");
+    expect(res.body).toEqual(
+      expect.objectContaining({
+        message: "Appointment cancelled",
+        appointment: expect.objectContaining({ status: "cancelled" }),
+      })
+    );
 
     // owner should have 1 notification
     const ownerNotifs = await Notification.find({ userId: owner._id }).lean();

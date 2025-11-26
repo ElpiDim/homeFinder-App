@@ -1,35 +1,36 @@
 const mongoose = require("mongoose");
 
-const appointmentSchema = new mongoose.Schema({
-  tenantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-  },
-  propertyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Property",
-    required: true
-  },
-  ownerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-  },
+const appointmentSchema = new mongoose.Schema(
+  {
+    propertyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Property",
+      required: true,
+    },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    tenantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
-  availableSlots: [Date], // Ο owner προτείνει αυτές
-  selectedSlot: Date,     // Ο tenant επιλέγει μία
+    status: {
+      type: String,
+      enum: ["pending", "confirmed", "declined", "cancelled"],
+      default: "pending",
+    },
 
-  status: {
-    type: String,
-    enum: ["pending", "confirmed", "cancelled","rejected"],
-    default: "pending"
+    availableSlots: {
+      type: [Date],
+      default: [],
+    },
+    selectedSlot: Date,
   },
-
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+  { timestamps: true }
+);
 
 module.exports = mongoose.model("Appointment", appointmentSchema);
