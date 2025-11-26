@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -10,8 +10,14 @@ function Appointments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [actionLoading, setActionLoading] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
+
+  const authHeaders = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : undefined),
+    [token]
+  );
 
   const pageGradient = useMemo(() => ({
     minHeight: "100vh",
@@ -20,24 +26,54 @@ function Appointments() {
        linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
   }), []);
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const endpoint =
-          user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
-        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-        const res = await api.get(endpoint, { headers });
-        setAppointments(res.data || []);
-      } catch (err) {
-        console.error('Error fetching appointments:', err);
-        setError('Failed to load appointments.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchAppointments = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError('');
+    try {
+      const endpoint =
+        user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
+      const res = await api.get(endpoint, { headers: authHeaders });
+      setAppointments(res.data || []);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setError(err.response?.data?.message || 'Failed to load appointments.');
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeaders, user]);
 
-    if (user) fetchAppointments();
-  }, [user, token]);
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const handleDecline = async (appointmentId) => {
+    setActionLoading(`decline-${appointmentId}`);
+    setError('');
+    try {
+      await api.patch(`/appointments/${appointmentId}/decline`, {}, { headers: authHeaders });
+      await fetchAppointments();
+    } catch (err) {
+      console.error('Error declining appointment:', err);
+      setError(err.response?.data?.message || 'Failed to decline appointment.');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const handleCancel = async (appointmentId) => {
+    setActionLoading(`cancel-${appointmentId}`);
+    setError('');
+    try {
+      await api.patch(`/appointments/${appointmentId}/cancel`, {}, { headers: authHeaders });
+      await fetchAppointments();
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      setError(err.response?.data?.message || 'Failed to cancel appointment.');
+    } finally {
+      setActionLoading('');
+    }
+  };
 
   if (!user) {
     return (
@@ -83,46 +119,111 @@ function Appointments() {
                   className="p-3 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-start"
                   style={{ border: '1px solid #eef2f4' }}
                 >
-                  <div>
+                  <div className="me-3" style={{ flex: 1 }}>
                     <h6 className="fw-semibold mb-1">
                       {appt.propertyId?.title || 'Property'}
                     </h6>
-                    <div className="small text-muted">
-                      {appt.status === 'confirmed'
-                        ? new Date(appt.selectedSlot).toLocaleString()
-                        : 'Pending confirmation'}
+                    <div className="small text-muted mb-1 text-capitalize">
+                      Status: {appt.status || 'pending'}
                     </div>
 
+                    {appt.status === 'confirmed' && appt.selectedSlot && (
+                      <div className="small fw-semibold text-success">
+                        Confirmed for {new Date(appt.selectedSlot).toLocaleString()}
+                      </div>
+                    )}
+
+                    {appt.status === 'pending' && (
+                      <div className="small text-muted">
+                        {user?.role === 'owner'
+                          ? 'Awaiting tenant response.'
+                          : 'Please pick one of the available slots:'}
+                      </div>
+                    )}
+
+                    {appt.status === 'declined' && (
+                      <div className="small text-danger">Appointment declined.</div>
+                    )}
+
+                    {appt.status === 'cancelled' && (
+                      <div className="small text-danger">Appointment cancelled.</div>
+                    )}
+
                     {user?.role === 'owner' && appt.tenantId && (
-                      <div className="small mt-1">Tenant: {appt.tenantId.name}</div>
+                      <div className="small mt-2">Tenant: {appt.tenantId.name}</div>
                     )}
                     {user?.role === 'client' && appt.ownerId && (
-                      <div className="small mt-1">Owner: {appt.ownerId.name}</div>
+                      <div className="small mt-2">Owner: {appt.ownerId.name}</div>
+                    )}
+
+                    {appt.status === 'pending' && appt.availableSlots?.length > 0 && (
+                      <ul className="list-unstyled small mt-2 mb-0">
+                        {appt.availableSlots.map((slot, idx) => (
+                          <li key={idx} className="text-muted">
+                            {new Date(slot).toLocaleString()}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {appt.status === 'confirmed' && appt.availableSlots?.length && (
+                      <div className="small text-muted mt-2">
+                        Proposed options: {appt.availableSlots.length}
+                      </div>
                     )}
                   </div>
 
                   <div className="d-flex flex-column align-items-end gap-2">
                     {appt.propertyId?._id && (
-                    <Link
-                      to={`/property/${appt.propertyId._id}`}
-                      className="btn btn-sm rounded-pill px-3 py-1"
-                      style={{
-                        background: "linear-gradient(135deg,#006400,#90ee90)",
-                        color: "#fff",
-                        fontWeight: 600,
-                        border: "none"
-                      }}
-                    >
-                      View property
-                    </Link>
-                  )}
-
-                    {user?.role === 'client' && appt.status !== 'confirmed' && (
-                      <button
-                        className="btn btn-sm btn-success rounded-pill px-3 py-1"
-                        onClick={() => setSelectedAppointmentId(appt._id)}
+                      <Link
+                        to={`/property/${appt.propertyId._id}`}
+                        className="btn btn-sm rounded-pill px-3 py-1"
+                        style={{
+                          background: "linear-gradient(135deg,#006400,#90ee90)",
+                          color: "#fff",
+                          fontWeight: 600,
+                          border: "none",
+                        }}
                       >
-                        Choose time
+                        View property
+                      </Link>
+                    )}
+
+                    {user?.role === 'client' && appt.status === 'pending' && (
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-sm btn-success rounded-pill px-3 py-1"
+                          onClick={() => setSelectedAppointmentId(appt._id)}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1"
+                          onClick={() => handleDecline(appt._id)}
+                          disabled={actionLoading === `decline-${appt._id}`}
+                        >
+                          {actionLoading === `decline-${appt._id}` ? 'Declining…' : 'Decline'}
+                        </button>
+                      </div>
+                    )}
+
+                    {user?.role === 'client' && appt.status === 'confirmed' && (
+                      <button
+                        className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1"
+                        onClick={() => handleCancel(appt._id)}
+                        disabled={actionLoading === `cancel-${appt._id}`}
+                      >
+                        {actionLoading === `cancel-${appt._id}` ? 'Cancelling…' : 'Cancel'}
+                      </button>
+                    )}
+
+                    {user?.role === 'owner' && ['pending', 'confirmed'].includes(appt.status) && (
+                      <button
+                        className="btn btn-sm btn-outline-danger rounded-pill px-3 py-1"
+                        onClick={() => handleCancel(appt._id)}
+                        disabled={actionLoading === `cancel-${appt._id}`}
+                      >
+                        {actionLoading === `cancel-${appt._id}` ? 'Cancelling…' : 'Cancel'}
                       </button>
                     )}
                   </div>
@@ -136,17 +237,11 @@ function Appointments() {
       {selectedAppointmentId && (
         <AppointmentModal
           appointmentId={selectedAppointmentId}
-          onClose={() => setSelectedAppointmentId(null)}
-          onConfirmed={() => {
+          onClose={(shouldRefresh) => {
             setSelectedAppointmentId(null);
-            setLoading(true);
-            api
-              .get(user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant', {
-                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-              })
-              .then((res) => setAppointments(res.data || []))
-              .catch(() => {})
-              .finally(() => setLoading(false));
+            if (shouldRefresh) {
+              fetchAppointments();
+            }
           }}
         />
       )}
