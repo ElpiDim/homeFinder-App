@@ -20,6 +20,7 @@ import {
 import api from '../api';
 import { proposeAppointment } from '../services/appointmentsService';
 import Logo from '../components/Logo';
+import AppointmentModal from '../components/AppointmentModal';
 import './Chat.css';
 
 const API_ORIGIN =
@@ -90,6 +91,7 @@ function Chat() {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasAppointments, setHasAppointments] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -384,7 +386,7 @@ function Chat() {
   const handleNotificationClick = (note) => {
     if (!note) return;
     if (note.type === 'appointment') {
-      navigate('/appointments');
+      setSelectedAppointmentId(note.referenceId || null);
     } else if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
     }
@@ -760,6 +762,13 @@ function Chat() {
           </Form>
         </Modal>
       </Container>
+
+      {selectedAppointmentId && (
+        <AppointmentModal
+          appointmentId={selectedAppointmentId}
+          onClose={() => setSelectedAppointmentId(null)}
+        />
+      )}
     </div>
   );
 }

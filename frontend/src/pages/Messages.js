@@ -3,6 +3,7 @@ import { Container, Card, Button, ListGroup, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import AppointmentModal from '../components/AppointmentModal';
 import './Messages.css';
 import api from '../api';
 import { useMessages } from '../context/MessageContext';
@@ -61,6 +62,7 @@ function Messages() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasAppointments, setHasAppointments] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   
@@ -172,7 +174,7 @@ function Messages() {
   const handleNotificationClick = (note) => {
     if (!note) return;
     if (note.type === 'appointment') {
-      navigate('/appointments');
+      setSelectedAppointmentId(note.referenceId || null);
     } else if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
     }
@@ -416,6 +418,13 @@ function Messages() {
           </Card.Body>
         </Card>
       </Container>
+
+      {selectedAppointmentId && (
+        <AppointmentModal
+          appointmentId={selectedAppointmentId}
+          onClose={() => setSelectedAppointmentId(null)}
+        />
+      )}
     </div>
   );
 }
