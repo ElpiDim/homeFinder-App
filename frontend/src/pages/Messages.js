@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getMessages } from '../services/messagesService';
 import { Container, Card, Button, ListGroup, Badge } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import './Messages.css';
 import api from '../api';
-import {useSocket} from '../context/SocketContext'; 
+import { useMessages } from '../context/MessageContext';
 
 const API_ORIGIN =
   (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
@@ -55,22 +54,12 @@ const titleForNote = (n) => {
 };
 
 function Messages() {
-  const { user, token, logout } = useAuth();
-  const [conversations, setConversations] = useState([]);
-   const socket = useSocket();
-  const [lastChecked, setLastChecked] = useState(() => {
-    const stored = localStorage.getItem('lastMessageCheck');
-    return stored ? new Date(stored).toLocaleString() : null;
-  });
-  const lastCheckRef = useRef(
-    localStorage.getItem('lastMessageCheck')
-      ? new Date(localStorage.getItem('lastMessageCheck'))
-      : new Date(0)
-  );
+  const { user, logout } = useAuth();
+  const { conversations, unreadChats, loading, fetchConversations, markConversationAsRead } = useMessages();
+  const [lastChecked, setLastChecked] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const [hasAppointments, setHasAppointments] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
@@ -90,7 +79,7 @@ function Messages() {
     []
   );
 
-   const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications');
       const list = Array.isArray(res.data) ? res.data : [];
@@ -103,73 +92,20 @@ function Messages() {
     }
   }, []);
 
-  const fetchUnreadMessages = useCallback(async () => {
-    try {
-      const msgs = await getMessages();
-      const lastCheck = localStorage.getItem('lastMessageCheck');
-      const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
-      const count = msgs.filter(
-        (m) =>
-          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
-          new Date(m.timeStamp) > lastDate
-      ).length;
-      setUnreadMessages(count);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      setUnreadMessages(0);
-    }
-  }, [user?.id]);
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const data = await getMessages();
-        const groupedConversations = data.reduce((acc, msg) => {
-          const otherUser =
-            msg.senderId._id === user.id ? msg.receiverId : msg.senderId;
-          const property = msg.propertyId;
-          const key = `${property._id}-${otherUser._id}`;
-
-          if (!acc[key]) {
-            acc[key] = {
-              property,
-              otherUser,
-              lastMessage: msg,
-            };
-          } else if (
-            new Date(msg.timeStamp) > new Date(acc[key].lastMessage.timeStamp)
-          ) {
-            acc[key].lastMessage = msg;
-          }
-          return acc;
-        }, {});
-
-        const grouped = Object.values(groupedConversations);
-        grouped.sort(
-          (a, b) => new Date(b.lastMessage.timeStamp) - new Date(a.lastMessage.timeStamp)
-        );
-        setConversations(grouped);
-
-        const now = new Date();
-        setLastChecked(now.toLocaleString());
-        localStorage.setItem('lastMessageCheck', now.toISOString());
-        lastCheckRef.current = now;
-      } catch (err) {
-        console.error('Failed to load messages', err);
-        setConversations([]);
-      }
-    };
-
-    if (token) {
-      fetchMessages();
+    if (conversations) {
+      setLastChecked(new Date().toLocaleString());
     }
-  }, [token, user.id]);
+  }, [conversations]);
 
   useEffect(() => {
     if (!user) return;
 
     fetchNotifications();
-    fetchUnreadMessages();
 
     const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
     api
@@ -185,61 +121,13 @@ function Messages() {
       .catch(() => {
         setHasAppointments(false);
       });
-  }, [user, fetchNotifications, fetchUnreadMessages]);
+  }, [user, fetchNotifications]);
 
   useEffect(() => {
     if (!user) return;
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
-
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(fetchUnreadMessages, 30000);
-    return () => clearInterval(id);
-  }, [user, fetchUnreadMessages]);
-  useEffect(() => {
-    if (!socket || !user) return;
-
-    const handleNewMessage = (msg) => {
-      const senderId = msg.senderId?._id || msg.senderId;
-      const receiverId = msg.receiverId?._id || msg.receiverId;
-      const property = msg.propertyId;
-
-      if (!property?._id || (senderId !== user.id && receiverId !== user.id)) return;
-
-      const otherUser = senderId === user.id ? msg.receiverId : msg.senderId;
-
-      setConversations((prev) => {
-        const next = [...prev];
-        const idx = next.findIndex(
-          (c) => c.property._id === property._id && c.otherUser._id === otherUser._id
-        );
-
-        const updatedEntry = { property, otherUser, lastMessage: msg };
-
-        if (idx === -1) {
-          next.push(updatedEntry);
-        } else if (new Date(msg.timeStamp) > new Date(next[idx].lastMessage.timeStamp)) {
-          next[idx] = { ...next[idx], lastMessage: msg };
-        }
-
-        next.sort(
-          (a, b) => new Date(b.lastMessage.timeStamp) - new Date(a.lastMessage.timeStamp)
-        );
-        return next;
-      });
-
-      if (receiverId === user.id && new Date(msg.timeStamp) > lastCheckRef.current) {
-        setUnreadMessages((prev) => prev + 1);
-      }
-    };
-
-    socket.on('newMessage', handleNewMessage);
-    return () => {
-      socket.off('newMessage', handleNewMessage);
-    };
-  }, [socket, user?.id]);
 
 
   useEffect(() => {
@@ -252,7 +140,8 @@ function Messages() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
   const handleConversationClick = (propertyId, otherUserId) => {
-    navigate(`/messages/property/${propertyId}/user/${otherUserId}`);
+    markConversationAsRead(propertyId, otherUserId);
+    navigate(`/chat/${propertyId}/${otherUserId}`);
   };
 
   const handleLogout = () => {
@@ -318,14 +207,14 @@ function Messages() {
         </button>
         <div className="collapse navbar-collapse" id="navContent">
           <div className="navbar-nav ms-auto align-items-center">
-             <Link to="/messages" className="nav-link text-dark position-relative">
+            <Link to="/messages" className="nav-link text-dark position-relative">
               Messages
-              {unreadMessages > 0 && (
+              {unreadChats > 0 && (
                 <span
                   className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                   style={{ fontSize: '0.65rem' }}
                 >
-                  {unreadMessages}
+                  {unreadChats}
                 </span>
               )}
             </Link>
@@ -448,12 +337,14 @@ function Messages() {
 
         <Card className="shadow-sm border-0 glass-panel">
           <Card.Body className="p-0">
-            {conversations.length === 0 ? (
+            {loading ? (
+              <div className="text-center text-muted py-5">Loading conversations...</div>
+            ) : conversations.length === 0 ? (
               <div className="text-center text-muted py-5">No conversations yet.</div>
             ) : (
               <ListGroup variant="flush" className="conversation-list">
-                {conversations.map(({ property, otherUser, lastMessage }) => {
-                  const conversationKey = `${property._id}-${otherUser._id}`;
+                {conversations.map(({ property, otherUser, lastMessage, unreadCount, conversationId }) => {
+                  const conversationKey = conversationId || `${property._id}-${otherUser._id}`;
                   const otherUserAvatar = assetUrl(
                     otherUser.profilePicture,
                     '/default-avatar.jpg'
@@ -463,6 +354,8 @@ function Messages() {
                     : 'https://placehold.co/160x120?text=No+Image';
                   const propertyTypeVariant = property?.type === 'rent' ? 'info' : 'success';
                   const propertyLocation = property?.location || property?.city || property?.address || '';
+                  const hasUnread = (unreadCount || 0) > 0;
+                  const lastMessageTime = lastMessage?.timeStamp ? new Date(lastMessage.timeStamp).toLocaleString() : '';
 
                   return (
                     <ListGroup.Item
@@ -500,14 +393,19 @@ function Messages() {
                                 )}
                               </div>
                             </div>
-                            <small className="text-muted conversation-date">
-                              {new Date(lastMessage.timeStamp).toLocaleString()}
+                            <small className="text-muted conversation-date d-flex align-items-center gap-2">
+                              {lastMessageTime}
+                              {hasUnread && (
+                                <Badge bg="danger" pill>
+                                  {unreadCount}
+                                </Badge>
+                              )}
                             </small>
                           </div>
                           <p className="mb-1 text-muted">
                             With <strong>{otherUser.name}</strong>
                           </p>
-                          <p className="mb-0 conversation-content">{lastMessage.content}</p>
+                          <p className="mb-0 conversation-content">{lastMessage?.content}</p>
                         </div>
                       </div>
                     </ListGroup.Item>

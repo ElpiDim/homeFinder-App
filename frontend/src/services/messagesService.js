@@ -9,4 +9,14 @@ export const sendMessage = async (receiverId, propertyId, content) => {
 export const getMessages = async () => {
     const res = await api.get(API_URL);
     return res.data;
-};  
+};
+
+export const getConversations = async () => {
+    const res = await api.get(`${API_URL}/conversations`);
+    return res.data;
+};
+
+export const markConversationRead = async (propertyId, otherUserId) => {
+    const res = await api.patch(`${API_URL}/conversation/${propertyId}/${otherUserId}/read`);
+    return res.data;
+};

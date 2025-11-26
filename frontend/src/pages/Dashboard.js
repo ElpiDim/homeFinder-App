@@ -7,7 +7,7 @@ import AppointmentModal from '../components/AppointmentModal';
 import OwnerAppointmentsCalendar from '../components/OwnerAppointmentsCalendar';
 import PropertyCard from '../components/propertyCard';
 import Logo from '../components/Logo';
-import { getMessages } from '../services/messagesService';
+import { useMessages } from '../context/MessageContext';
 
 /* ---------- helpers (notifications) ---------- */
 const iconForType = (t) => {
@@ -43,6 +43,7 @@ function normalizeUploadPath(src) {
 function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { unreadChats } = useMessages();
 
   /* ---------- state ---------- */
   const [allProperties, setAllProperties] = useState([]);
@@ -58,7 +59,6 @@ function Dashboard() {
   const [hasAppointments, setHasAppointments] = useState(false);
    const [ownerAppointments, setOwnerAppointments] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // geolocation (kept for parity; not shown on UI)
   const [userLat, setUserLat] = useState(null);
@@ -202,23 +202,6 @@ function Dashboard() {
     }
   };
 
-  const fetchUnreadMessages = useCallback(async () => {
-    try {
-      const msgs = await getMessages();
-      const lastCheck = localStorage.getItem('lastMessageCheck');
-      const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
-      const count = msgs.filter(
-        (m) =>
-          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
-          new Date(m.timeStamp) > lastDate
-      ).length;
-      setUnreadMessages(count);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      setUnreadMessages(0);
-    }
-  }, [user?.id]);
-
   // fetch owner stats
   const fetchOwnerStats = useCallback(async () => {
     if (user?.role !== 'owner') return;
@@ -246,7 +229,6 @@ function Dashboard() {
     }
 
     fetchAllProperties({ page: 1 });
-    fetchUnreadMessages();
     fetchOwnerStats();
 
     // Load favorites → map to property IDs
@@ -287,7 +269,7 @@ function Dashboard() {
           setOwnerAppointments([]);
         }
       });
-  }, [user, fetchAllProperties, fetchNotifications, fetchUnreadMessages, fetchOwnerStats]);
+  }, [user, fetchAllProperties, fetchNotifications, fetchOwnerStats]);
 
   // client-side pagination when page changes
   useEffect(() => {
@@ -305,11 +287,6 @@ function Dashboard() {
     const id = setInterval(fetchNotifications, 30000);
     return () => clearInterval(id);
   }, [user, fetchNotifications]);
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(fetchUnreadMessages, 30000);
-    return () => clearInterval(id);
-  }, [user, fetchUnreadMessages]);
   useEffect(() => {
     const onKeyDown = (e) => e.key === 'Escape' && setShowNotifications(false);
     document.addEventListener('keydown', onKeyDown);
@@ -449,12 +426,12 @@ function Dashboard() {
           )}
           <Link to="/messages" className="text-dark text-decoration-none position-relative">
             Messages
-            {unreadMessages > 0 && (
+            {unreadChats > 0 && (
               <span
                 className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                 style={{ fontSize: '0.65rem' }}
               >
-                {unreadMessages}
+                {unreadChats}
               </span>
             )}
           </Link>
