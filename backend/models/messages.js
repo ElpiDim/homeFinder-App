@@ -17,13 +17,22 @@ const messageSchema = new mongoose.Schema({
         required: true,
     },
     content:{
-        type: String, 
+        type: String,
         required: true,
     },
     timeStamp:{
         type: Date,
         default: Date.now
-    }
+    },
+    readBy: {
+        type: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
+        default: [],
+    },
 });
 
 module.exports = mongoose.model("Message", messageSchema);

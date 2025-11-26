@@ -559,7 +559,7 @@ const locationParts = property.location
                 className="btn btn-success rounded-pill px-4"
                 onClick={() =>
                   navigate(
-                    `/messages/property/${propertyId}/user/${
+                    `/chat/${propertyId}/${
                       property.ownerId._id || property.ownerId
                     }`
                   )

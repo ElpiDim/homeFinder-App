@@ -9,7 +9,8 @@ import api from "./api";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext"; // 👈 ΑΥΤΟ ΕΛΕΙΠΕ
-import {NotificationProvider} from "./context/NotificationContext"; 
+import {NotificationProvider} from "./context/NotificationContext";
+import { MessageProvider } from "./context/MessageContext";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -23,7 +24,9 @@ root.render(
       <AuthProvider>
         <SocketProvider>
           <NotificationProvider>
-            <App />
+            <MessageProvider>
+              <App />
+            </MessageProvider>
           </NotificationProvider>
         </SocketProvider>
       </AuthProvider>

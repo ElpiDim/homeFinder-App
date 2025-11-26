@@ -81,7 +81,7 @@ function App() {
         />
 
         <Route
-          path="/messages/property/:propertyId/user/:userId"
+          path="/chat/:propertyId/:userId"
           element={
             <OnboardingProtected>
               <Chat />

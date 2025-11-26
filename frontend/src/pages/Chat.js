@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getMessages, sendMessage } from '../services/messagesService';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import {useNotifications} from '../context/NotificationContext';
+import { useMessages } from '../context/MessageContext';
 
 import {
   Container,
@@ -72,6 +73,7 @@ function Chat() {
   const { user, token, logout } = useAuth();
   const socket = useSocket();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
+  const { unreadChats, markConversationAsRead } = useMessages();
   const navigate = useNavigate();
 
   const [messages, setMessages] = useState([]);
@@ -87,7 +89,6 @@ function Chat() {
   const [otherUser, setOtherUser] = useState(null);
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const [hasAppointments, setHasAppointments] = useState(false);
 
   const messagesEndRef = useRef(null);
@@ -109,23 +110,6 @@ function Chat() {
         : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
     : '/default-avatar.jpg';
 
-
-  const fetchUnreadMessages = useCallback(async () => {
-    try {
-      const msgs = await getMessages();
-      const lastCheck = localStorage.getItem('lastMessageCheck');
-      const lastDate = lastCheck ? new Date(lastCheck) : new Date(0);
-      const count = msgs.filter(
-        (m) =>
-          (m.receiverId?._id === user?.id || m.receiverId === user?.id) &&
-          new Date(m.timeStamp) > lastDate
-      ).length;
-      setUnreadMessages(count);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-      setUnreadMessages(0);
-    }
-  }, [user?.id]);
 
   // αρχικό load messages για τη συγκεκριμένη συνομιλία
   useEffect(() => {
@@ -159,20 +143,15 @@ function Chat() {
     }
   }, [propertyId, receiverId, token, user.id]);
 
-  // updated lastMessageCheck
+  // mark conversation as read when viewing
+  useEffect(() => {
+    if (!user?.id || !propertyId || !receiverId) return;
+    markConversationAsRead(propertyId, receiverId);
+  }, [user?.id, propertyId, receiverId, markConversationAsRead]);
+
+  // notifications / appointments
   useEffect(() => {
     if (!user) return;
-    
-    const now = new Date();
-    localStorage.setItem('lastMessageCheck', now.toISOString());
-   setUnreadMessages(0);
-  }, [user, propertyId, receiverId]);
-
-  // notifications / unread counters / appointments
-  useEffect(() => {
-    if (!user) return;
-
-    fetchUnreadMessages();
 
     const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
     api
@@ -188,14 +167,7 @@ function Chat() {
       .catch(() => {
         setHasAppointments(false);
       });
-  }, [user,  fetchUnreadMessages]);
-
-
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(fetchUnreadMessages, 30000);
-    return () => clearInterval(id);
-  }, [user, fetchUnreadMessages]);
+  }, [user]);
 
   // ESC για να κλείνουν notifications
   useEffect(() => {
@@ -235,6 +207,11 @@ function Chat() {
         if (participant) {
           setOtherUser(participant);
         }
+
+        const receiver = newMessage.receiverId?._id || newMessage.receiverId;
+        if (receiver && String(receiver) === String(user.id)) {
+          markConversationAsRead(propertyId, receiverId);
+        }
       }
     };
 
@@ -243,7 +220,7 @@ function Chat() {
     return () => {
       socket.off('newMessage', handleNewMessage);
     };
-  }, [socket, propertyId, receiverId, user?.id]);
+  }, [socket, propertyId, receiverId, user?.id, markConversationAsRead]);
 
   // auto-scroll στο κάτω μέρος
   useEffect(() => {
@@ -458,12 +435,12 @@ function Chat() {
           <div className="navbar-nav ms-auto align-items-center">
             <Link to="/messages" className="nav-link text-dark position-relative">
               Messages
-              {unreadMessages > 0 && (
+              {unreadChats > 0 && (
                 <span
                   className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                   style={{ fontSize: '0.65rem' }}
                 >
-                  {unreadMessages}
+                  {unreadChats}
                 </span>
               )}
             </Link>
