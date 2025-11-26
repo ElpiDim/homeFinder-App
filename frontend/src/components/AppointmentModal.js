@@ -2,19 +2,22 @@ import React, { useEffect, useState } from "react";
 import api from '../api';
 import { Modal, Button } from "react-bootstrap";
 
-function AppointmentModal({ appointmentId, onClose }) {
-  const [appointment, setAppointment] = useState(null);
-  const [selectedSlot, setSelectedSlot] = useState("");
+function AppointmentModal({ appointmentId, initialAppointment, onClose }) {
+  const [appointment, setAppointment] = useState(initialAppointment || null);
+  const [selectedSlot, setSelectedSlot] = useState(
+    initialAppointment?.availableSlots?.[0] || ""
+  );
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const [fetching, setFetching] = useState(!initialAppointment);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token");
-  const headers = token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-
   const isConfirmed = appointment?.status === 'confirmed' || Boolean(appointment?.selectedSlot);
+
+  useEffect(() => {
+    setAppointment(initialAppointment || null);
+    setSelectedSlot(initialAppointment?.availableSlots?.[0] || "");
+    setError("");
+  }, [appointmentId, initialAppointment]);
 
   useEffect(() => {
     let alive = true;
@@ -22,31 +25,34 @@ function AppointmentModal({ appointmentId, onClose }) {
       setFetching(true);
       setError("");
       try {
-        const res = await api.get(`/appointments/${appointmentId}`, { headers });
+        const res = await api.get(`/appointments/${appointmentId}`);
         if (!alive) return;
         setAppointment(res.data);
+        if (!selectedSlot && res.data?.status === 'pending' && res.data.availableSlots?.length) {
+          setSelectedSlot(res.data.availableSlots[0]);
+        }
       } catch (err) {
         if (!alive) return;
         console.error("Error fetching appointment:", err);
-        setError(err.response?.data?.message || "Failed to load appointment.");
+        if (!initialAppointment) {
+          setError(err.response?.data?.message || "Failed to load appointment.");
+        }
       } finally {
         alive && setFetching(false);
       }
     };
     if (appointmentId) fetchAppointment();
     return () => { alive = false; };
-  }, [appointmentId, token]); // ok για re-fetch όταν αλλάξει token
+  }, [appointmentId, initialAppointment]); // ok για re-fetch όταν αλλάξει token
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
     setLoading(true);
     setError("");
     try {
-      // ✅ σωστό path + method σύμφωνα με το backend
-      await api.put(
-        `/appointments/confirm/${appointmentId}`,
-        { selectedSlot },     // ✅ στέλνουμε το original string
-        { headers }
+      await api.patch(
+        `/appointments/${appointmentId}/accept`,
+        { selectedSlot }
       );
       onClose?.(true);
     } catch (err) {
@@ -77,6 +83,10 @@ function AppointmentModal({ appointmentId, onClose }) {
             ✅ Already confirmed for{" "}
             <strong>{new Date(appointment.selectedSlot).toLocaleString()}</strong>
           </p>
+        ) : appointment.status === "declined" ? (
+          <p className="text-danger mb-0">This appointment was declined.</p>
+        ) : appointment.status === "cancelled" ? (
+          <p className="text-danger mb-0">This appointment was cancelled.</p>
         ) : (
           <>
             <p>Select one of the proposed times:</p>
@@ -109,7 +119,7 @@ function AppointmentModal({ appointmentId, onClose }) {
         <Button variant="secondary rounded-pill px-4" onClick={() => onClose?.()}>
           Cancel
         </Button>
-        {appointment && appointment.status !== "confirmed" && (
+        {appointment && appointment.status === "pending" && (
           <Button
             variant="primary"
             onClick={handleConfirm}
