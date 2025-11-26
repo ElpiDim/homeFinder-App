@@ -6,10 +6,12 @@ const Message = require("../models/messages");
 const SORT_BY_UPCOMING = { selectedSlot: 1, "availableSlots.0": 1, createdAt: -1 };
 
 const normalizeSlots = (slots = []) => {
+  const now = Date.now();
   const timestamps = slots
     .map((slot) => new Date(slot))
     .filter((date) => !Number.isNaN(date.getTime()))
-    .map((date) => date.getTime());
+    .map((date) => date.getTime())
+    .filter((ms) => ms > now);
 
   return [...new Set(timestamps)].sort((a, b) => a - b).map((ms) => new Date(ms));
 };
@@ -20,9 +22,15 @@ const formatSlot = (date) =>
     timeStyle: "short",
   });
 
+const resolveId = (value) => {
+  if (!value) return null;
+  if (typeof value === "object" && value._id) return value._id.toString();
+  return value.toString();
+};
+
 const ensureParticipant = (appointment, userId) => {
-  const ownerMatch = String(appointment.ownerId) === String(userId);
-  const tenantMatch = String(appointment.tenantId) === String(userId);
+  const ownerMatch = resolveId(appointment.ownerId) === resolveId(userId);
+  const tenantMatch = resolveId(appointment.tenantId) === resolveId(userId);
   return { ownerMatch, tenantMatch, allowed: ownerMatch || tenantMatch };
 };
 
@@ -61,7 +69,9 @@ exports.proposeAppointmentSlots = async (req, res) => {
 
     const normalizedSlots = normalizeSlots(availableSlots);
     if (!normalizedSlots.length) {
-      return res.status(400).json({ message: "Please provide at least one valid slot" });
+      return res
+        .status(400)
+        .json({ message: "Please provide at least one valid future slot" });
     }
 
     const appointment = await Appointment.create({
@@ -238,7 +248,7 @@ const declineAppointmentInternal = async (appointment, actorId, req) => {
   appointment.selectedSlot = undefined;
   await appointment.save();
 
-  const isOwner = String(appointment.ownerId) === String(actorId);
+  const isOwner = resolveId(appointment.ownerId) === resolveId(actorId);
   const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
   const actorLabel = isOwner ? "owner" : "tenant";
   const title = appointment.propertyId?.title || "the property";
@@ -285,7 +295,7 @@ const cancelAppointmentInternal = async (appointment, actorId, req) => {
   appointment.status = "cancelled";
   await appointment.save();
 
-  const isOwner = String(appointment.ownerId) === String(actorId);
+  const isOwner = resolveId(appointment.ownerId) === resolveId(actorId);
   const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
   const actorLabel = isOwner ? "owner" : "tenant";
   const title = appointment.propertyId?.title || "the property";

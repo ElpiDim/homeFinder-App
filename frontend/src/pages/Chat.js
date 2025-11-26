@@ -93,6 +93,8 @@ function Chat() {
   const [hasAppointments, setHasAppointments] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
+  const minSlotDateTime = new Date().toISOString().slice(0, 16);
+
   const messagesEndRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -337,11 +339,11 @@ function Chat() {
     try {
       const normalizedSlots = slotInputs
         .map((slot) => (slot ? new Date(slot) : null))
-        .filter((date) => date && !Number.isNaN(date.getTime()))
+        .filter((date) => date && !Number.isNaN(date.getTime()) && date.getTime() > Date.now())
         .map((date) => date.toISOString());
 
       if (!normalizedSlots.length) {
-        setProposalError('Please add at least one valid date and time.');
+        setProposalError('Please add at least one valid future date and time.');
         setSubmittingProposal(false);
         return;
       }
@@ -716,6 +718,7 @@ function Chat() {
                   <Form.Control
                     type="datetime-local"
                     value={slot}
+                    min={minSlotDateTime}
                     onChange={(event) =>
                       handleProposalSlotChange(index, event.target.value)
                     }
