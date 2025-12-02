@@ -640,11 +640,21 @@ function Chat() {
 
           <Card.Body className="chat-body">
             <div className="chat-counterpart d-flex align-items-center gap-3 mb-3">
-              <div className="chat-counterpart-avatar">
+              <Link
+                to={otherUser?._id ? `/profile/${otherUser._id}` : '#'}
+                className="chat-counterpart-avatar text-decoration-none"
+                style={{ cursor: otherUser?._id ? 'pointer' : 'default' }}
+              >
                 <img src={otherUserAvatar} alt={formattedReceiverName} />
-              </div>
+              </Link>
               <div>
-                <h6 className="mb-0">{formattedReceiverName}</h6>
+                <Link
+                  to={otherUser?._id ? `/profile/${otherUser._id}` : '#'}
+                  className="text-decoration-none text-dark"
+                  style={{ cursor: otherUser?._id ? 'pointer' : 'default' }}
+                >
+                  <h6 className="mb-0">{formattedReceiverName}</h6>
+                </Link>
                 {otherUser?.email && <small className="text-muted">{otherUser.email}</small>}
               </div>
             </div>

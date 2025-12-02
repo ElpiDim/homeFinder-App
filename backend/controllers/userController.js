@@ -341,4 +341,24 @@ exports.deleteUserAccount = async (req, res) => {
   }
 };
 
+/* ---------------------- get user by id ----------------------- */
+// GET /api/users/:userId
+exports.getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate if userId is a valid ObjectId if necessary,
+    // but mongoose usually handles cast errors or returns null.
+    // However, it's good to be safe or let the catch block handle CastError.
+
+    const user = await User.findById(userId).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(buildUserResponse(user));
+  } catch (err) {
+    console.error("getUserById error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports.buildUserResponse = buildUserResponse;

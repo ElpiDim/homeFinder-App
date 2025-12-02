@@ -13,6 +13,7 @@ const {
   updateMe,
   deleteUserAccount,
   saveOnboarding,
+  getUserById,
 } = require("../controllers/userController");
 
 // -------------------- ROUTES --------------------
@@ -37,5 +38,8 @@ router.post("/onboarding", authMiddleware, saveOnboarding);
 
 // DELETE /api/users/profile - delete account
 router.delete("/profile", authMiddleware, deleteUserAccount);
+
+// GET /api/users/:userId - get public info for another user
+router.get("/:userId", authMiddleware, getUserById);
 
 module.exports = router;

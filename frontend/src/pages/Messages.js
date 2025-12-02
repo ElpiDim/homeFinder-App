@@ -369,7 +369,15 @@ function Messages() {
                           <div className="conversation-property-thumb">
                             <img src={propertyImage} alt={property.title} />
                           </div>
-                          <div className="conversation-avatar">
+                          <div
+                            className="conversation-avatar"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/profile/${otherUser._id}`);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                            title="View Profile"
+                          >
                             <img src={otherUserAvatar} alt={otherUser.name} />
                           </div>
                         </div>
@@ -403,7 +411,18 @@ function Messages() {
                             </small>
                           </div>
                           <p className="mb-1 text-muted">
-                            With <strong>{otherUser.name}</strong>
+                            With{' '}
+                            <strong
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/profile/${otherUser._id}`);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                              className="text-dark"
+                              title="View Profile"
+                            >
+                              {otherUser.name}
+                            </strong>
                           </p>
                           <p className="mb-0 conversation-content">{lastMessage?.content}</p>
                         </div>

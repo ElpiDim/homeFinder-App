@@ -1,30 +1,50 @@
 // src/pages/Profile.jsx
-import React, { useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
 function Profile() {
-  const { user, setUser } = useAuth();
+  const { user: currentUser, setUser: setCurrentUser } = useAuth();
   const navigate = useNavigate();
+  const { userId } = useParams();
+  const [viewedUser, setViewedUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch fresh user on mount
+  // Check if we are viewing the current user or someone else
+  const isSelf = !userId || (currentUser && (userId === currentUser.id || userId === currentUser._id));
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const { data } = await api.get('/users/me');
-        const fresh = data?.user || data;
-        if (!cancelled && fresh) {
-          setUser(fresh);
-          localStorage.setItem('user', JSON.stringify(fresh));
+        if (isSelf) {
+          // Fetch fresh current user
+          const { data } = await api.get('/users/me');
+          const fresh = data?.user || data;
+          if (!cancelled && fresh) {
+            setCurrentUser(fresh);
+            localStorage.setItem('user', JSON.stringify(fresh));
+            setViewedUser(fresh);
+          }
+        } else {
+          // Fetch other user
+          const { data } = await api.get(`/users/${userId}`);
+          if (!cancelled && data) {
+            setViewedUser(data);
+          }
         }
-      } catch {
-        // silent fail
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    })();
+    };
+
+    fetchData();
     return () => { cancelled = true; };
-  }, [setUser]);
+  }, [isSelf, userId, setCurrentUser]);
 
   const pageGradient = useMemo(() => ({
     minHeight: '100vh',
@@ -33,7 +53,7 @@ function Profile() {
        linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
   }), []);
 
-  if (!user) {
+  if (loading || !viewedUser) {
     return (
       <div style={pageGradient}>
         <div className="container mt-5">Loading profile…</div>
@@ -41,6 +61,7 @@ function Profile() {
     );
   }
 
+  const user = viewedUser; // use local variable for rendering
   const isClient = user.role === 'client';
   const profilePicture = user.profilePicture || '/default-avatar.jpg';
   const joinedDate = user.createdAt
@@ -80,18 +101,20 @@ function Profile() {
               <div className="text-muted">Joined in {joinedDate}</div>
             </div>
           </div>
-          <button
-            className="btn rounded-pill px-3 py-2"
-            style={{
-              background: "linear-gradient(135deg,#006400,#90ee90)",
-              color: "#fff",
-              fontWeight: 600,
-              border: "none"
-            }}
-            onClick={() => navigate('/edit-profile')}
-          >
-            Edit Profile
-          </button>
+          {isSelf && (
+            <button
+              className="btn rounded-pill px-3 py-2"
+              style={{
+                background: "linear-gradient(135deg,#006400,#90ee90)",
+                color: "#fff",
+                fontWeight: 600,
+                border: "none"
+              }}
+              onClick={() => navigate('/edit-profile')}
+            >
+              Edit Profile
+            </button>
+          )}
         </div>
 
         {/* Client view */}

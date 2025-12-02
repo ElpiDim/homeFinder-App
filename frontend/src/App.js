@@ -79,6 +79,14 @@ function App() {
             </OnboardingProtected>
           }
         />
+        <Route
+          path="/profile/:userId"
+          element={
+            <OnboardingProtected>
+              <Profile />
+            </OnboardingProtected>
+          }
+        />
 
         <Route
           path="/chat/:propertyId/:userId"
