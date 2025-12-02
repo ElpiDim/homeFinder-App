@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import {useNotifications} from '../context/NotificationContext';
 import { useMessages } from '../context/MessageContext';
-
 import {
   Container,
   Card,
@@ -640,17 +639,23 @@ function Chat() {
 
           <Card.Body className="chat-body">
             <div className="chat-counterpart d-flex align-items-center gap-3 mb-3">
-             <div className="chat-counterpart-avatar">
-
-                <img src={otherUserAvatar} alt={formattedReceiverName} />
-              </div>
-
-              <div>
-                <h6 className="mb-0">{formattedReceiverName}</h6>
-                {otherUser?.email && <small className="text-muted">{otherUser.email}</small>}
-              </div>
+  {/* Κάνουμε Link γύρω από το avatar και το όνομα */}
+          <Link 
+            to={`/user-profile/${otherUser?._id}`} 
+            className="d-flex align-items-center gap-3 text-decoration-none text-dark"
+          >
+            <div className="chat-counterpart-avatar">
+              <img src={otherUserAvatar} alt={formattedReceiverName} />
             </div>
-            <div className="chat-scroll">
+            <div>
+              <h6 className="mb-0">{formattedReceiverName}</h6>
+              {otherUser?.email && <small className="text-muted">{otherUser.email}</small>}
+              {/* Μια μικρή ένδειξη ότι πατιέται */}
+              <div style={{ fontSize: '0.75rem', color: '#0d6efd' }}>View Profile</div>
+            </div>
+          </Link>
+        </div>
+        <div className="chat-scroll">
               {messages.map((msg) => {
                 const isSelf = msg.senderId?._id === user.id;
                 return (

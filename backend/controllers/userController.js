@@ -340,4 +340,22 @@ exports.deleteUserAccount = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+/* ---------------------- get specific user -------------------- */
+// GET /api/users/:id
+exports.getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Χρησιμοποιούμε το υπάρχον helper για να κόψουμε ευαίσθητα data
+    res.json(buildUserResponse(user));
+  } catch (err) {
+    console.error("getUserById error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 module.exports.buildUserResponse = buildUserResponse;
