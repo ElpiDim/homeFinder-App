@@ -9,7 +9,7 @@ exports.proposeAppointmentSlots = async (req, res) => {
   const ownerId = req.user.userId;
 
   try {
-     const property = await Property.findById(propertyId);
+    const property = await Property.findById(propertyId);
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
@@ -20,22 +20,43 @@ exports.proposeAppointmentSlots = async (req, res) => {
         .json({ message: "Only the property owner can propose appointments" });
     }
 
+    // 🔹 validation για τα slots
+    if (!Array.isArray(availableSlots) || availableSlots.length === 0) {
+      return res.status(400).json({
+        message: "Please provide at least one appointment time.",
+      });
+    }
+
+    const now = new Date();
+    const normalizedSlots = availableSlots
+      .map((slot) => new Date(slot))
+      .filter((d) => !Number.isNaN(d.getTime()));
+
+    const futureSlots = normalizedSlots.filter(
+      (d) => d.getTime() >= now.getTime()
+    );
+
+    if (!futureSlots.length) {
+      return res.status(400).json({
+        message: "You cannot propose appointment times in the past.",
+      });
+    }
+
     const appointment = new Appointment({
       propertyId,
       tenantId,
       ownerId,
-      availableSlots,
+      availableSlots: futureSlots, // ✅ μόνο έγκυρα future slots
     });
     await appointment.save();
 
     await Notification.create({
-    userId: tenantId,
+      userId: tenantId,
       type: "appointment",
       referenceId: appointment._id,
       senderId: ownerId,
       message: "You have new appointment options from the property owner.",
     });
-
 
     res
       .status(201)
