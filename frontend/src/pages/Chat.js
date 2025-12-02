@@ -640,9 +640,11 @@ function Chat() {
 
           <Card.Body className="chat-body">
             <div className="chat-counterpart d-flex align-items-center gap-3 mb-3">
-              <div className="chat-counterpart-avatar">
+             <div className="chat-counterpart-avatar">
+
                 <img src={otherUserAvatar} alt={formattedReceiverName} />
               </div>
+
               <div>
                 <h6 className="mb-0">{formattedReceiverName}</h6>
                 {otherUser?.email && <small className="text-muted">{otherUser.email}</small>}

@@ -1,6 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
@@ -8,21 +9,25 @@ function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch fresh user on mount
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    (async() =>{
+
       try {
         const { data } = await api.get('/users/me');
         const fresh = data?.user || data;
         if (!cancelled && fresh) {
-          setUser(fresh);
+           setUser(fresh);
           localStorage.setItem('user', JSON.stringify(fresh));
+          
         }
-      } catch {
-        // silent fail
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
+
     return () => { cancelled = true; };
   }, [setUser]);
 
@@ -80,6 +85,7 @@ function Profile() {
               <div className="text-muted">Joined in {joinedDate}</div>
             </div>
           </div>
+
           <button
             className="btn rounded-pill px-3 py-2"
             style={{
