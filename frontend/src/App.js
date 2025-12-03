@@ -17,6 +17,7 @@ import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
+import UserProfile from './pages/UserProfile';
 import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 
@@ -85,6 +86,15 @@ function App() {
           element={
             <OnboardingProtected>
               <Chat />
+            </OnboardingProtected>
+          }
+        />
+
+        <Route
+          path="/user-profile/:userId"
+          element={
+            <OnboardingProtected>
+              <UserProfile />
             </OnboardingProtected>
           }
         />
