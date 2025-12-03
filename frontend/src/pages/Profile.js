@@ -1,6 +1,7 @@
 // src/pages/Profile.jsx
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
@@ -8,12 +9,14 @@ import api from '../api';
 function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true); // <--- Πρόσθεσε αυτή τη γραμμή
 
   useEffect(() => {
     let cancelled = false;
     (async() =>{
 
       try {
+        
         const { data } = await api.get('/users/me');
         const fresh = data?.user || data;
         if (!cancelled && fresh) {
