@@ -57,7 +57,7 @@ function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
   const [hasAppointments, setHasAppointments] = useState(false);
-   const [ownerAppointments, setOwnerAppointments] = useState([]);
+  const [ownerAppointments, setOwnerAppointments] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // geolocation (kept for parity; not shown on UI)
@@ -253,7 +253,7 @@ function Dashboard() {
     api.get(endpoint)
       .then((res) => {
         const appts = Array.isArray(res.data) ? res.data : [];
-         const hasActiveAppts = appts.some((appt) => {
+        const hasActiveAppts = appts.some((appt) => {
           const status = (appt.status || '').toLowerCase();
           return status === 'pending' || status === 'confirmed';
         });
@@ -263,7 +263,7 @@ function Dashboard() {
           setOwnerAppointments(appts);
         }
       })
-            .catch(() => {
+      .catch(() => {
         setHasAppointments(false);
         if (user.role === 'owner') {
           setOwnerAppointments([]);
@@ -306,12 +306,15 @@ function Dashboard() {
     [user?.role, allProperties]
   );
 
-  const seenListings = useMemo(
+  // --- ΕΔΩ ΕΙΝΑΙ Η ΑΛΛΑΓΗ ΓΙΑ TOTAL VIEWS ---
+  // Αντί να μετράμε πόσα σπίτια έχουν >0 views, προσθέτουμε τα views από όλα τα σπίτια
+  const totalViews = useMemo(
     () => (user?.role === 'owner'
-      ? allProperties.filter(p => Number(p.views || 0) > 0).length
+      ? allProperties.reduce((sum, p) => sum + (p.seenBy ? p.seenBy.length : 0), 0)
       : 0),
     [user?.role, allProperties]
   );
+  // ------------------------------------------
 
   const rentedListings = useMemo(
     () => (user?.role === 'owner'
@@ -322,7 +325,12 @@ function Dashboard() {
 
   /* ---------- Donut (SVG, fraction-based) ---------- */
   const Donut = ({ value = 0, max = 0, label = 'Label', icon = '💚' }) => {
-    const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+    // Αν δεν υπάρχει max (ή max=0 και value>0), δείχνουμε full circle
+    const isTotal = max === null || max === undefined;
+    const pct = isTotal 
+      ? 100 
+      : (max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0);
+      
     const size = 128;
     const stroke = 10;
     const r = (size - stroke) / 2;
@@ -345,7 +353,7 @@ function Dashboard() {
             <circle
               cx={size/2} cy={size/2} r={r}
               fill="none"
-              stroke="#22c55e"
+              stroke={label === 'Total Views' ? '#0dcaf0' : "#22c55e"} // Μπλε για τα Views, Πράσινο για τα άλλα
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={`${dash} ${c - dash}`}
@@ -360,7 +368,8 @@ function Dashboard() {
           >
             <div style={{ fontSize: 20 }}>{icon}</div>
             <div style={{ fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
-            <div className="text-muted" style={{ fontSize: 12 }}>of {max}</div>
+            {/* Κρύβουμε το "of X" αν δεν υπάρχει max */}
+            {!isTotal && <div className="text-muted" style={{ fontSize: 12 }}>of {max}</div>}
           </div>
         </div>
         <div className="mt-2 fw-semibold">{label}</div>
@@ -555,7 +564,8 @@ function Dashboard() {
               <Donut icon="💚" label="Favorited" value={likedListings} max={totalListings} />
             </div>
            <div className="dashboard-metric-card">
-              <Donut icon="👁️" label="Seen" value={seenListings} max={totalListings} />
+              {/* ΕΔΩ ΔΕΙΧΝΕΙ ΤΑ ΣΥΝΟΛΙΚΑ VIEWS */}
+              <Donut icon="👁️" label="Total Views" value={totalViews} max={null} />
             </div>
             <div className="dashboard-metric-card">
               <Donut icon="🏡" label="Rented" value={rentedListings} max={totalListings} />

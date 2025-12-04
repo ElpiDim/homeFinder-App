@@ -218,6 +218,7 @@ exports.createProperty = async (req, res) => {
         roommatePreference,
         notes: tenantNotes,
       },
+      seenBy: [] // Initialize empty for new properties
     });
 
     await prop.save();
@@ -397,11 +398,31 @@ exports.getMyProperties = async (req, res) => {
 /* --------------------------- GET PROPERTY BY ID --------------------------- */
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.propertyId).populate(
-      "ownerId"
-    );
-    if (!property)
+    const propertyId = req.params.propertyId;
+
+    // 1. Populate 'seenBy' (χρήσιμο για το count αργότερα)
+    const property = await Property.findById(propertyId)
+      .populate("ownerId", "name email phone profilePicture")
+      .populate("seenBy", "name"); // Αν θες να βλέπεις και ονόματα μελλοντικά
+
+    if (!property) {
       return res.status(404).json({ message: "Property not found" });
+    }
+
+    // --- LOGIC ΓΙΑ UNIQUE VIEWS ---
+    // Αν ο χρήστης είναι Client (όχι ο owner), τον προσθέτουμε στο seenBy
+    if (req.user && req.user.role === 'client') {
+      
+      const alreadySeen = property.seenBy.some(
+        (viewer) => viewer._id.toString() === req.user.userId.toString()
+      );
+
+      if (!alreadySeen) {
+        property.seenBy.push(req.user.userId);
+        await property.save();
+      }
+    }
+    // -----------------------------
 
     res.json(property.toObject({ virtuals: true }));
   } catch (err) {

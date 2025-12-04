@@ -241,7 +241,7 @@ function PropertyDetails() {
     ? { lat: Number(property.latitude), lng: Number(property.longitude) }
     : { lat: 37.9838, lng: 23.7275 }; // Athens fallback
 
-const money = (value) => {
+  const money = (value) => {
     const num = Number(value);
     return Number.isFinite(num)
       ? num.toLocaleString(undefined, { maximumFractionDigits: 0 })
@@ -280,7 +280,7 @@ const money = (value) => {
     areaForPpsm > 0 && property.price != null
       ? Math.round(Number(property.price) / areaForPpsm)
       : null;
-const locationParts = property.location
+  const locationParts = property.location
     ? property.location
         .split(",")
         .map((part) => part.trim())
@@ -679,7 +679,7 @@ const locationParts = property.location
         {/* Facts */}
         <hr />
         <h5 className="fw-bold">Facts</h5>
- {factGroups.map((group, index) => (
+        {factGroups.map((group, index) => (
           <div
             key={group.title}
             className={index === 0 ? "mt-2" : "mt-4"}
@@ -709,10 +709,14 @@ const locationParts = property.location
           <div className="text-muted">No additional features listed.</div>
         )}
 
-        {/* Tenant requirements */}
-        <hr />
-        <h5 className="fw-bold">Tenant Requirements</h5>
-        {renderFactRows(tenantRequirementItems)}
+        {/* Tenant requirements - Ορατό μόνο στον Ιδιοκτήτη */}
+        {isOwner && (
+          <>
+            <hr />
+            <h5 className="fw-bold">Tenant Requirements</h5>
+            {renderFactRows(tenantRequirementItems)}
+          </>
+        )}
 
         {/* Contact details */}
         <hr />

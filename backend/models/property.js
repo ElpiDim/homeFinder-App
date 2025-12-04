@@ -108,6 +108,13 @@ const propertySchema = new mongoose.Schema(
     latitude: { type: Number },
     longitude: { type: Number },
 
+    // --- NEW: Views Tracking ---
+    // Αποθηκεύει τα IDs των μοναδικών χρηστών που είδαν το ακίνητο
+    seenBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+
     // --- requirements από ιδιοκτήτη για ενοικιαστή ---
     tenantRequirements: {
       type: tenantRequirementsSchema,
@@ -120,7 +127,7 @@ const propertySchema = new mongoose.Schema(
 /**
  * Backward compatibility:
  * - Επιτρέπουμε πρόσβαση σε `rent` ως virtual που διαβάζει/γράφει `price`
- *   ώστε παλιός κώδικας που στέλνει/περιμένει rent να μη σπάσει.
+ * ώστε παλιός κώδικας που στέλνει/περιμένει rent να μη σπάσει.
  */
 propertySchema
   .virtual("rent")

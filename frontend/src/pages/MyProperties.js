@@ -115,6 +115,8 @@ export default function MyProperties() {
               const price = Number(p.rent ?? p.price ?? 0);
               const status = String(p.status || '').toLowerCase(); // available|sold|pending|...
               const favs = p.favoritesCount ?? 0;
+              // --- UNIQUE VIEWS ---
+              const views = p.seenBy ? p.seenBy.length : 0;
 
               return (
                 <Col md={6} lg={4} key={p._id}>
@@ -148,8 +150,14 @@ export default function MyProperties() {
                           >
                             {p.status}
                           </Badge>
+                          
                           <Badge bg="warning" text="dark">
                             ⭐ {favs}
+                          </Badge>
+
+                          {/* ΝΕΟ BADGE ΓΙΑ VIEWS */}
+                          <Badge bg="info" text="dark">
+                            👁️ {views}
                           </Badge>
                         </div>
                       </Card.Body>
