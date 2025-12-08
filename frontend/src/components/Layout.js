@@ -39,7 +39,7 @@ function Layout({ children }) {
       style={{
         fontFamily: "'Poppins','Fredoka',sans-serif",
         textTransform: 'lowercase',
-        background: 'linear-gradient(90deg, #006400, #90ee90)',
+       background: 'linear-gradient(90deg, #4b0082, #e0b0ff)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent'
       }}
@@ -57,7 +57,7 @@ function Layout({ children }) {
     <div
       className="min-vh-100 d-flex flex-column"
       style={{
-          background: 'linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)'
+           background: 'linear-gradient(135deg, #4b0082 0%, #6f42c1 33%, #a020f0 66%, #e0b0ff 100%)'
         }}
     >
       {/* Navbar */}
@@ -86,7 +86,7 @@ function Layout({ children }) {
                     to="/add-property"
                     className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
                      style={{
-                        background: 'linear-gradient(135deg,#006400,#90ee90)',
+                        background: 'linear-gradient(135deg,#4b0082,#e0b0ff)',
                         color: '#fff',
                         fontWeight: 600,
                         border: 'none'
@@ -116,7 +116,7 @@ function Layout({ children }) {
                         boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
                       }}
                       onMouseEnter={(e) => {
-                             e.currentTarget.style.background = 'linear-gradient(135deg, #006400, #90ee90)';
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #4b0082, #e0b0ff)';
                         e.currentTarget.style.color = 'white';
                         e.currentTarget.style.border = 'none';
                       }}
@@ -178,7 +178,7 @@ function Layout({ children }) {
                       boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
                     }}
                     onMouseEnter={(e) => {
-                         e.currentTarget.style.background = 'linear-gradient(135deg, #006400, #90ee90)';
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #4b0082, #e0b0ff)';
                       e.currentTarget.style.color = 'white';
                       e.currentTarget.style.border = 'none';
                     }}
@@ -214,7 +214,7 @@ function Layout({ children }) {
                   to="/register"
                      className="btn rounded-pill px-3"
                     style={{
-                      background: 'linear-gradient(135deg, #006400, #90ee90)',
+                     background: 'linear-gradient(135deg, #4b0082, #e0b0ff)',
                       color: '#fff',
                       fontWeight: 600,
                       border: 'none'
