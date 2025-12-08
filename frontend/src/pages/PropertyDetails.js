@@ -111,7 +111,7 @@ function PropertyDetails() {
     () => ({
       minHeight: "100vh",
       background:
-        "linear-gradient(135deg, #006400 0%, #228b22 33%, #32cd32 66%, #90ee90 100%)",
+        "linear-gradient(135deg, #4b0082 0%, #6f42c1 33%, #a020f0 66%, #e0b0ff 100%)",
     }),
     []
   );

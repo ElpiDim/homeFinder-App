@@ -6,12 +6,12 @@
    ================================ */
 
 :root {
-  --bs-primary: #006400;
-  --bs-primary-rgb: 0, 100, 0;
+  --bs-primary: #6f42c1;
+  --bs-primary-rgb: 111, 66, 193;
 
   /* Brand palette */
-  --brand-start: #006400;
-  --brand-end:   #90ee90;
+  --brand-start: #4b0082;
+  --brand-end:   #e0b0ff;
   --brand-grad:  linear-gradient(135deg, var(--brand-start), var(--brand-end));
 
   /* UI tokens */
@@ -50,12 +50,12 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
   letter-spacing:.3px;
   text-transform:lowercase;
 
-  /* Smooth dark → light green gradient */
+  /* Smooth dark → light purple gradient */
   background: linear-gradient(135deg,
-              #006400 0%,
-              #228b22 30%,
-              #32cd32 65%,
-              #90ee90 100%);
+              #4b0082 0%,
+              #6f42c1 30%,
+              #a020f0 65%,
+              #e0b0ff 100%);
   -webkit-background-clip:text;
   background-clip:text;
   -webkit-text-fill-color:transparent;

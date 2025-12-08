@@ -45,7 +45,7 @@
 .chat-body {
   padding: 1.5rem;
   padding-top: 0.75rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(234, 247, 236, 0.9));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 229, 245, 0.9));
 }
 
 .chat-counterpart-avatar {
@@ -107,7 +107,7 @@
 }
 
 .bubble-self {
-  background: linear-gradient(135deg, #006400, #32cd32);
+  background: linear-gradient(135deg, #4b0082, #a020f0);
   color: #fff;
 }
 
@@ -144,7 +144,7 @@
 .chat-send-btn {
   border: none;
   border-radius: 0;
-  background: linear-gradient(135deg, #006400, #32cd32);
+  background: linear-gradient(135deg, #4b0082, #a020f0);
   color: #fff;
   padding: 0 1.5rem;
   font-weight: 600;
