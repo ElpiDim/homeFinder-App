@@ -14,7 +14,7 @@ function Login() {
   const pageGradient = {
     minHeight: '100vh',
     background:
-      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #006400 0%, #90ee90 100%)',
+      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #4b0082 0%, #e0b0ff 100%)',
     backgroundAttachment: 'fixed',
   };
 

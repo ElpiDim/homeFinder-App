@@ -81,7 +81,7 @@ function Dashboard() {
     minHeight: '100vh',
     background:
       'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+       linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
   }), []);
 
   const imgUrl = (src) => {
@@ -353,7 +353,7 @@ function Dashboard() {
             <circle
               cx={size/2} cy={size/2} r={r}
               fill="none"
-              stroke={label === 'Total Views' ? '#0dcaf0' : "#22c55e"} // Μπλε για τα Views, Πράσινο για τα άλλα
+              stroke={label === 'Total Views' ? '#0dcaf0' : "#a020f0"} // Blue for Views, Purple for others
               strokeWidth={stroke}
               strokeLinecap="round"
               strokeDasharray={`${dash} ${c - dash}`}
@@ -421,7 +421,7 @@ function Dashboard() {
               to="/add-property"
               className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
               style={{
-                background: "linear-gradient(135deg,#006400,#90ee90)",
+                background: "linear-gradient(135deg,#4b0082,#e0b0ff)",
                 color: "#fff",
                 fontWeight: 600,
                 border: "none"
@@ -521,7 +521,7 @@ function Dashboard() {
           <Link
             to="/profile"
             className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm text-decoration-none"
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#006400,#90ee90)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg,#4b0082,#e0b0ff)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.border = 'none'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#111827'; e.currentTarget.style.border = '1px solid #e5e7eb'; }}
             style={{
               background: '#fff',
@@ -591,7 +591,7 @@ function Dashboard() {
               to="/add-property"
               className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm ms-auto"
               style={{
-                background: 'linear-gradient(135deg,#006400,#90ee90)',
+                background: 'linear-gradient(135deg,#4b0082,#e0b0ff)',
                 color: '#fff',
                 fontWeight: 600,
                 border: 'none',
@@ -605,8 +605,8 @@ function Dashboard() {
             <span
               className="badge rounded-pill ms-auto"
               style={{
-                background: 'rgba(0,100,0,0.12)',
-                color: '#006400',
+                background: 'rgba(75,0,130,0.12)',
+                color: '#4b0082',
                 fontWeight: 600,
                 letterSpacing: '0.3px',
               }}

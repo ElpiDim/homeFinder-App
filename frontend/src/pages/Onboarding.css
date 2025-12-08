@@ -7,7 +7,7 @@
       rgba(255, 255, 255, 0.55),
       rgba(255, 255, 255, 0) 42%
     ),
-    linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%);
+    linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,13 +36,13 @@
 
 .progress-bar-filler {
   height: 100%;
-  background: linear-gradient(135deg, #006400, #90ee90);
+  background: linear-gradient(135deg, #4b0082, #e0b0ff);
   border-radius: 0.5rem;
   transition: width 0.4s ease-in-out;
 }
 
 .btn-onboarding-next {
-  background: linear-gradient(135deg, #006400, #90ee90);
+  background: linear-gradient(135deg, #4b0082, #e0b0ff);
   color: #fff;
   font-weight: 600;
   border: none;
@@ -54,7 +54,7 @@
 .btn-onboarding-next:hover,
 .btn-onboarding-next:focus {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 100, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(75, 0, 130, 0.2);
   color: #fff;
 }
 

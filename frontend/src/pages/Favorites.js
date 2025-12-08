@@ -32,7 +32,7 @@ export default function Favorites() {
     minHeight: "100vh",
     background:
       'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)',
+       linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
   }), []);
 
 
@@ -110,7 +110,7 @@ export default function Favorites() {
             <Button
               onClick={() => navigate('/dashboard')}
               className="rounded-pill px-4"
-              style={{ background: 'linear-gradient(135deg,#006400,#90ee90)', border: 'none' }}
+              style={{ background: 'linear-gradient(135deg,#4b0082,#e0b0ff)', border: 'none' }}
             >
               Browse Properties
             </Button>
@@ -155,7 +155,7 @@ export default function Favorites() {
                             <Badge
                               bg="primary"
                               title="Type"
-                              style={{ background: 'linear-gradient(135deg,#006400,#90ee90)' }}
+                              style={{ background: 'linear-gradient(135deg,#4b0082,#e0b0ff)' }}
                             >
                               {p.type}
                             </Badge>
