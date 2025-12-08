@@ -3,6 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
+import './material-symbols.css';
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import api from "./api";
