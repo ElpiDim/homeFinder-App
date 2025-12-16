@@ -493,10 +493,42 @@ function Dashboard() {
             </button>
             {/* ... (το dropdown menu παραμένει λευκό για να διαβάζεται) ... */}
             {showNotifications && (
-                 /* Ο κώδικας του dropdown παραμένει ίδιος */
-                 <div className="position-absolute end-0 mt-2 bg-white border rounded shadow" style={{ width: 320, zIndex: 6500 }}>
-                    {/* ...περιεχόμενα dropdown... */}
-                 </div>
+ <div
+                className="position-absolute end-0 mt-2 bg-white border rounded shadow"
+                style={{ width: 320, zIndex: 6500 }}
+              >
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {notifications.length === 0 ? (
+                    <div className="p-3 text-center text-muted">No notifications.</div>
+                  ) : (
+                    <ul className="list-group list-group-flush mb-0">
+                      {notifications.map((note) => (
+                        <li
+                          key={note._id}
+                          className="list-group-item list-group-item-action d-flex gap-2"
+                          style={{
+                            cursor: 'pointer',
+                            background: note.readAt || note.read ? '#fff' : '#f8fafc',
+                          }}
+                          onClick={() => handleNotificationClick(note)}
+                        >
+                          <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
+                          <span className="small flex-grow-1">{titleForNote(note)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="border-top text-center">
+                  <Link
+                    to="/notifications"
+                    className="d-block py-2 small"
+                    onClick={() => setShowNotifications(false)}
+                  >
+                    View all
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
 
