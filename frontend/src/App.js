@@ -3,7 +3,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import UserProfile from './pages/UserProfile';
 import Properties from './pages/Properties';
-import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
@@ -19,6 +18,8 @@ import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
 import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
+import DashboardRouter from './pages/DashboardRouter';
+
 
 import './App.css';
 
@@ -76,10 +77,11 @@ function App() {
         path="/dashboard"
         element={
           <OnboardingProtected>
-            <Dashboard />
-          </OnboardingProtected>
-        }
-      />
+          <DashboardRouter />
+        </OnboardingProtected>
+  }
+/>
+
 
       <Route
         path="/chat/:propertyId/:userId"

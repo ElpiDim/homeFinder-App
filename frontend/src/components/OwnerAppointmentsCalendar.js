@@ -175,7 +175,8 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
 
         {calendar.cells.map((cell, idx) => {
           if (!cell) {
-            return <div key={`empty-${idx}`} style={{ minHeight: 64 }} />;
+            return <div key={`empty-${idx}`} style={{ aspectRatio: '1 / 1' }} />;
+
           }
           const { day, appointments: dayAppointments } = cell;
           const hasAppointments = dayAppointments.length > 0;
@@ -186,16 +187,27 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
               key={`day-${day}`}
               className="rounded-3 border position-relative"
               style={{
-                minHeight: 72,
-                padding: '6px 8px',
-                background: hasAppointments ? '#dcfce7' : '#f9fafb',
-                borderColor: isToday ? '#16a34a' : '#e5e7eb',
+                aspectRatio: '1 / 1',          // ✅ τετράγωνο
+                padding: '8px',
+                background: hasAppointments ? 'rgba(127,19,236,0.10)' : '#f9fafb',  // ✅ μοβ tint
+                borderColor: isToday ? '#7f13ec' : '#e5e7eb',                       // ✅ μοβ border στο Today
               }}
+
             >
               <div className="d-flex justify-content-between align-items-start">
                 <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>{day}</span>
                 {isToday && (
-                  <span className="badge bg-success" style={{ fontSize: '0.6rem' }}>Today</span>
+                  <span
+                    className="badge"
+                    style={{
+                      fontSize: '0.6rem',
+                      background: '#7f13ec',
+                      color: '#fff',
+                    }}
+                  >
+                    Today
+                  </span>
+
                 )}
               </div>
               {hasAppointments && (
@@ -207,7 +219,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
                       className="badge rounded-pill border-0"
                       style={{
                         background:
-                          selectedAppointmentId === appt._id ? '#0f766e' : '#16a34a',
+                          selectedAppointmentId === appt._id ? '#5b21b6' : '#7f13ec',
                         color: '#fff',
                         fontSize: '0.65rem',
                         textAlign: 'left',
@@ -235,9 +247,10 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
         <div
           className="mt-3 p-3 rounded-4 border"
           style={{
-            background: '#ecfdf5',
-            borderColor: '#99f6e4',
-          }}
+          background: 'rgba(127,19,236,0.06)',
+          borderColor: 'rgba(127,19,236,0.25)',
+        }}
+
         >
           <div className="d-flex justify-content-between align-items-start mb-2">
             <h6 className="fw-semibold mb-0" style={{ fontSize: '0.95rem' }}>

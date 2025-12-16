@@ -1,0 +1,129 @@
+:root{
+  --primary:#7f13ec;
+
+  --bg-light:#f7f6f8;
+  --surface:#ffffff;
+
+  --text:#141118;
+  --text2:#756189;
+
+  --border:#e0dbe6;     /* ✅ missing */
+
+  --radius-lg: 14px;
+}
+
+.owner-shell{
+  min-height:100vh;
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.owner-layout{
+  display:flex;
+  min-height:100vh;
+}
+
+/* SIDEBAR */
+.owner-aside{
+  width:260px;
+  flex:0 0 260px;
+  background: var(--surface);
+  border-right:1px solid var(--border);
+  padding:16px;
+  overflow:hidden;            /* ✅ stops logo/content overflow */
+}
+
+/* ✅ clamp logo/title so it doesn't overlap nav */
+.owner-aside .logo-in-nav,
+.owner-aside h1,
+.owner-aside h5{
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* MAIN */
+.owner-main{
+  flex:1;
+  min-width:0;                /* ✅ critical to prevent overlap */
+  display:flex;
+  flex-direction:column;
+}
+
+/* TOPBAR */
+.owner-topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background: var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:14px 24px;
+}
+
+.owner-content{
+  padding:24px;
+}
+
+/* CARD */
+.owner-card{
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* STATUS PILL */
+.owner-pill{
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight:600;
+}
+.owner-pill-rented{ background:#d1fae5; color:#047857; }
+.owner-pill-sale{ background:#dbeafe; color:#1d4ed8; }
+.owner-pill-vacant{ background:#fef3c7; color:#b45309; }
+
+/* NAV */
+.owner-navlink{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:10px 12px;
+  border-radius:12px;
+  color: var(--text);
+  text-decoration:none;
+}
+.owner-navlink:hover{ background: rgba(127,19,236,0.08); }
+.owner-navlink.active{
+  background: rgba(127,19,236,0.10);
+  color: var(--primary);
+  font-weight:600;
+}
+
+/* ICON BUTTONS */
+.owner-iconbtn{
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background: var(--bg-light);
+}
+
+/* ✅ optional responsive safety */
+@media (max-width: 768px) {
+  .owner-aside{
+    width:220px;
+    flex-basis:220px;
+  }
+  .owner-content{
+    padding:16px;
+  }
+}
+.owner-stats-3{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
