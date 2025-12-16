@@ -1,0 +1,158 @@
+/* src/pages/Register.css */
+
+.register-page {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+
+/* --- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ (HERO) --- */
+.register-hero {
+  flex: 1;
+  background-color: #f3e8ff; /* Το ίδιο μωβ με το Login */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  position: relative;
+}
+
+/* --- LOGO: ΑΚΡΙΒΩΣ ΙΔΙΟ ΜΕ ΤΟ LOGIN --- */
+.register-logo-container {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  z-index: 10;
+}
+
+/* Αναγκαστικό στυλ για να είναι μικρό (όπως στο Login) */
+.register-logo-container h1, 
+.register-logo-container .logo-wrap,
+.register-logo-container .logo-word {
+  font-size: 1.5rem !important; /* Το ίδιο μέγεθος με το Login */
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;     /* Σημαντικό για ευθυγράμμιση */
+}
+
+/* --- ΚΕΙΜΕΝΟ HERO --- */
+.hero-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.1;
+  text-align: center;
+  max-width: 500px;
+}
+
+/* --- ΔΕΞΙΑ ΠΛΕΥΡΑ (ΦΟΡΜΑ) --- */
+.register-form-container {
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.register-content {
+  width: 100%;
+  max-width: 400px;
+}
+
+.register-header {
+  margin-bottom: 2rem;
+}
+
+.register-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 0.5rem;
+}
+
+.register-subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Inputs */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.form-control-custom {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background-color: #f9fafb;
+}
+
+.form-control-custom:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.form-select-custom {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px 12px;
+}
+
+/* Button */
+.btn-register {
+  width: 100%;
+  background-color: #7c3aed;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.btn-register:hover {
+  background-color: #6d28d9;
+}
+
+.login-text {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.login-link {
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+  .register-hero {
+    display: none;
+  }
+}

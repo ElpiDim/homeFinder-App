@@ -1,26 +1,23 @@
+// src/pages/Register.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { registerUser } from '../services/authService';
 import Logo from '../components/Logo';
+import './Register.css'; // Σύνδεση με το νέο CSS
 
 function Register() {
-   const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: '',
+    role: '', // Default κενό για να αναγκάσουμε επιλογή
   });
 
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
   const { setToken, setUser } = useAuth();
-
-  const pageGradient = {
-    minHeight: '100vh',
-    background:
-      'radial-gradient(900px circle at 20% 15%, rgba(255,255,255,0.14), rgba(255,255,255,0) 45%), linear-gradient(135deg, #4b0082 0%, #e0b0ff 100%)',
-    backgroundAttachment: 'fixed',
-  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,119 +25,114 @@ function Register() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setMessage('');
+    setLoading(true);
+
     try {
       const { token, user } = await registerUser(formData);
-      const isClient = user?.role === 'client';
-      setMessage(
-        `Registration successful! Redirecting to ${isClient ? 'onboarding' : 'dashboard'}...`
-      );
-
-      // Update auth context and local storage
+      
+      // Update context & storage
       setToken(token);
       setUser(user);
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      const target = isClient ? '/onboarding' : '/dashboard';
-      setTimeout(() => navigate(target), 1500);
+      const isClient = user?.role === 'client';
+      setMessage(`Success! Redirecting to ${isClient ? 'onboarding' : 'dashboard'}...`);
+
+      // Καθυστέρηση για να δει το μήνυμα επιτυχίας
+      setTimeout(() => {
+        const target = isClient ? '/onboarding' : '/dashboard';
+        navigate(target);
+      }, 1500);
+
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Error while registering');
+      setMessage(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={pageGradient}>
-      {/* Navbar (translucent) */}
-      <nav
-        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
-        style={{
-          background: 'rgba(255,255,255,0.72)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-        }}
-      >
-        <div className="ms-auto d-flex align-items-center gap-3">
-          <Link
-            to="/"
-            className="btn btn-outline-secondary rounded-pill px-3"
-            style={{ fontWeight: 600 }}
-          >
-            Back to Home
-          </Link>
+    <div className="register-page">
+      
+      {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ (HERO) */}
+      <div className="register-hero">
+        <div className="register-logo-container">
+          <Logo />
         </div>
-      </nav>
+        <h1 className="hero-text">
+          Join our<br />Community
+        </h1>
+      </div>
 
-      {/* Register Card (με κενό κάτω από το navbar) */}
-      <div
-        className="container d-flex justify-content-center align-items-center"
-        style={{
-          minHeight: 'calc(100vh - 88px)',  // αφαιρεί περίπου το ύψος του navbar
-          paddingTop: 24,                    // “ανάσα” κάτω από τη μπάρα
-          paddingBottom: 24,
-        }}
-      >
-        <div className="card shadow p-4" style={{ maxWidth: '640px', width: '100%', borderRadius: '1rem' }}>
-          <h4 className="fw-bold mb-3">Create a new account</h4>
-          {message && <div className="alert alert-info rounded-pill">{message}</div>}
+      {/* ΔΕΞΙΑ ΠΛΕΥΡΑ (ΦΟΡΜΑ) */}
+      <div className="register-form-container">
+        <div className="register-content">
+          <div className="register-header">
+            <h2 className="register-title">Create a new account</h2>
+            <p className="register-subtitle">It's free and takes less than a minute.</p>
+          </div>
+
+          {message && (
+            <div className={`alert py-2 ${message.includes('Success') ? 'alert-success' : 'alert-danger'}`} style={{ fontSize: '0.9rem' }}>
+              {message}
+            </div>
+          )}
 
           <form onSubmit={handleRegister}>
-            <div className="mb-3">
-                  <label className="form-label">
-                  Email <span className="badge bg-danger ms-2">Required</span>
-                </label>
-                <input type="email" className="form-control" name="email" required onChange={handleChange} />
+            {/* Email Input */}
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input 
+                type="email" 
+                name="email"
+                className="form-control-custom" 
+                placeholder="you@example.com"
+                required 
+                onChange={handleChange} 
+              />
             </div>
 
-            <div className="mb-3">
-             <label className="form-label">
-                Password <span className="badge bg-danger ms-2">Required</span>
-              </label>
-              <input type="password" className="form-control" name="password" required onChange={handleChange} />
+            {/* Password Input */}
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                name="password"
+                className="form-control-custom" 
+                placeholder="Create a strong password"
+                required 
+                onChange={handleChange} 
+              />
             </div>
 
-            <div className="mb-3">
-               <label className="form-label">
-                Role <span className="badge bg-danger ms-2">Required</span>
-              </label>
-              <select
-                className="form-select"
+            {/* Role Select */}
+            <div className="form-group">
+              <label className="form-label">I am a...</label>
+              <select 
+                className="form-control-custom form-select-custom" 
                 name="role"
-                value={formData.role}
-                onChange={handleChange}
+                value={formData.role} 
+                onChange={handleChange} 
                 required
               >
-                <option value="">-- Select role --</option>
-                <option value="client">Client</option>
-                <option value="owner">Owner</option>
+                <option value="" disabled>Select your role</option>
+                <option value="client">Client (Tenant/Buyer)</option>
+                <option value="owner">Property Owner</option>
               </select>
             </div>
 
-            <div className="d-grid">
-              <button
-                type="submit"
-                className="btn rounded-pill"
-                style={{
-                  fontWeight: 700,
-                  height: 44,
-                  background: 'linear-gradient(135deg, #4b0082, #e0b0ff)',
-                  color: '#fff',
-                  border: 'none',
-                }}
-              >
-                Register
-              </button>
-            </div>
+            {/* Submit Button */}
+            <button type="submit" className="btn-register" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
           </form>
 
-          <div className="mt-3 text-center">
-            <span className="text-muted">Already have an account? </span>
-            <Link
-              to="/login"
-              className="btn btn-link rounded-pill px-2 py-1"
-              style={{ textDecoration: 'none', fontWeight: 600 }}
-            >
-              Login
-            </Link>
+          {/* Footer Link */}
+          <div className="login-text">
+            Already have an account? 
+            <Link to="/login" className="login-link">Log In</Link>
           </div>
         </div>
       </div>

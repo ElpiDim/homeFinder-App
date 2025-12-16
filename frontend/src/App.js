@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import UserProfile from './pages/UserProfile';
 import Properties from './pages/Properties';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,7 +17,6 @@ import PropertyDetails from './pages/PropertyDetails';
 import EditProperty from './pages/EditProperty';
 import Appointments from './pages/Appointments';
 import MyProperties from './pages/MyProperties';
-import UserProfile from './pages/UserProfile';
 import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 
@@ -29,13 +28,12 @@ function RequireOnboarding({ children }) {
   const location = useLocation();
 
   const isClient = user?.role === 'client';
-  // υποστηρίζει και παλιά ονομασία hasCompletedOnboarding
   const onboardingCompleted =
     user?.onboardingCompleted ??
     user?.hasCompletedOnboarding ??
     !isClient;
 
-    if (user && isClient && !onboardingCompleted && location.pathname !== '/onboarding') {
+  if (user && isClient && !onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
   return children;
@@ -57,146 +55,147 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      {/* CHANGE: Το path "/" πλέον κάνει redirect στο login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-        {/* Onboarding (προστατευμένο αλλά χωρίς το gate) */}
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          }
-        />
+      {/* Onboarding (προστατευμένο αλλά χωρίς το gate) */}
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
 
-        {/* Protected + απαιτεί ολοκληρωμένο onboarding */}
-        <Route
-          path="/dashboard"
-          element={
-            <OnboardingProtected>
-              <Dashboard />
-            </OnboardingProtected>
-          }
-        />
+      {/* Protected + απαιτεί ολοκληρωμένο onboarding */}
+      <Route
+        path="/dashboard"
+        element={
+          <OnboardingProtected>
+            <Dashboard />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/chat/:propertyId/:userId"
-          element={
-            <OnboardingProtected>
-              <Chat />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/chat/:propertyId/:userId"
+        element={
+          <OnboardingProtected>
+            <Chat />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/user-profile/:userId"
-          element={
-            <OnboardingProtected>
-              <UserProfile />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/profile"
+        element={
+          <OnboardingProtected>
+            <Profile />
+          </OnboardingProtected>
+        }
+      />
+      <Route
+        path="/user-profile/:userId"
+        element={
+          <OnboardingProtected>
+            <UserProfile />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/profile"
-          element={
-            <OnboardingProtected>
-              <Profile />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/favorites"
+        element={
+          <OnboardingProtected>
+            <Favorites />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/favorites"
-          element={
-            <OnboardingProtected>
-              <Favorites />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/messages"
+        element={
+          <OnboardingProtected>
+            <Messages />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/messages"
-          element={
-            <OnboardingProtected>
-              <Messages />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/match/clients"
+        element={
+          <OnboardingProtected>
+            <MatchClients />
+          </OnboardingProtected>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <OnboardingProtected>
+            <Notifications />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/match/clients"
-          element={
-            <OnboardingProtected>
-              <MatchClients />
-            </OnboardingProtected>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <OnboardingProtected>
-              <Notifications />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/appointments"
+        element={
+          <OnboardingProtected>
+            <Appointments />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/appointments"
-          element={
-            <OnboardingProtected>
-              <Appointments />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/edit-profile"
+        element={
+          <OnboardingProtected>
+            <EditProfile />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/edit-profile"
-          element={
-            <OnboardingProtected>
-              <EditProfile />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/add-property"
+        element={
+          <OnboardingProtected>
+            <AddProperty />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/add-property"
-          element={
-            <OnboardingProtected>
-              <AddProperty />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/property/:propertyId"
+        element={
+          <OnboardingProtected>
+            <PropertyDetails />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/property/:propertyId"
-          element={
-            <OnboardingProtected>
-              <PropertyDetails />
-            </OnboardingProtected>
-          }
-        />
+      <Route
+        path="/my-properties"
+        element={
+          <OnboardingProtected>
+            <MyProperties />
+          </OnboardingProtected>
+        }
+      />
 
-        <Route
-          path="/my-properties"
-          element={
-            <OnboardingProtected>
-              <MyProperties />
-            </OnboardingProtected>
-          }
-        />
-
-        <Route
-          path="/edit-property/:propertyId"
-          element={
-            <OnboardingProtected>
-              <EditProperty />
-            </OnboardingProtected>
-          }
-        />
-      </Routes>
+      <Route
+        path="/edit-property/:propertyId"
+        element={
+          <OnboardingProtected>
+            <EditProperty />
+          </OnboardingProtected>
+        }
+      />
+    </Routes>
   );
 }
 
