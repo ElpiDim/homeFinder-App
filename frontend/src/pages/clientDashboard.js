@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import PropertyCard from "../components/propertyCard";
 import Logo from "../components/Logo";
+import NotificationDropdown from "../components/NotificationDropdown";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -20,7 +21,7 @@ function normalizeUploadPath(src) {
 }
 
 export default function ClientDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
   const navigate = useNavigate();
 
@@ -40,16 +41,21 @@ export default function ClientDashboard() {
   }, []);
 
   const fetchMatches = useCallback(async () => {
-    const res = await api.get("/properties", {
-      params: {
-        sort: "relevance",
-        type: preferredDealType || undefined,
-        page: 1,
-        limit: 9999,
-      },
-    });
-    const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
-    setAllProperties(items);
+    try {
+      const res = await api.get("/properties", {
+        params: {
+          sort: "relevance",
+          type: preferredDealType || undefined,
+          page: 1,
+          limit: 9999,
+        },
+      });
+      const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setAllProperties(items);
+    } catch (e) {
+      console.error("fetchMatches failed", e);
+      setAllProperties([]);
+    }
   }, [preferredDealType]);
 
   const fetchFavorites = useCallback(async () => {
@@ -140,8 +146,7 @@ export default function ClientDashboard() {
               <span>Favorites</span>
             </Link>
 
-            {/* Δεν έχεις route /history στο App.js, οπότε το στέλνω σε Notifications (σαν activity) */}
-            <Link className="cd-navlink" to="/notifications">
+            <Link className="cd-navlink" to="/appointments">
               <span className="material-symbols-outlined">calendar_month</span>
               <span>Appointments</span>
             </Link>
@@ -187,14 +192,8 @@ export default function ClientDashboard() {
               </div>
             </div>
 
-            <button
-              className="cd-iconbtn"
-              type="button"
-              aria-label="notifications"
-              onClick={() => navigate("/notifications")}
-            >
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
+            {/* ✅ Notifications bell -> dropdown (new UI) */}
+            <NotificationDropdown token={token} className="cd-iconWrap" />
           </header>
 
           <div className="cd-content">
@@ -204,7 +203,6 @@ export default function ClientDashboard() {
               <div className="cd-grid">
                 {allProperties.map((prop) => (
                   <div key={prop._id} className="cd-cardWrap">
-                    {/* optional match pill (μόνο αν υπάρχει score) */}
                     {matchLabel(prop) && (
                       <div className="cd-matchPill">{matchLabel(prop)}</div>
                     )}
