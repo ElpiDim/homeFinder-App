@@ -1,36 +1,53 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import api from '../api';
-import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
-import AppointmentModal from '../components/AppointmentModal';
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../api";
+import { useAuth } from "../context/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+import "./Appointments.css";
 
-function Appointments() {
+export default function Appointments() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
 
-  const pageGradient = useMemo(() => ({
-    minHeight: "100vh",
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
-  }), []);
+  const API_ORIGIN =
+    (process.env.REACT_APP_API_URL
+      ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+      : "") || (typeof window !== "undefined" ? window.location.origin : "");
+
+  const normalizeUploadPath = (src) => {
+    if (!src) return "";
+    if (src.startsWith("http")) return src;
+    const clean = src.replace(/^\/+/, "");
+    return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  };
+
+  const imgUrl = (src, fallback = "https://placehold.co/640x420?text=No+Image") => {
+    if (!src) return fallback;
+    if (src.startsWith("http")) return src;
+    return `${API_ORIGIN}${normalizeUploadPath(src)}`;
+  };
 
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
         const endpoint =
-          user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
-        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-        const res = await api.get(endpoint, { headers });
-        setAppointments(res.data || []);
-      } catch (err) {
-        console.error('Error fetching appointments:', err);
-        setError('Failed to load appointments.');
+          user?.role === "owner" ? "/appointments/owner" : "/appointments/tenant";
+
+        const res = await api.get(endpoint, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        const confirmed = (res.data || [])
+          .filter((a) => a.status === "confirmed" && a.selectedSlot)
+          .sort((a, b) => new Date(a.selectedSlot) - new Date(b.selectedSlot));
+
+        setAppointments(confirmed);
+      } catch (e) {
+        console.error("fetch appointments error", e);
+        setAppointments([]);
       } finally {
         setLoading(false);
       }
@@ -39,119 +56,286 @@ function Appointments() {
     if (user) fetchAppointments();
   }, [user, token]);
 
-  if (!user) {
-    return (
-      <div style={pageGradient}>
-        <div className="container mt-5">Loading…</div>
-      </div>
-    );
-  }
+  const now = Date.now();
+
+  const upcoming = useMemo(
+    () => appointments.filter((a) => new Date(a.selectedSlot).getTime() >= now),
+    [appointments, now]
+  );
+
+  const past = useMemo(
+    () => appointments.filter((a) => new Date(a.selectedSlot).getTime() < now),
+    [appointments, now]
+  );
+
+  const nextUp = upcoming[0] || null;
+  const restUpcoming = nextUp ? upcoming.slice(1) : upcoming;
+
+  const totalViewings = appointments.length;
+  const upcomingCount = upcoming.length;
+
+  // “Lead agent” info (best-effort από next appointment)
+  const leadPerson = useMemo(() => {
+    if (!nextUp) return null;
+    if (user?.role === "owner") return nextUp.tenantId || null;
+    return nextUp.ownerId || null;
+  }, [nextUp, user?.role]);
+
+  const leadName = leadPerson?.name || (user?.role === "owner" ? "Your Tenant" : "Your Lead Agent");
+  const leadRole = user?.role === "owner" ? "Upcoming Tenant" : "Your Lead Agent";
+  const leadAvatar = imgUrl(leadPerson?.profilePicture, "/default-avatar.jpg");
+
+  const monthLabel = useMemo(() => {
+  const d = nextUp?.selectedSlot ? new Date(nextUp.selectedSlot) : new Date();
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}, [nextUp]);
+
+const formatDay = (iso) =>
+  new Date(iso).toLocaleDateString("en-US", { day: "2-digit" });
+
+const formatMonthShort = (iso) =>
+  new Date(iso)
+    .toLocaleDateString("en-US", { month: "short" })
+    .toUpperCase();
+
+const formatTime = (iso) =>
+  new Date(iso).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+
+  if (loading) return <div className="af-page"><div className="af-wrap">Loading…</div></div>;
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div className="container" style={{ maxWidth: '900px' }}>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="fw-bold mb-1">Appointments</h2>
-            <div className="text-muted">
-              {user.role === 'owner'
-                ? "Manage and review your property appointments."
-                : "Here are your scheduled property viewings."}
+    <div className="af-page">
+      <div className="af-wrap">
+        {/* Top bar (like screenshot header row) */}
+        <div className="af-topbar">
+          <div className="af-topbar-left">
+            <div className="af-titleBlock">
+              <h1>Your Appointments</h1>
+              <p>Track your property viewings and manage appointments</p>
             </div>
           </div>
-          <button
-            className="btn btn-outline-secondary rounded-pill px-3 py-2"
-            onClick={() => navigate('/dashboard')}
-          >
-            ← Back
-          </button>
+
+          <div className="af-topbar-right">
+            <button className="af-pillBtn" onClick={() => navigate("/dashboard")}>
+              ← Back
+            </button>
+          </div>
         </div>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        {loading ? (
-          <p className="text-muted">Loading…</p>
-        ) : appointments.length === 0 ? (
-          <div className="p-4 rounded-4 shadow-sm bg-white border text-center text-muted">
-            No appointments found.
-          </div>
-        ) : (
-          <div className="row g-3">
-            {appointments.map((appt) => (
-              <div className="col-12" key={appt._id}>
-                <div
-                  className="p-3 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-start"
-                  style={{ border: '1px solid #eef2f4' }}
-                >
-                  <div>
-                    <h6 className="fw-semibold mb-1">
-                      {appt.propertyId?.title || 'Property'}
-                    </h6>
-                    <div className="small text-muted">
-                      {appt.status === 'confirmed'
-                        ? new Date(appt.selectedSlot).toLocaleString()
-                        : 'Pending confirmation'}
-                    </div>
-
-                    {user?.role === 'owner' && appt.tenantId && (
-                      <div className="small mt-1">Tenant: {appt.tenantId.name}</div>
-                    )}
-                    {user?.role === 'client' && appt.ownerId && (
-                      <div className="small mt-1">Owner: {appt.ownerId.name}</div>
-                    )}
-                  </div>
-
-                  <div className="d-flex flex-column align-items-end gap-2">
-                    {appt.propertyId?._id && (
-                    <Link
-                      to={`/property/${appt.propertyId._id}`}
-                      className="btn btn-sm rounded-pill px-3 py-1"
-                      style={{
-                        background: "linear-gradient(135deg,#4b0082,#e0b0ff)",
-                        color: "#fff",
-                        fontWeight: 600,
-                        border: "none"
-                      }}
-                    >
-                      View property
-                    </Link>
-                  )}
-
-                    {user?.role === 'client' && appt.status !== 'confirmed' && (
-                      <button
-                        className="btn btn-sm btn-success rounded-pill px-3 py-1"
-                        onClick={() => setSelectedAppointmentId(appt._id)}
-                      >
-                        Choose time
-                      </button>
-                    )}
-                  </div>
+        <div className="af-grid">
+          {/* LEFT COLUMN */}
+          <aside className="af-left">
+            <div className="af-card af-agent">
+              <div className="af-agentRow">
+                <img className="af-agentAvatar" src={leadAvatar} alt="agent" />
+                <div>
+                  <div className="af-agentName">{leadName}</div>
+                  <div className="af-agentSub">{leadRole}</div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {selectedAppointmentId && (
-        <AppointmentModal
-          appointmentId={selectedAppointmentId}
-          onClose={() => setSelectedAppointmentId(null)}
-          onConfirmed={() => {
-            setSelectedAppointmentId(null);
-            setLoading(true);
-            api
-              .get(user?.role === 'owner' ? '/appointments/owner' : '/appointments/tenant', {
-                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-              })
-              .then((res) => setAppointments(res.data || []))
-              .catch(() => {})
-              .finally(() => setLoading(false));
-          }}
-        />
-      )}
+              <div className="af-agentActions">
+                {nextUp?.propertyId?._id && leadPerson?._id ? (
+                  <button
+                    className="af-miniBtn"
+                    onClick={() => navigate(`/chat/${nextUp.propertyId._id}/${leadPerson._id}`)}
+                  >
+                    Message
+                  </button>
+                ) : (
+                  <button className="af-miniBtn" disabled>Message</button>
+                )}
+
+                <button className="af-miniBtn ghost" disabled>
+                  Call
+                </button>
+              </div>
+            </div>
+
+            <div className="af-stats">
+              <div className="af-card af-stat">
+                <div className="af-statIcon">👁️</div>
+                <div>
+                  <div className="af-statVal">{totalViewings}</div>
+                  <div className="af-statLbl">Total viewings</div>
+                </div>
+              </div>
+              <div className="af-card af-stat">
+                <div className="af-statIcon">📅</div>
+                <div>
+                  <div className="af-statVal">{upcomingCount}</div>
+                  <div className="af-statLbl">Upcoming</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Month label card (NO calendar) */}
+            <div className="af-card af-month">
+              <div className="af-monthTitle">{monthLabel}</div>
+              <div className="af-monthSub">Scheduled appointments</div>
+            </div>
+          </aside>
+
+          {/* MAIN COLUMN */}
+          <main className="af-main">
+            {/* Tabs row (UI only) */}
+            <div className="af-tabsRow">
+              <button className="af-tab active" type="button">Timeline View</button>
+              <button className="af-tab" type="button" disabled>Calendar View</button>
+              <button className="af-tab" type="button" disabled>Past Viewings</button>
+              <div className="af-tabsSpacer" />
+              <button className="af-filter" type="button" disabled>
+                <span className="material-symbols-outlined">tune</span>
+                Filter
+              </button>
+            </div>
+
+            {/* Timeline */}
+            {!nextUp && restUpcoming.length === 0 ? (
+              <div className="af-empty">
+                No scheduled appointments.
+              </div>
+            ) : (
+              <div className="af-timeline">
+                {nextUp && (
+                  <TimelineItem
+                    appt={nextUp}
+                    isNext
+                    formatDay={formatDay}
+                    formatMonthShort={formatMonthShort}
+                    formatTime={formatTime}
+                    imgUrl={imgUrl}
+                    user={user}
+                  />
+                )}
+
+                {restUpcoming.map((a) => (
+                  <TimelineItem
+                    key={a._id}
+                    appt={a}
+                    formatDay={formatDay}
+                    formatMonthShort={formatMonthShort}
+                    formatTime={formatTime}
+                    imgUrl={imgUrl}
+                    user={user}
+                  />
+                ))}
+
+                {/* (Optional) we can show past, but you said only scheduled, so we don't */}
+                {/* Past is computed but not rendered */}
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default Appointments;
+function TimelineItem({
+  appt,
+  isNext,
+  formatDay,
+  formatMonthShort,
+  formatTime,
+  imgUrl,
+  user,
+}) {
+  const navigate = useNavigate();
+  const p = appt.propertyId || {};
+  const slot = appt.selectedSlot;
+
+  const otherUserId =
+    user?.role === "owner" ? appt.tenantId?._id : appt.ownerId?._id;
+
+  const otherName =
+    user?.role === "owner" ? appt.tenantId?.name : appt.ownerId?.name;
+
+  const image = p?.images?.[0]
+    ? imgUrl(p.images[0])
+    : "https://placehold.co/640x420?text=No+Image";
+
+  return (
+    <div className={`af-item ${isNext ? "next" : ""}`}>
+      {/* left date rail */}
+      <div className="af-dateRail">
+        <div className="af-day">{formatDay(slot)}</div>
+        <div className="af-mon">{formatMonthShort(slot)}</div>
+      </div>
+
+      {/* timeline dot + line */}
+      <div className="af-rail">
+        <div className={`af-dot ${isNext ? "active" : ""}`} />
+        <div className="af-line" />
+      </div>
+
+      {/* card */}
+      <div className="af-card af-apptCard">
+        {isNext && <div className="af-nextPill">NEXT UP</div>}
+
+        <div className="af-apptTop">
+          <div className="af-timeTag">
+            <span className="material-symbols-outlined">schedule</span>
+            {formatTime(slot)}
+          </div>
+
+          <div className="af-status confirmed">
+            Confirmed
+          </div>
+        </div>
+
+        <div className="af-apptGrid">
+          <div className="af-apptImg">
+            <img src={image} alt={p.title || "Property"} />
+          </div>
+
+          <div className="af-apptBody">
+            <div className="af-apptTitle">{p.title || "Property"}</div>
+            <div className="af-apptAddr">
+              <span className="material-symbols-outlined">location_on</span>
+              {p.address || p.location || "—"}
+            </div>
+
+            <div className="af-agentMini">
+              <img
+                src={imgUrl(
+                  user?.role === "owner"
+                    ? appt.tenantId?.profilePicture
+                    : appt.ownerId?.profilePicture,
+                  "/default-avatar.jpg"
+                )}
+                alt="person"
+              />
+              <div>
+                <div className="af-agentMiniName">{otherName || "—"}</div>
+                <div className="af-agentMiniSub">Meeting you there</div>
+              </div>
+            </div>
+
+            <div className="af-apptActions">
+              {p?._id && (
+                <Link className="af-btn primary" to={`/property/${p._id}`}>
+                  View Details
+                </Link>
+              )}
+
+              {p?._id && otherUserId && (
+                <button
+                  className="af-btn"
+                  type="button"
+                  onClick={() => navigate(`/chat/${p._id}/${otherUserId}`)}
+                >
+                  Message
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

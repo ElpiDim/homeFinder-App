@@ -1,0 +1,438 @@
+.af-page{
+  min-height:100vh;
+  background:
+    radial-gradient(900px circle at 16% 10%, rgba(255,255,255,.75), rgba(255,255,255,0) 45%),
+    linear-gradient(135deg,#f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%);
+  padding: 24px 0 48px;
+}
+
+.af-wrap{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.af-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.af-titleBlock h1{
+  margin:0;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+}
+
+.af-titleBlock p{
+  margin: 6px 0 0;
+  color: rgba(0,0,0,.55);
+  font-weight: 600;
+}
+
+.af-pillBtn{
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.7);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor:pointer;
+}
+
+.af-grid{
+  display:grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+}
+
+.af-card{
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  box-shadow: 0 16px 35px rgba(0,0,0,.08);
+}
+
+.af-left{
+  display:flex;
+  flex-direction:column;
+  gap: 14px;
+}
+
+/* agent card */
+.af-agent{
+  padding: 14px;
+}
+
+.af-agentRow{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+}
+
+.af-agentAvatar{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.af-agentName{
+  font-weight: 900;
+}
+
+.af-agentSub{
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.af-agentActions{
+  display:flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.af-miniBtn{
+  flex:1;
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+  cursor:pointer;
+}
+
+.af-miniBtn.ghost{
+  background: transparent;
+}
+
+.af-miniBtn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* stats */
+.af-stats{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.af-stat{
+  padding: 14px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.af-statIcon{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(124,58,237,.12);
+  font-size: 16px;
+}
+
+.af-statVal{
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.af-statLbl{
+  font-weight: 700;
+  color: rgba(0,0,0,.55);
+  font-size: 12px;
+}
+
+/* month label card (no calendar) */
+.af-month{
+  padding: 14px;
+}
+
+.af-monthTitle{
+  font-weight: 900;
+}
+
+.af-monthSub{
+  margin-top: 6px;
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* main */
+.af-main{
+  display:flex;
+  flex-direction:column;
+  gap: 14px;
+}
+
+/* tabs row */
+.af-tabsRow{
+  display:flex;
+  align-items:center;
+  gap: 18px;
+  padding: 10px 6px;
+}
+
+.af-tab{
+  border:0;
+  background: transparent;
+  font-weight: 900;
+  color: rgba(0,0,0,.55);
+  padding: 8px 10px;
+  border-bottom: 2px solid transparent;
+  cursor:pointer;
+}
+
+.af-tab.active{
+  color:#6d28d9;
+  border-bottom-color:#6d28d9;
+}
+
+.af-tab:disabled{
+  cursor:not-allowed;
+  opacity:.5;
+}
+
+.af-tabsSpacer{ flex:1; }
+
+.af-filter{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.7);
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-weight: 900;
+  cursor:not-allowed;
+  opacity:.6;
+}
+
+.af-filter .material-symbols-outlined{
+  font-size: 18px;
+}
+
+/* timeline */
+.af-timeline{
+  display:flex;
+  flex-direction:column;
+  gap: 16px;
+}
+
+.af-item{
+  display:grid;
+  grid-template-columns: 70px 22px 1fr;
+  gap: 12px;
+  align-items:stretch;
+}
+
+.af-dateRail{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  padding-top: 12px;
+}
+
+.af-day{
+  font-weight: 950;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.af-mon{
+  font-weight: 900;
+  color: rgba(0,0,0,.55);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.af-rail{
+  position: relative;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top: 18px;
+}
+
+.af-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(124,58,237,.35);
+}
+
+.af-dot.active{
+  background: #6d28d9;
+  box-shadow: 0 0 0 8px rgba(109,40,217,.14);
+}
+
+.af-line{
+  position:absolute;
+  top: 28px;
+  bottom: -18px;
+  width: 2px;
+  background: rgba(0,0,0,.08);
+}
+
+.af-apptCard{
+  padding: 14px;
+  position: relative;
+}
+
+.af-nextPill{
+  position:absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(124,58,237,.14);
+  color:#6d28d9;
+  font-weight: 950;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.af-apptTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom: 12px;
+}
+
+.af-timeTag{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  background: rgba(0,0,0,.06);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.af-timeTag .material-symbols-outlined{
+  font-size: 16px;
+}
+
+.af-status.confirmed{
+  background: rgba(34,197,94,.15);
+  color:#166534;
+  font-weight: 900;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.af-apptGrid{
+  display:grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+}
+
+.af-apptImg img{
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.af-apptTitle{
+  font-weight: 950;
+  font-size: 16px;
+}
+
+.af-apptAddr{
+  margin-top: 6px;
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
+  display:flex;
+  gap: 6px;
+  align-items:flex-start;
+}
+
+.af-apptAddr .material-symbols-outlined{
+  font-size: 16px;
+  margin-top: 1px;
+}
+
+.af-agentMini{
+  margin-top: 10px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.af-agentMini img{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.af-agentMiniName{
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.af-agentMiniSub{
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.af-apptActions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.af-btn{
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor:pointer;
+  text-decoration:none;
+  color: inherit;
+}
+
+.af-btn.primary{
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg,#6d28d9,#a855f7);
+}
+
+.af-empty{
+  background: rgba(255,255,255,.9);
+  border: 1px dashed rgba(0,0,0,.12);
+  border-radius: 18px;
+  padding: 18px;
+  text-align:center;
+  color: rgba(0,0,0,.55);
+  font-weight: 800;
+}
+
+@media (max-width: 980px){
+  .af-grid{ grid-template-columns: 1fr; }
+  .af-item{ grid-template-columns: 70px 22px 1fr; }
+}
+
+@media (max-width: 640px){
+  .af-apptGrid{ grid-template-columns: 1fr; }
+  .af-dateRail{ align-items:flex-start; }
+}
+/* Space between NEXT UP pill and the time (only for the next appointment) */
+.af-item.next .af-timeTag{
+  margin-left: 84px;
+}
