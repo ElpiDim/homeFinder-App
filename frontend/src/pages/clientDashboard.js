@@ -1,5 +1,6 @@
+// src/pages/clientDashboard.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
@@ -10,8 +11,9 @@ import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
 const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, "") : "") ||
-  (typeof window !== "undefined" ? window.location.origin : "");
+  (process.env.REACT_APP_API_URL
+    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    : "") || (typeof window !== "undefined" ? window.location.origin : "");
 
 function normalizeUploadPath(src) {
   if (!src) return "";
@@ -24,6 +26,7 @@ export default function ClientDashboard() {
   const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [allProperties, setAllProperties] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -99,6 +102,7 @@ export default function ClientDashboard() {
           { propertyId },
           { headers: { "Content-Type": "application/json" } }
         );
+        // ✅ FIXED: spread prev correctly
         setFavorites((prev) => [...prev, propertyId]);
       }
     } catch (err) {
@@ -107,12 +111,12 @@ export default function ClientDashboard() {
   };
 
   const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith("http")
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
+    ? user.profilePicture.startsWith("http")
+      ? user.profilePicture
+      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
     : "/default-avatar.jpg";
 
-  // optional: αν έχεις match score από backend (π.χ. matchPercent / relevanceScore)
+  // optional: if backend returns match score
   const matchLabel = (p) => {
     const v =
       p?.matchPercent ??
@@ -123,6 +127,8 @@ export default function ClientDashboard() {
     if (typeof v === "number" && Number.isFinite(v)) return `${Math.round(v)}% MATCH`;
     return null;
   };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
     <div className="cd-shell">
@@ -136,33 +142,37 @@ export default function ClientDashboard() {
           </div>
 
           <nav className="cd-nav">
-            <Link className="cd-navlink active" to="/dashboard">
+            <Link className={`cd-navlink ${isActive("/dashboard") ? "active" : ""}`} to="/dashboard">
               <span className="material-symbols-outlined fill">home</span>
               <span>My Matches</span>
             </Link>
 
-            <Link className="cd-navlink" to="/favorites">
+            <Link className={`cd-navlink ${isActive("/favorites") ? "active" : ""}`} to="/favorites">
               <span className="material-symbols-outlined">favorite</span>
               <span>Favorites</span>
             </Link>
 
-            <Link className="cd-navlink" to="/appointments">
+            <Link
+              className={`cd-navlink ${isActive("/appointments") ? "active" : ""}`}
+              to="/appointments"
+            >
               <span className="material-symbols-outlined">calendar_month</span>
               <span>Appointments</span>
             </Link>
 
-            <Link className="cd-navlink position-relative" to="/messages">
+            <Link
+              className={`cd-navlink position-relative ${isActive("/messages") ? "active" : ""}`}
+              to="/messages"
+            >
               <span className="material-symbols-outlined">chat</span>
               <span>Messages</span>
-              {unreadChats > 0 && (
-                <span className="badge bg-danger ms-auto">{unreadChats}</span>
-              )}
-            </Link> 
-               <Link className="cd-navlink" to="/profile">
+              {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
+            </Link>
+
+            <Link className={`cd-navlink ${isActive("/profile") ? "active" : ""}`} to="/profile">
               <span className="material-symbols-outlined">settings</span>
               <span>Settings</span>
             </Link>
-
           </nav>
 
           <div className="cd-profile">
@@ -187,12 +197,10 @@ export default function ClientDashboard() {
           <header className="cd-topbar">
             <div>
               <div className="cd-title">Your Matched Properties</div>
-              <div className="cd-subtitle">
-                Properties selected based on your preferences.
-              </div>
+              <div className="cd-subtitle">Properties selected based on your preferences.</div>
             </div>
 
-            {/* ✅ Notifications bell -> dropdown (new UI) */}
+            {/* Notifications bell */}
             <NotificationDropdown token={token} className="cd-iconWrap" />
           </header>
 
@@ -203,9 +211,7 @@ export default function ClientDashboard() {
               <div className="cd-grid">
                 {allProperties.map((prop) => (
                   <div key={prop._id} className="cd-cardWrap">
-                    {matchLabel(prop) && (
-                      <div className="cd-matchPill">{matchLabel(prop)}</div>
-                    )}
+                    {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
 
                     <PropertyCard
                       prop={prop}
