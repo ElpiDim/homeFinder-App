@@ -1,9 +1,10 @@
 // src/pages/PropertyDetails.jsx
-import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
-import GoogleMapView from '../components/GoogleMapView';
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../api";
+import GoogleMapView from "../components/GoogleMapView";
+import "./PropertyDetails.css";
 
 const ORIENTATION_LABELS = {
   north: "North",
@@ -24,35 +25,6 @@ const VIEW_LABELS = {
   none: "No specific view",
 };
 
-const HEATING_LABELS = {
-  none: "None",
-  central: "Central heating",
-  autonomous: "Autonomous heating",
-  gas: "Gas heating",
-  ac: "Air conditioning",
-  other: "Other",
-};
-
-const HEATING_MEDIUM_LABELS = {
-  petrol: "Petrol",
-  "natural gas": "Natural gas",
-  "gas heating system": "Gas heating system",
-  current: "Electric current",
-  stove: "Stove",
-  "thermal accumulator": "Thermal accumulator",
-  pellet: "Pellet",
-  infrared: "Infrared",
-  "fan coil": "Fan coil",
-  wood: "Wood",
-  teleheating: "Teleheating",
-  "geothermal energy": "Geothermal energy",
-};
-
-const LEASE_DURATION_LABELS = {
-  short: "Short stay (< 12 months)",
-  long: "Long term (≥ 12 months)",
-};
-
 const CONDITION_LABELS = {
   new: "New",
   renovated: "Renovated",
@@ -60,33 +32,12 @@ const CONDITION_LABELS = {
   "needs renovation": "Needs renovation",
 };
 
-const ZONE_LABELS = {
-  residential: "Residential",
-  agricultural: "Agricultural",
-  commercial: "Commercial",
-  industrial: "Industrial",
-  recreational: "Recreational",
-  unincorporated: "Unincorporated",
-};
-
-const FAMILY_STATUS_LABELS = {
-  single: "Single",
-  couple: "Couple",
-  family: "Family",
-};
-
-const ROOMMATE_PREFERENCE_LABELS = {
-  any: "Any",
-  roommates_only: "Roommates only",
-  no_roommates: "No roommates",
-};
-
 const humanize = (value) => {
   if (value === undefined || value === null) return "—";
   const str = String(value);
   const withSpaces = str.replace(/_/g, " ");
-  const capitalized = withSpaces.replace(/\b\w/g, (char) => char.toUpperCase());
-  return capitalized.replace(/-([a-z])/g, (_, char) => `-${char.toUpperCase()}`);
+  const capitalized = withSpaces.replace(/\b\w/g, (c) => c.toUpperCase());
+  return capitalized.replace(/-([a-z])/g, (_, c) => `-${c.toUpperCase()}`);
 };
 
 const formatEnumValue = (value, dictionary = {}) => {
@@ -94,55 +45,90 @@ const formatEnumValue = (value, dictionary = {}) => {
   return dictionary[value] || humanize(value);
 };
 
-function PropertyDetails() {
+export default function PropertyDetails() {
   const { propertyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const [property, setProperty] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Gallery state
+  // Gallery modal
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
-  const pageGradient = useMemo(
-    () => ({
-      minHeight: "100vh",
-      background:
-        "linear-gradient(135deg, #4b0082 0%, #6f42c1 33%, #a020f0 66%, #e0b0ff 100%)",
-    }),
-    []
-  );
+  // Contact form (UI-only, optional)
+  const [contactName, setContactName] = useState(user?.name || "");
+  const [contactEmail, setContactEmail] = useState(user?.email || "");
+  const [contactMsg, setContactMsg] = useState("");
 
-  // API origin & image helpers
   const API_ORIGIN =
     (process.env.REACT_APP_API_URL
       ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
       : "") || (typeof window !== "undefined" ? window.location.origin : "");
+
   const normalizeUploadPath = (src) => {
     if (!src) return "";
     if (src.startsWith("http")) return src;
     const clean = src.replace(/^\/+/, "");
     return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
   };
+
   const getImageUrl = (path) =>
     path
       ? `${API_ORIGIN}${normalizeUploadPath(path)}`
       : "https://placehold.co/1200x800?text=No+Image";
 
-  // Fetch property & favorites
+  const money = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num)
+      ? num.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : value ?? "—";
+  };
+
+  const boolTick = (v) => (v === true ? "Yes" : v === false ? "No" : "—");
+
+  const isOwner = useMemo(() => {
+    if (!user || !property) return false;
+    const ownerId = property?.ownerId?._id || property?.ownerId;
+    return user?.role === "owner" && ownerId && String(ownerId) === String(user.id);
+  }, [user, property]);
+
+  const imgs = property?.images || [];
+  const hasCoords =
+    property?.latitude != null &&
+    property?.longitude != null &&
+    !Number.isNaN(Number(property.latitude)) &&
+    !Number.isNaN(Number(property.longitude));
+
+  const mapCenter = hasCoords
+    ? { lat: Number(property.latitude), lng: Number(property.longitude) }
+    : { lat: 37.9838, lng: 23.7275 };
+
+  const areaForPpsm = Number(property?.squareMeters || property?.surface || 0);
+  const pricePerSqm =
+    areaForPpsm > 0 && property?.price != null
+      ? Math.round(Number(property.price) / areaForPpsm)
+      : null;
+
+  const locationParts = property?.location
+    ? property.location
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : [];
+  const city = property?.city || locationParts[0] || "";
+  const area = property?.area || (locationParts.length > 1 ? locationParts.slice(1).join(", ") : "");
+
+  // ---- fetch property + favorites ----
   useEffect(() => {
     let mounted = true;
 
     const fetchProperty = async () => {
       try {
         const res = await api.get(`/properties/${propertyId}`);
-        if (mounted) {
-          setProperty(res.data);
-          setCurrentImageIndex(0);
-        }
+        if (!mounted) return;
+        setProperty(res.data);
       } catch (err) {
         console.error("Error fetching property:", err);
       }
@@ -173,6 +159,7 @@ function PropertyDetails() {
     };
   }, [propertyId, user]);
 
+  // ---- actions ----
   const handleFavorite = async () => {
     try {
       if (!isFavorite) {
@@ -201,626 +188,404 @@ function PropertyDetails() {
     }
   };
 
-  // Gallery helpers
   const openGalleryAt = (idx) => {
     setGalleryIndex(idx);
     setShowGallery(true);
   };
+
   const closeGallery = () => setShowGallery(false);
+
   const nextImage = () => {
-    if (!property?.images?.length) return;
-    setGalleryIndex((prev) => (prev + 1) % property.images.length);
+    if (!imgs.length) return;
+    setGalleryIndex((prev) => (prev + 1) % imgs.length);
   };
+
   const prevImage = () => {
-    if (!property?.images?.length) return;
-    setGalleryIndex(
-      (prev) => (prev - 1 + property.images.length) % property.images.length
-    );
+    if (!imgs.length) return;
+    setGalleryIndex((prev) => (prev - 1 + imgs.length) % imgs.length);
   };
+
+  const ownerId = property?.ownerId?._id || property?.ownerId;
+  const ownerName = property?.ownerId?.name || property?.ownerName || "Listing Agent";
+  const ownerAvatar = property?.ownerId?.profilePicture
+    ? getImageUrl(property.ownerId.profilePicture)
+    : "/default-avatar.jpg";
+
+  const handleContactOwner = () => {
+    if (!ownerId) return;
+    navigate(`/chat/${propertyId}/${ownerId}`);
+  };
+
+  const handleScheduleTour = () => {
+    // ίδιο με contact, απλά CTA
+    handleContactOwner();
+  };
+
+  const amenities = useMemo(() => {
+    const list = [];
+
+    // από features string/array
+    const featuresList = Array.isArray(property?.features)
+      ? property.features
+      : property?.features
+      ? String(property.features)
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [];
+
+    featuresList.forEach((f) => list.push(f));
+
+    // από booleans/fields (soft mapping)
+    if (property?.hasElevator) list.push("Elevator");
+    if (property?.hasStorage) list.push("Storage");
+    if (property?.hasParking || property?.parkingSpaces > 0) list.push("Parking");
+    if (property?.petsAllowed) list.push("Pet Friendly");
+    if (property?.furnished) list.push("Furnished");
+    if (property?.ac) list.push("A/C");
+
+    // unique
+    return Array.from(new Set(list)).slice(0, 12);
+  }, [property]);
 
   if (!property) {
     return (
-      <div style={pageGradient}>
-        <div className="container py-5">Loading…</div>
+      <div className="pd-page">
+        <div className="pd-wrap">Loading…</div>
       </div>
     );
   }
 
-  const isOwner =
-    user?.role === "owner" &&
-    user?.id === (property?.ownerId?._id || property?.ownerId);
+  const addressLine = property.address || property.location || "—";
+  const title = property.title || "Property";
+  const beds = property.bedrooms ?? "—";
+  const baths = property.bathrooms ?? "—";
+  const sqm = property.squareMeters ?? property.surface ?? "—";
+  const yearBuilt = property.yearBuilt ?? "—";
 
-  const imgs = property.images || [];
-  const hasCoords =
-    property.latitude != null &&
-    property.longitude != null &&
-    !Number.isNaN(Number(property.latitude)) &&
-    !Number.isNaN(Number(property.longitude));
+  const typeLabel =
+    property.type === "rent" ? "For Rent" : property.type === "sale" ? "For Sale" : humanize(property.type);
 
-  const mapCenter = hasCoords
-    ? { lat: Number(property.latitude), lng: Number(property.longitude) }
-    : { lat: 37.9838, lng: 23.7275 }; // Athens fallback
-
-  const money = (value) => {
-    const num = Number(value);
-    return Number.isFinite(num)
-      ? num.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : value ?? "—";
-  };
-  const boolTick = (v) => (v === true ? "Yes" : v === false ? "No" : "—");
-
-  const formatValue = (value) => {
-    if (value === undefined || value === null) return "—";
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      return trimmed === "" ? "—" : trimmed;
-    }
-    return String(value);
-  };
-
-  const formatUnit = (value, unit) => {
-    const base = formatValue(value);
-    return base === "—" ? base : `${base} ${unit}`;
-  };
-
-  const formatListText = (values) => {
-    if (!values || (Array.isArray(values) && values.length === 0)) return "—";
-    if (Array.isArray(values)) {
-      const cleaned = values
-        .map((item) => formatValue(item))
-        .filter((item) => item !== "—");
-      return cleaned.length ? cleaned.join(", ") : "—";
-    }
-    return formatValue(values);
-  };
-
-  const tenantReqs = property.tenantRequirements || property.requirements || {};
-  const areaForPpsm = Number(property.squareMeters || property.surface || 0);
-  const pricePerSqm =
-    areaForPpsm > 0 && property.price != null
-      ? Math.round(Number(property.price) / areaForPpsm)
-      : null;
-  const locationParts = property.location
-    ? property.location
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean)
-    : [];
-  const city = property.city || locationParts[0] || "";
-  const area =
-    property.area ||
-    (locationParts.length > 1 ? locationParts.slice(1).join(", ") : "");
-
-  const propertyCategory = property.propertyCategory || property.propertyType;
-  const heatingValue = property.heatingType || property.heating;
-  const heatingMediumValue = property.heatingMedium;
-  const zoneValue = property.zone || property.propertyZone;
-  const monthlyMaintenance =
-    property.monthlyCommonExpenses ?? property.monthlyMaintenanceFee;
-  const leaseDurationValue =
-    property.leaseDuration || tenantReqs.leaseDuration || property.preferredLease;
-  const availableFrom =
-    property.availableFrom ||
-    property.available_from ||
-    property.dateAvailable ||
-    property.availableDate;
-  const videoUrl = property.videoUrl || property.videoURL;
-  const contactName = property.contactName || property.contact?.name;
-  const contactPhone = property.contactPhone || property.contact?.phone;
-  const contactEmail = property.contactEmail || property.contact?.email;
-  const hasParkingValue =
-    property.hasParking ??
-    property.parking ??
-    (property.parkingSpaces != null ? property.parkingSpaces > 0 : undefined);
-
-  const allowedOccupations = Array.isArray(tenantReqs.allowedOccupations)
-    ? tenantReqs.allowedOccupations
-    : tenantReqs.allowedOccupations
-    ? String(tenantReqs.allowedOccupations)
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-
-  const tenantNotes =
-    tenantReqs.notes || tenantReqs.tenantRequirementsNotes || tenantReqs.note;
-
-  const minTenantSalaryText =
-    tenantReqs.minTenantSalary !== undefined &&
-    tenantReqs.minTenantSalary !== null &&
-    tenantReqs.minTenantSalary !== ""
-      ? `€ ${money(tenantReqs.minTenantSalary)}`
-      : "—";
-
-  const factGroups = [
-    {
-      title: "Location & Listing",
-      items: [
-        { label: "City", value: formatValue(city) },
-        { label: "Area", value: formatValue(area) },
-        { label: "Address", value: formatValue(property.address) },
-        { label: "Property Category", value: formatEnumValue(propertyCategory) },
-        { label: "Listing Type", value: formatEnumValue(property.type) },
-        { label: "Status", value: formatEnumValue(property.status) },
-        {
-          label: "Lease Duration",
-          value: formatEnumValue(leaseDurationValue, LEASE_DURATION_LABELS),
-        },
-        { label: "Available From", value: formatValue(availableFrom) },
-        { label: "Zone", value: formatEnumValue(zoneValue, ZONE_LABELS) },
-      ],
-    },
-    {
-      title: "Size & Layout",
-      items: [
-        { label: "Square Meters", value: formatUnit(property.squareMeters, "m²") },
-        { label: "Surface", value: formatUnit(property.surface, "m²") },
-        { label: "Plot Size", value: formatUnit(property.plotSize, "m²") },
-        { label: "Floor", value: formatValue(property.floor) },
-        { label: "Levels", value: formatValue(property.levels) },
-        { label: "On Top Floor", value: boolTick(property.onTopFloor) },
-        { label: "Bedrooms", value: formatValue(property.bedrooms) },
-        { label: "Bathrooms", value: formatValue(property.bathrooms) },
-        { label: "WC", value: formatValue(property.wc) },
-        { label: "Kitchens", value: formatValue(property.kitchens) },
-        { label: "Living Rooms", value: formatValue(property.livingRooms) },
-      ],
-    },
-    {
-      title: "Condition & Comfort",
-      items: [
-        { label: "Year Built", value: formatValue(property.yearBuilt) },
-        { label: "Condition", value: formatEnumValue(property.condition, CONDITION_LABELS) },
-        { label: "Orientation", value: formatEnumValue(property.orientation, ORIENTATION_LABELS) },
-        { label: "View", value: formatEnumValue(property.view, VIEW_LABELS) },
-        { label: "Heating Type", value: formatEnumValue(heatingValue, HEATING_LABELS) },
-        {
-          label: "Heating Medium",
-          value: formatEnumValue(heatingMediumValue, HEATING_MEDIUM_LABELS),
-        },
-        { label: "Energy Class", value: formatValue(property.energyClass) },
-        { label: "Insulation", value: boolTick(property.insulation) },
-      ],
-    },
-    {
-      title: "Amenities",
-      items: [
-        { label: "Furnished", value: boolTick(property.furnished) },
-        { label: "Pets Allowed", value: boolTick(property.petsAllowed) },
-        { label: "Smoking Allowed", value: boolTick(property.smokingAllowed) },
-        { label: "Has Parking", value: boolTick(hasParkingValue) },
-        { label: "Parking Spaces", value: formatValue(property.parkingSpaces) },
-        { label: "Has Elevator", value: boolTick(property.hasElevator) },
-        { label: "Has Storage", value: boolTick(property.hasStorage) },
-      ],
-    },
-    {
-      title: "Financial & Availability",
-      items: [
-        { label: "Price", value: `€ ${money(property.price)}` },
-        {
-          label: "Price per m²",
-          value: pricePerSqm ? `€ ${money(pricePerSqm)}` : "—",
-        },
-        {
-          label: "Monthly Maintenance Fee",
-          value:
-            monthlyMaintenance !== undefined &&
-            monthlyMaintenance !== null &&
-            monthlyMaintenance !== ""
-              ? `€ ${money(monthlyMaintenance)}`
-              : "—",
-        },
-      ],
-    },
-    {
-      title: "Media & Links",
-      items: [
-        {
-          label: "Video Tour",
-          value:
-            videoUrl && typeof videoUrl === "string" && videoUrl.trim() !== "" ? (
-              <a href={videoUrl} target="_blank" rel="noopener noreferrer">
-                {videoUrl}
-              </a>
-            ) : (
-              "—"
-            ),
-        },
-      ],
-    },
-  ];
-
-  const tenantRequirementItems = [
-    { label: "Minimum Tenant Salary", value: minTenantSalaryText },
-    {
-      label: "Allowed Occupations",
-      value: formatListText(allowedOccupations),
-    },
-    {
-      label: "Preferred Family Status",
-      value: formatEnumValue(tenantReqs.familyStatus, FAMILY_STATUS_LABELS),
-    },
-    { label: "Pets Allowed", value: boolTick(tenantReqs.pets) },
-    { label: "Smoking Allowed", value: boolTick(tenantReqs.smoker) },
-    { label: "Minimum Tenant Age", value: formatValue(tenantReqs.minTenantAge) },
-    { label: "Maximum Tenant Age", value: formatValue(tenantReqs.maxTenantAge) },
-    { label: "Max Household Size", value: formatValue(tenantReqs.maxHouseholdSize) },
-    { label: "Requires Furnished", value: boolTick(tenantReqs.furnished) },
-    { label: "Requires Parking", value: boolTick(tenantReqs.parking) },
-    { label: "Requires Elevator", value: boolTick(tenantReqs.hasElevator) },
-    {
-      label: "Roommate Preference",
-      value: formatEnumValue(
-        tenantReqs.roommatePreference,
-        ROOMMATE_PREFERENCE_LABELS
-      ),
-    },
-    { label: "Additional Notes", value: formatValue(tenantNotes) },
-  ];
-
-  const contactItems = [
-    { label: "Contact Name", value: formatValue(contactName) },
-    {
-      label: "Contact Phone",
-      value:
-        contactPhone && contactPhone !== "—"
-          ? (
-              <a href={`tel:${contactPhone}`}>{contactPhone}</a>
-            )
-          : "—",
-    },
-    {
-      label: "Contact Email",
-      value:
-        contactEmail && contactEmail !== "—"
-          ? (
-              <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-            )
-          : "—",
-    },
-  ];
-
-  const featuresList = Array.isArray(property.features)
-    ? property.features
-    : property.features
-    ? String(property.features)
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
-
-  const renderFactRows = (items) => (
-    <div className="row row-cols-1 row-cols-md-2 g-2 mt-1">
-      {items.map((item) => (
-        <div key={item.label} className="col">
-          <strong>{item.label}:</strong> {item.value}
-        </div>
-      ))}
-    </div>
-  );
+  const statusLabel = property.status ? humanize(property.status) : "";
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div
-        className="container bg-white shadow-sm rounded-4 p-4"
-        style={{ maxWidth: "1000px" }}
-      >
-        {/* Back */}
-        <button
-          className="btn btn-outline-secondary rounded-pill px-3 mb-3"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Back to search
-        </button>
+    <div className="pd-page">
+      <div className="pd-wrap">
+        {/* Breadcrumbs */}
+        <div className="pd-breadcrumbs">
+          <Link to="/dashboard">Home</Link>
+          <span>/</span>
+          <span>{city || "—"}</span>
+          <span>/</span>
+          <span className="pd-bc-strong">{title}</span>
+        </div>
 
-        {/* Header */}
-        <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
-          <div>
-            <h3 className="fw-bold mb-1">{property.title}</h3>
-            <div className="d-flex gap-2 flex-wrap">
-              <span
-                className={`badge rounded-pill ${
-                  property.type === "rent" ? "bg-info" : "bg-primary"
-                }`}
-              >
-                {property.type}
-              </span>
-              <span
-                className={`badge rounded-pill ${
-                  property.status === "available"
-                    ? "bg-success"
-                    : property.status === "sold"
-                    ? "bg-secondary"
-                    : "bg-warning"
-                }`}
-              >
-                {property.status}
-              </span>
-            </div>
-            <div className="text-muted mt-2">
-              📍 {property.address || property.location}
-            </div>
-          </div>
-
-          <div className="d-flex flex-column gap-2">
-            <button
-              className={`btn rounded-pill px-4 ${
-                isFavorite
-                  ? "btn-warning text-dark"
-                  : "btn-outline-warning"
-              }`}
-              onClick={handleFavorite}
-            >
-              {isFavorite ? "★ Favorited" : "☆ Add to Favorites"}
-            </button>
-            {!isOwner && user && (
+        {/* Hero layout */}
+        <div className="pd-hero">
+          {/* LEFT hero content */}
+          <div className="pd-main">
+            {/* Gallery grid */}
+            <div className="pd-gallery">
               <button
-                className="btn btn-success rounded-pill px-4"
-                onClick={() =>
-                  navigate(
-                    `/chat/${propertyId}/${
-                      property.ownerId._id || property.ownerId
-                    }`
-                  )
-                }
+                type="button"
+                className="pd-viewPhotos"
+                onClick={() => openGalleryAt(0)}
+                disabled={!imgs.length}
               >
-                Contact Owner
+                <span className="material-symbols-outlined">photo_library</span>
+                View all {imgs.length || 0} Photos
               </button>
-            )}
-          </div>
-        </div>
 
-        {/* Price */}
-        <div className="mt-3 p-3 rounded-3 border bg-light d-flex justify-content-between flex-wrap">
-          <div className="fs-4 fw-bold">€ {money(property.price)}</div>
-          <div className="text-muted">
-            {property.squareMeters
-              ? `${property.squareMeters} m²`
-              : property.surface
-              ? `${property.surface} m²`
-              : "—"}
-            {pricePerSqm && <> · <strong>€{money(pricePerSqm)}/m²</strong></>}
-          </div>
-        </div>
-
-        {/* Main image */}
-        <div className="position-relative mt-3">
-          <img
-            src={
-              imgs[currentImageIndex]
-                ? getImageUrl(imgs[currentImageIndex])
-                : "https://placehold.co/800x400?text=No+Image"
-            }
-            alt={property.title}
-            className="img-fluid rounded-3 mb-3"
-            style={{ maxHeight: "420px", objectFit: "cover", width: "100%" }}
-            onClick={() => imgs.length && openGalleryAt(currentImageIndex)}
-          />
-
-          {imgs.length > 1 && (
-            <div className="d-flex justify-content-between">
-              <button
-                className="btn btn-light rounded-pill px-3"
-                onClick={() =>
-                  setCurrentImageIndex(
-                    (prev) => (prev === 0 ? imgs.length - 1 : prev - 1)
-                  )
-                }
-              >
-                ◀
-              </button>
-              <button
-                className="btn btn-light rounded-pill px-3"
-                onClick={() =>
-                  setCurrentImageIndex(
-                    (prev) => (prev === imgs.length - 1 ? 0 : prev + 1)
-                  )
-                }
-              >
-                ▶
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Thumbnails */}
-        {imgs.length > 1 && (
-          <div className="d-flex flex-wrap gap-2 mb-4">
-            {imgs.map((src, i) => (
-              <img
-                key={i}
-                src={getImageUrl(src)}
-                alt={`Thumbnail ${i + 1}`}
-                style={{
-                  width: 96,
-                  height: 64,
-                  objectFit: "cover",
-                  borderRadius: 8,
-                  outline:
-                    i === currentImageIndex
-                      ? "2px solid #0d6efd"
-                      : "1px solid #e5e7eb",
-                  cursor: "pointer",
-                }}
-                onClick={() => openGalleryAt(i)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Description */}
-        {property.description && (
-          <>
-            <h5 className="fw-bold">Description</h5>
-            <p>{property.description}</p>
-            <hr />
-          </>
-        )}
-
-        {/* Map */}
-        <div className="mb-4">
-          <h5 className="fw-bold">Location on Map</h5>
-          <GoogleMapView
-            properties={hasCoords ? [property] : []}
-            height="300px"
-            useClustering={false}
-            showSearch={false}
-            defaultCenter={mapCenter}
-            zoom={hasCoords ? 14 : 11}
-          />
-          {!hasCoords && (
-            <div className="small text-muted mt-2">
-              No saved pin for this property.
-            </div>
-          )}
-        </div>
-
-        {/* Facts */}
-        <hr />
-        <h5 className="fw-bold">Facts</h5>
-        {factGroups.map((group, index) => (
-          <div
-            key={group.title}
-            className={index === 0 ? "mt-2" : "mt-4"}
-          >
-            <div className="text-uppercase text-muted small fw-semibold mb-1">
-              {group.title}
-            </div>
-            {renderFactRows(group.items)}
-          </div>
-        ))}
-
-        {/* Additional features */}
-        <hr />
-        <h5 className="fw-bold">Additional Features</h5>
-        {featuresList.length ? (
-          <div className="d-flex flex-wrap gap-2 mt-1">
-            {featuresList.map((feature, idx) => (
-              <span
-                key={`${feature}-${idx}`}
-                className="badge bg-light text-dark border"
-              >
-                {feature}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="text-muted">No additional features listed.</div>
-        )}
-
-        {/* Tenant requirements - Ορατό μόνο στον Ιδιοκτήτη */}
-        {isOwner && (
-          <>
-            <hr />
-            <h5 className="fw-bold">Tenant Requirements</h5>
-            {renderFactRows(tenantRequirementItems)}
-          </>
-        )}
-
-        {/* Contact details */}
-        <hr />
-        <h5 className="fw-bold">Contact Details</h5>
-        {renderFactRows(contactItems)}
-
-        {/* Floor Plan */}
-        {property.floorPlanImage && (
-          <>
-            <hr />
-            <h5 className="fw-bold">Floor plan</h5>
-            <img
-              src={getImageUrl(property.floorPlanImage)}
-              alt="Floor plan"
-              style={{
-                width: "100%",
-                maxHeight: 600,
-                objectFit: "contain",
-                borderRadius: 8,
-                border: "1px solid #eee",
-                cursor: "pointer",
-              }}
-              onClick={() =>
-                window.open(getImageUrl(property.floorPlanImage), "_blank")
-              }
-            />
-          </>
-        )}
-
-        {/* Owner Notes */}
-        {isOwner && property.ownerNotes && (
-          <div className="alert alert-secondary mt-3">
-            <strong>Owner Notes:</strong> {property.ownerNotes}
-          </div>
-        )}
-
-        {/* Owner Actions */}
-        {isOwner && (
-          <div className="mt-4 d-flex gap-2">
-            <button
-              className="btn btn-primary rounded-pill px-4"
-              onClick={() => navigate(`/edit-property/${propertyId}`)}
-            >
-              Edit
-            </button>
-            <button
-              className="btn btn-danger rounded-pill px-4"
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Gallery Modal */}
-      {showGallery && (
-        <div className="modal fade show d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-lg modal-dialog-centered">
-            <div className="modal-content rounded-4">
-              <div className="modal-header">
-                <h5 className="modal-title">
-                  Gallery ({galleryIndex + 1}/{property.images?.length || 0})
-                </h5>
+              <div className="pd-grid">
                 <button
                   type="button"
-                  className="btn-close"
-                  onClick={closeGallery}
-                />
+                  className="pd-grid-big"
+                  onClick={() => openGalleryAt(0)}
+                  aria-label="Open photo 1"
+                >
+                  <img src={getImageUrl(imgs[0])} alt="Main" />
+                </button>
+
+                <button
+                  type="button"
+                  className="pd-grid-sm"
+                  onClick={() => openGalleryAt(1)}
+                  aria-label="Open photo 2"
+                >
+                  <img src={getImageUrl(imgs[1] || imgs[0])} alt="Photo 2" />
+                </button>
+
+                <button
+                  type="button"
+                  className="pd-grid-sm"
+                  onClick={() => openGalleryAt(2)}
+                  aria-label="Open photo 3"
+                >
+                  <img src={getImageUrl(imgs[2] || imgs[0])} alt="Photo 3" />
+                </button>
+
+                <button
+                  type="button"
+                  className="pd-grid-sm"
+                  onClick={() => openGalleryAt(3)}
+                  aria-label="Open photo 4"
+                >
+                  <img src={getImageUrl(imgs[3] || imgs[0])} alt="Photo 4" />
+                </button>
+
+                <button
+                  type="button"
+                  className="pd-grid-sm"
+                  onClick={() => openGalleryAt(4)}
+                  aria-label="Open photo 5"
+                >
+                  <img src={getImageUrl(imgs[4] || imgs[0])} alt="Photo 5" />
+                </button>
               </div>
-              <div className="modal-body text-center">
-                <img
-                  src={getImageUrl(property.images?.[galleryIndex])}
-                  alt={`Image ${galleryIndex + 1}`}
-                  style={{
-                    width: "100%",
-                    maxHeight: "70vh",
-                    objectFit: "contain",
-                    borderRadius: 8,
-                  }}
-                />
+            </div>
+
+            {/* Title / price row */}
+            <div className="pd-headRow">
+              <div>
+                <div className="pd-price">
+                  € {money(property.price)}
+                  {property.type === "rent" && <span className="pd-priceSub">/mo</span>}
+                </div>
+                <div className="pd-addr">{addressLine}</div>
+
+                <div className="pd-badges">
+                  <span className="pd-badge type">{typeLabel}</span>
+                  {property.condition && (
+                    <span className="pd-badge soft">{formatEnumValue(property.condition, CONDITION_LABELS)}</span>
+                  )}
+                  {statusLabel && <span className="pd-badge soft">{statusLabel}</span>}
+                  {pricePerSqm != null && <span className="pd-badge soft">€{money(pricePerSqm)}/m²</span>}
+                </div>
               </div>
-              {property.images?.length > 1 && (
-                <div className="modal-footer d-flex justify-content-between">
-                  <button
-                    className="btn btn-light rounded-pill px-4"
-                    onClick={prevImage}
-                  >
-                    ◀ Prev
+
+              <div className="pd-headActions">
+                <button
+                  type="button"
+                  className={`pd-favBtn ${isFavorite ? "active" : ""}`}
+                  onClick={handleFavorite}
+                >
+                  <span className="material-symbols-outlined">
+                    {isFavorite ? "favorite" : "favorite_border"}
+                  </span>
+                </button>
+
+                {isOwner ? (
+                  <div className="pd-ownerActions">
+                    <button
+                      type="button"
+                      className="pd-btn pd-btn-primary"
+                      onClick={() => navigate(`/edit-property/${propertyId}`)}
+                    >
+                      Edit
+                    </button>
+                    <button type="button" className="pd-btn pd-btn-danger" onClick={handleDelete}>
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className="pd-btn pd-btn-primary" onClick={handleContactOwner}>
+                    Contact Owner
                   </button>
+                )}
+              </div>
+            </div>
+
+            {/* quick stats */}
+            <div className="pd-stats">
+              <div className="pd-stat">
+                <span className="material-symbols-outlined">bed</span>
+                <div>
+                  <div className="pd-statVal">{beds}</div>
+                  <div className="pd-statLbl">Bedrooms</div>
+                </div>
+              </div>
+              <div className="pd-stat">
+                <span className="material-symbols-outlined">bathtub</span>
+                <div>
+                  <div className="pd-statVal">{baths}</div>
+                  <div className="pd-statLbl">Bathrooms</div>
+                </div>
+              </div>
+              <div className="pd-stat">
+                <span className="material-symbols-outlined">straighten</span>
+                <div>
+                  <div className="pd-statVal">{sqm}</div>
+                  <div className="pd-statLbl">Square meters</div>
+                </div>
+              </div>
+              <div className="pd-stat">
+                <span className="material-symbols-outlined">calendar_month</span>
+                <div>
+                  <div className="pd-statVal">{yearBuilt}</div>
+                  <div className="pd-statLbl">Year built</div>
+                </div>
+              </div>
+            </div>
+
+            {/* About */}
+            <section className="pd-section">
+              <div className="pd-sectionTitle">About this home</div>
+              <div className="pd-sectionBody">
+                <p className="pd-desc">
+                  {property.description?.trim()
+                    ? property.description
+                    : "No description provided for this listing."}
+                </p>
+
+                <div className="pd-factsGrid">
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">City</div>
+                    <div className="pd-factVal">{city || "—"}</div>
+                  </div>
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">Area</div>
+                    <div className="pd-factVal">{area || "—"}</div>
+                  </div>
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">Orientation</div>
+                    <div className="pd-factVal">{formatEnumValue(property.orientation, ORIENTATION_LABELS)}</div>
+                  </div>
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">View</div>
+                    <div className="pd-factVal">{formatEnumValue(property.view, VIEW_LABELS)}</div>
+                  </div>
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">Furnished</div>
+                    <div className="pd-factVal">{boolTick(property.furnished)}</div>
+                  </div>
+                  <div className="pd-fact">
+                    <div className="pd-factLbl">Pets allowed</div>
+                    <div className="pd-factVal">{boolTick(property.petsAllowed)}</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Amenities */}
+            <section className="pd-section">
+              <div className="pd-sectionTitle">Amenities & Features</div>
+              <div className="pd-amenities">
+                {amenities.length ? (
+                  amenities.map((a, idx) => (
+                    <span className="pd-chip" key={`${a}-${idx}`}>
+                      {a}
+                    </span>
+                  ))
+                ) : (
+                  <div className="pd-muted">No amenities listed.</div>
+                )}
+              </div>
+            </section>
+
+            {/* Location */}
+            <section className="pd-section">
+              <div className="pd-sectionTitle">Location</div>
+              <div className="pd-mapWrap">
+                <GoogleMapView
+                  properties={hasCoords ? [property] : []}
+                  height="320px"
+                  useClustering={false}
+                  showSearch={false}
+                  defaultCenter={mapCenter}
+                  zoom={hasCoords ? 14 : 11}
+                />
+                {!hasCoords && <div className="pd-muted mt-2">No saved pin for this property.</div>}
+              </div>
+            </section>
+
+         
+          </div>
+
+          {/* RIGHT: sticky contact card */}
+          <aside className="pd-side">
+            <div className="pd-agentCard">
+              <div className="pd-agentTop">
+                <img className="pd-agentAvatar" src={ownerAvatar} alt="agent" />
+                <div>
+                  <div className="pd-agentLbl">LISTING AGENT</div>
+                  <div className="pd-agentName">{ownerName}</div>
+                </div>
+              </div>
+
+              <button type="button" className="pd-cta pd-cta-primary" onClick={handleScheduleTour}>
+                Schedule a Tour
+              </button>
+
+              <button type="button" className="pd-cta pd-cta-secondary" onClick={handleContactOwner}>
+                Request Info
+              </button>
+
+              {!isOwner && (
+                <div className="pd-form">
+                  <input
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Your Name"
+                  />
+                  <input
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="Email / Phone"
+                  />
+                  <textarea
+                    value={contactMsg}
+                    onChange={(e) => setContactMsg(e.target.value)}
+                    placeholder={`I'm interested in ${title}...`}
+                    rows={3}
+                  />
                   <button
-                    className="btn btn-light rounded-pill px-4"
-                    onClick={nextImage}
+                    type="button"
+                    className="pd-cta pd-cta-primary"
+                    onClick={handleContactOwner}
                   >
-                    Next ▶
+                    Send Message
                   </button>
+                  <div className="pd-muted" style={{ fontSize: 12 }}>
+                    *This will open the chat with the owner.
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          </aside>
         </div>
-      )}
+
+        {/* Gallery Modal */}
+        {showGallery && (
+          <div className="pd-modalBackdrop" role="dialog" aria-modal="true">
+            <div className="pd-modal">
+              <div className="pd-modalHead">
+                <div className="pd-modalTitle">
+                  Gallery ({galleryIndex + 1}/{imgs.length || 0})
+                </div>
+                <button className="pd-x" onClick={closeGallery} aria-label="close">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              <div className="pd-modalBody">
+                <button className="pd-navBtn left" onClick={prevImage} aria-label="prev">
+                  <span className="material-symbols-outlined">chevron_left</span>
+                </button>
+
+                <img
+                  className="pd-modalImg"
+                  src={getImageUrl(imgs[galleryIndex])}
+                  alt={`Image ${galleryIndex + 1}`}
+                />
+
+                <button className="pd-navBtn right" onClick={nextImage} aria-label="next">
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default PropertyDetails;
