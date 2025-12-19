@@ -1,423 +1,404 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { Container, Card, Button, ListGroup, Badge } from 'react-bootstrap';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import Logo from '../components/Logo';
-import './Messages.css';
-import api from '../api';
-import { useMessages } from '../context/MessageContext';
+// src/pages/Messages.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import Logo from "../components/Logo";
+import "./Messages.css";
+import api from "../api";
+import { useMessages } from "../context/MessageContext";
+import { proposeAppointment } from "../services/appointmentsService";
+import { Form, InputGroup, Modal, Alert } from "react-bootstrap";
 
 const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
+  (process.env.REACT_APP_API_URL
+    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    : "") || (typeof window !== "undefined" ? window.location.origin : "");
 
 function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  return clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+  if (!src) return "";
+  if (src.startsWith("http")) return src;
+  const clean = src.replace(/^\/+/, "");
+  return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
 }
 
 const assetUrl = (src, fallback) => {
   if (!src) return fallback;
-  if (src.startsWith('http')) return src;
+  if (src.startsWith("http")) return src;
   return `${API_ORIGIN}${normalizeUploadPath(src)}`;
 };
 
-const iconForType = (t) => {
-  switch (t) {
-    case 'appointment':
-      return '📅';
-    case 'favorite':
-      return '⭐';
-    case 'property_removed':
-      return '🏠❌';
-    case 'message':
-      return '💬';
-    default:
-      return '🔔';
-  }
-};
+function timeAgo(iso) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const s = Math.floor((Date.now() - t) / 1000);
+  if (s < 60) return "Just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
-const titleForNote = (n) => {
-  if (n?.message) return n.message;
-  switch (n?.type) {
-    case 'favorite':
-      return `${n?.senderId?.name || 'Someone'} added your property to favorites.`;
-    case 'property_removed':
-      return 'A property you interacted with was removed.';
-    case 'message':
-      return 'New message received.';
-    default:
-      return 'Notification';
-  }
-};
-
-function Messages() {
+export default function Messages() {
   const { user, logout } = useAuth();
-  const { conversations, unreadChats, loading, fetchConversations, markConversationAsRead } = useMessages();
-  const [lastChecked, setLastChecked] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [hasAppointments, setHasAppointments] = useState(false);
   const navigate = useNavigate();
-  const dropdownRef = useRef(null);
-  
+  const { conversations, unreadChats, loading, fetchConversations, markConversationAsRead } =
+    useMessages();
+
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState("all"); // all | unread | clients
+
+  // ✅ Propose appointment state (MUST be inside component)
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [proposalContext, setProposalContext] = useState(null);
+  // { propertyId, tenantId, tenantName, propertyTitle }
+  const [slotInputs, setSlotInputs] = useState([""]);
+  const [proposalError, setProposalError] = useState("");
+  const [proposalSuccess, setProposalSuccess] = useState("");
+  const [submittingProposal, setSubmittingProposal] = useState(false);
+
   const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith('http')
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
-    : '/default-avatar.jpg';
-
-  const pageGradient = useMemo(
-    () => ({
-      minHeight: '100vh',
-      background: `radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),
-       linear-gradient(135deg, #eaf7ec 0%, #e4f8ee 33%, #e8fbdc 66%, #f6fff2 100%)`,
-    }),
-    []
-  );
-
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get('/notifications');
-      const list = Array.isArray(res.data) ? res.data : [];
-      setNotifications(list);
-      setUnreadCount(list.filter((n) => !n.readAt && !n.read).length);
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-  }, []);
+    ? user.profilePicture.startsWith("http")
+      ? user.profilePicture
+      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
+    : "/default-avatar.jpg";
 
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
-  useEffect(() => {
-    if (conversations) {
-      setLastChecked(new Date().toLocaleString());
-    }
-  }, [conversations]);
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
-  useEffect(() => {
-    if (!user) return;
-
-    fetchNotifications();
-
-    const endpoint = user.role === 'owner' ? '/appointments/owner' : '/appointments/tenant';
-    api
-      .get(endpoint)
-      .then((res) => {
-        const appts = Array.isArray(res.data) ? res.data : [];
-        const hasActiveAppts = appts.some((appt) => {
-          const status = (appt.status || '').toLowerCase();
-          return status === 'pending' || status === 'confirmed';
-        });
-        setHasAppointments(hasActiveAppts);
-      })
-      .catch(() => {
-        setHasAppointments(false);
-      });
-  }, [user, fetchNotifications]);
-
-  useEffect(() => {
-    if (!user) return;
-    const id = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(id);
-  }, [user, fetchNotifications]);
-
-
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setShowNotifications(false);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
   const handleConversationClick = (propertyId, otherUserId) => {
     markConversationAsRead(propertyId, otherUserId);
     navigate(`/chat/${propertyId}/${otherUserId}`);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = Array.isArray(conversations) ? conversations : [];
+
+    if (tab === "unread") list = list.filter((c) => (c.unreadCount || 0) > 0);
+    // tab === "clients": κρατάμε ίδιο list (αν θες φιλτράρισμα by role, πρέπει να έρχεται από backend)
+    if (!q) return list;
+
+    return list.filter(({ property, otherUser, lastMessage }) => {
+      const a = (otherUser?.name || "").toLowerCase();
+      const b = (property?.title || property?.address || "").toLowerCase();
+      const c = (property?.location || property?.city || "").toLowerCase();
+      const d = (lastMessage?.content || "").toLowerCase();
+      return a.includes(q) || b.includes(q) || c.includes(q) || d.includes(q);
+    });
+  }, [conversations, query, tab]);
+
+  // ---------- Propose appointment helpers ----------
+  const resetProposalState = useCallback(() => {
+    setSlotInputs([""]);
+    setProposalError("");
+    setProposalSuccess("");
+    setSubmittingProposal(false);
+    setProposalContext(null);
+  }, []);
+
+  const openProposeModal = ({ propertyId, tenantId, tenantName, propertyTitle }) => {
+    setProposalError("");
+    setProposalSuccess("");
+    setSlotInputs([""]);
+    setProposalContext({ propertyId, tenantId, tenantName, propertyTitle });
+    setShowProposalModal(true);
   };
 
-  const handleToggleNotifications = async () => {
-    const nextOpen = !showNotifications;
-    setShowNotifications(nextOpen);
-    if (nextOpen) {
-      const unread = notifications.filter((n) => !n.readAt && !n.read);
-      if (unread.length) {
-        try {
-          await Promise.all(unread.map((n) => api.patch(`/notifications/${n._id}/read`)));
-          const now = new Date().toISOString();
-          setNotifications((prev) =>
-            prev.map((n) => (unread.some((u) => u._id === n._id) ? { ...n, read: true, readAt: now } : n))
-          );
-          setUnreadCount(0);
-        } catch (err) {
-          console.error('Failed to mark notifications as read:', err);
-        }
+  const handleProposalSlotChange = (index, value) => {
+    setSlotInputs((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const handleAddSlot = () => setSlotInputs((prev) => [...prev, ""]);
+
+  const handleRemoveSlot = (index) => {
+    setSlotInputs((prev) => {
+      if (prev.length === 1) return prev;
+      const next = prev.filter((_, idx) => idx !== index);
+      return next.length ? next : [""];
+    });
+  };
+
+  const handlePropose = async (e) => {
+    e.preventDefault();
+    setProposalError("");
+    setSubmittingProposal(true);
+
+    try {
+      if (!proposalContext?.propertyId || !proposalContext?.tenantId) {
+        setProposalError("Missing conversation context.");
+        setSubmittingProposal(false);
+        return;
       }
-    }
-  };
 
-  const handleNotificationClick = (note) => {
-    if (!note) return;
-    if (note.type === 'appointment') {
-      navigate('/appointments');
-    } else if (note.referenceId) {
-      navigate(`/property/${note.referenceId}`);
+      const normalizedSlots = slotInputs
+        .map((slot) => (slot ? new Date(slot) : null))
+        .filter((d) => d && !Number.isNaN(d.getTime()))
+        .map((d) => d.toISOString());
+
+      if (!normalizedSlots.length) {
+        setProposalError("Please add at least one valid date and time.");
+        setSubmittingProposal(false);
+        return;
+      }
+
+      await proposeAppointment({
+        propertyId: proposalContext.propertyId,
+        tenantId: proposalContext.tenantId,
+        availableSlots: normalizedSlots,
+      });
+
+      setProposalSuccess(
+        `Sent ${normalizedSlots.length} option${
+          normalizedSlots.length > 1 ? "s" : ""
+        } to ${proposalContext.tenantName || "the tenant"}.`
+      );
+
+      setShowProposalModal(false);
+      // κρατάμε success στο state αν θες να το δείχνεις σε toast — εδώ απλά κλείνει
+    } catch (err) {
+      setProposalError(err?.response?.data?.message || "Failed to propose appointment slots.");
+    } finally {
+      setSubmittingProposal(false);
     }
-    setShowNotifications(false);
   };
 
   return (
-    <div style={pageGradient} className="pb-5">
-      <nav
-        className="navbar navbar-expand-lg px-4 py-3 shadow-sm"
-        style={{
-          background: 'rgba(255,255,255,0.72)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          position: 'relative',
-          zIndex: 5000,
-        }}
-      >
-        <Link to="/dashboard" className="navbar-brand">
-          <Logo as="h5" className="mb-0 logo-in-nav" />
-        </Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navContent"
-          aria-controls="navContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navContent">
-          <div className="navbar-nav ms-auto align-items-center">
-            <Link to="/messages" className="nav-link text-dark position-relative">
+    <div className="ms-shell">
+      <header className="ms-top">
+        <div className="ms-top-left">
+          <Link to="/dashboard" className="ms-brand">
+            <Logo as="h5" className="mb-0 logo-in-nav" />
+          </Link>
+
+          <nav className="ms-top-nav">
+            <Link className="ms-toplink" to="/dashboard">
+              Dashboard
+            </Link>
+            <Link className="ms-toplink" to="/my-properties">
+              Properties
+            </Link>
+            <Link className="ms-toplink ms-toplink-active" to="/messages">
               Messages
-              {unreadChats > 0 && (
-                <span
-                  className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                  style={{ fontSize: '0.65rem' }}
-                >
-                  {unreadChats}
-                </span>
-              )}
+              {unreadChats > 0 && <span className="ms-dot-badge">{unreadChats}</span>}
             </Link>
-            {user?.role === 'client' && (
-              <Link
-                to="/appointments"
-                className={`nav-link position-relative ${hasAppointments ? 'fw-semibold text-success' : 'text-dark'}`}
-              >
-                Appointments
-                {hasAppointments && (
-                  <span
-                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success"
-                    style={{ fontSize: '0.65rem' }}
-                  >
-                    New
-                  </span>
-                )}
-              </Link>
-            )}
-            {user?.role !== 'owner' && (
-              <Link to="/favorites" className="nav-link text-dark">Favorites</Link>
-            )}
-            <div ref={dropdownRef} className="nav-item position-relative">
-              <button
-                className="btn btn-link nav-link text-decoration-none text-dark p-0 position-relative"
-                onClick={handleToggleNotifications}
-              >
-                Notifications
-                {unreadCount > 0 && (
-                  <span
-                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                    style={{ fontSize: '0.65rem' }}
-                  >
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-              {showNotifications && (
-                <div
-                  className="position-absolute end-0 mt-2 bg-white border rounded shadow"
-                  style={{ width: 320, zIndex: 6500 }}
-                >
-                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {notifications.length === 0 ? (
-                      <div className="p-3 text-center text-muted">No notifications.</div>
-                    ) : (
-                      <ul className="list-group list-group-flush mb-0">
-                        {notifications.map((note) => (
-                          <li
-                            key={note._id}
-                            className="list-group-item list-group-item-action d-flex gap-2"
-                            style={{ cursor: 'pointer', background: note.readAt || note.read ? '#fff' : '#f8fafc' }}
-                            onClick={() => handleNotificationClick(note)}
-                          >
-                            <span style={{ fontSize: '1.2rem' }}>{iconForType(note.type)}</span>
-                            <span className="small flex-grow-1">{titleForNote(note)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <div className="border-top text-center">
-                    <Link
-                      to="/notifications"
-                      className="d-block py-2 small"
-                      onClick={() => setShowNotifications(false)}
-                    >
-                      View all
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-            <Link to="/profile" className="nav-link">
-              <img
-                src={profileImg}
-                alt="Profile"
-                className="rounded-circle"
-                style={{ width: 32, height: 32, objectFit: 'cover', border: '2px solid #e5e7eb' }}
-              />
+            <Link className="ms-toplink" to="/calendar">
+              Calendar
             </Link>
+          </nav>
+        </div>
+
+        <div className="ms-top-right">
+          <Link to="/notifications" className="ms-iconbtn" aria-label="notifications">
+            <span className="material-symbols-outlined">notifications</span>
+          </Link>
+          <Link to="/profile" className="ms-avatarbtn" aria-label="profile">
+            <img src={profileImg} alt="profile" />
+          </Link>
+          <button className="ms-logout" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <div className="ms-page">
+        <aside className="ms-left">
+          <div className="ms-search">
+            <span className="material-symbols-outlined">search</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search client or address..."
+            />
+          </div>
+
+          <div className="ms-tabs">
+            <button className={`ms-tab ${tab === "all" ? "active" : ""}`} onClick={() => setTab("all")}>
+              All
+            </button>
             <button
-              className="btn btn-outline-danger rounded-pill px-3 mt-2 mt-lg-0 ms-lg-2"
-              onClick={handleLogout}
+              className={`ms-tab ${tab === "unread" ? "active" : ""}`}
+              onClick={() => setTab("unread")}
             >
-              Logout
+              Unread
+            </button>
+            <button
+              className={`ms-tab ${tab === "clients" ? "active" : ""}`}
+              onClick={() => setTab("clients")}
+            >
+              Clients
             </button>
           </div>
-        </div>
-      </nav>
 
-      <Container className="mt-4" style={{ maxWidth: 1000 }}>
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-          <div className="d-flex align-items-center gap-3">
-            <Button
-              variant="light"
-              onClick={() => navigate('/dashboard')}
-              className="p-2 back-button"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                className="bi bi-arrow-left"
-                viewBox="0 0 16 16"
-              >
-                <path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
-              </svg>
-            </Button>
-            <div>
-              <h2 className="fw-bold mb-1">Conversations</h2>
-              <p className="text-muted mb-0">Keep track of every property discussion in one place.</p>
-            </div>
-          </div>
-          <div className="text-muted small">
-            Last checked: {lastChecked || '—'}
-          </div>
-        </div>
-
-        <Card className="shadow-sm border-0 glass-panel">
-          <Card.Body className="p-0">
+          <div className="ms-list">
             {loading ? (
-              <div className="text-center text-muted py-5">Loading conversations...</div>
-            ) : conversations.length === 0 ? (
-              <div className="text-center text-muted py-5">No conversations yet.</div>
+              <div className="ms-empty">Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div className="ms-empty">No conversations yet.</div>
             ) : (
-              <ListGroup variant="flush" className="conversation-list">
-                {conversations.map(({ property, otherUser, lastMessage, unreadCount, conversationId }) => {
-                  const conversationKey = conversationId || `${property._id}-${otherUser._id}`;
-                  const otherUserAvatar = assetUrl(
-                    otherUser.profilePicture,
-                    '/default-avatar.jpg'
-                  );
-                  const propertyImage = property?.images?.[0]
-                    ? assetUrl(property.images[0], 'https://placehold.co/160x120?text=No+Image')
-                    : 'https://placehold.co/160x120?text=No+Image';
-                  const propertyTypeVariant = property?.type === 'rent' ? 'info' : 'success';
-                  const propertyLocation = property?.location || property?.city || property?.address || '';
-                  const hasUnread = (unreadCount || 0) > 0;
-                  const lastMessageTime = lastMessage?.timeStamp ? new Date(lastMessage.timeStamp).toLocaleString() : '';
+              filtered.map(({ property, otherUser, lastMessage, unreadCount, conversationId }) => {
+                const key = conversationId || `${property?._id}-${otherUser?._id}`;
+                const otherAvatar = assetUrl(otherUser?.profilePicture, "/default-avatar.jpg");
 
-                  return (
-                    <ListGroup.Item
-                      key={conversationKey}
-                      action
+                const isOwner = user?.role === "owner";
+                // ✅ only owners can propose (and only if other side exists)
+                const canProposeHere = isOwner && property?._id && otherUser?._id;
+
+                return (
+                  <div key={key} className="ms-rowWrap">
+                    <button
+                      className="ms-row"
                       onClick={() => handleConversationClick(property._id, otherUser._id)}
-                      className="conversation-item p-3 p-md-4"
+                      type="button"
                     >
-                      <div className="conversation-inner">
-                        <div className="conversation-media">
-                          <div className="conversation-property-thumb">
-                            <img src={propertyImage} alt={property.title} />
-                          </div>
-                          <div className="conversation-avatar">
-                            <img src={otherUserAvatar} alt={otherUser.name} />
-                          </div>
+                      <img className="ms-row-avatar" src={otherAvatar} alt={otherUser?.name || "User"} />
+                      <div className="ms-row-body">
+                        <div className="ms-row-top">
+                          <div className="ms-row-name">{otherUser?.name || "User"}</div>
+                          <div className="ms-row-time">{timeAgo(lastMessage?.timeStamp)}</div>
                         </div>
-                        <div className="flex-grow-1">
-                          <div className="d-flex flex-wrap justify-content-between gap-2 align-items-start">
-                            <div>
-                              <h5 className="mb-1">{property.title}</h5>
-                              <div className="d-flex align-items-center gap-2 flex-wrap">
-                                {property?.type && (
-                                  <Badge bg={propertyTypeVariant} pill>
-                                    {property.type === 'rent' ? 'For Rent' : 'For Sale'}
-                                  </Badge>
-                                )}
-                                {property?.status && (
-                                  <Badge bg={property.status === 'available' ? 'success' : 'secondary'} pill>
-                                    {property.status}
-                                  </Badge>
-                                )}
-                                {propertyLocation && (
-                                  <span className="text-muted small">{propertyLocation}</span>
-                                )}
-                              </div>
-                            </div>
-                            <small className="text-muted conversation-date d-flex align-items-center gap-2">
-                              {lastMessageTime}
-                              {hasUnread && (
-                                <Badge bg="danger" pill>
-                                  {unreadCount}
-                                </Badge>
-                              )}
-                            </small>
+
+                        <div className="ms-row-mid">
+                          <div className="ms-row-prop">
+                            {property?.title || property?.address || "Property"}
                           </div>
-                          <p className="mb-1 text-muted">
-                            With <strong>{otherUser.name}</strong>
-                          </p>
-                          <p className="mb-0 conversation-content">{lastMessage?.content}</p>
+                          {(unreadCount || 0) > 0 && <span className="ms-unread-dot" />}
                         </div>
+
+                        <div className="ms-row-msg">{lastMessage?.content || ""}</div>
                       </div>
-                    </ListGroup.Item>
-                  );
-                })}
-              </ListGroup>
+                    </button>
+
+                    {/* ✅ Optional inline button (owner only) */}
+                    {canProposeHere && (
+                      <button
+                        type="button"
+                        className="ms-propose"
+                        onClick={() =>
+                          openProposeModal({
+                            propertyId: property._id,
+                            tenantId: otherUser._id,
+                            tenantName: otherUser?.name,
+                            propertyTitle: property?.title || property?.address || "Property",
+                          })
+                        }
+                        title="Propose an appointment"
+                      >
+                        <span className="material-symbols-outlined">calendar_add_on</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
-          </Card.Body>
-        </Card>
-      </Container>
+          </div>
+        </aside>
+
+        <main className="ms-center-empty">
+          <div className="ms-placeholder">
+            <div className="ms-placeholder-title">Select a conversation</div>
+            <div className="ms-placeholder-sub">Choose a chat from the left to view messages.</div>
+          </div>
+        </main>
+
+        <aside className="ms-right-empty" />
+      </div>
+
+      {/* ✅ Propose Appointment Modal */}
+      <Modal
+        show={showProposalModal}
+        onHide={() => {
+          setShowProposalModal(false);
+          resetProposalState();
+        }}
+        centered
+      >
+        <Form onSubmit={handlePropose}>
+          <Modal.Header closeButton>
+            <Modal.Title>Propose appointment times</Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body>
+            <p className="text-muted mb-3">
+              Suggest one or more date/time options for{" "}
+              <strong>{proposalContext?.tenantName || "the tenant"}</strong>
+              {proposalContext?.propertyTitle ? (
+                <>
+                  {" "}
+                  about <strong>{proposalContext.propertyTitle}</strong>.
+                </>
+              ) : (
+                "."
+              )}
+            </p>
+
+            {proposalError && (
+              <Alert variant="danger" onClose={() => setProposalError("")} dismissible>
+                {proposalError}
+              </Alert>
+            )}
+
+            {slotInputs.map((slot, index) => (
+              <InputGroup className="mb-2" key={`slot-${index}`}>
+                <Form.Control
+                  type="datetime-local"
+                  value={slot}
+                  onChange={(e) => handleProposalSlotChange(index, e.target.value)}
+                  required
+                />
+                {slotInputs.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={() => handleRemoveSlot(index)}
+                    disabled={submittingProposal}
+                  >
+                    Remove
+                  </button>
+                )}
+              </InputGroup>
+            ))}
+
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={handleAddSlot}
+              disabled={submittingProposal}
+            >
+              Add another option
+            </button>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setShowProposalModal(false);
+                resetProposalState();
+              }}
+              disabled={submittingProposal}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-success" disabled={submittingProposal}>
+              {submittingProposal ? "Sending…" : "Send proposal"}
+            </button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </div>
   );
 }
-
-export default Messages;

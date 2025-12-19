@@ -6,9 +6,11 @@ import { useMessages } from "../context/MessageContext";
 import OwnerAppointmentsCalendar from "../components/OwnerAppointmentsCalendar";
 import Logo from "../components/Logo";
 import "./OwnerDashboard.css";
+import NotificationDropdown from "../components/NotificationDropdown";
+
 
 export default function OwnerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, token  } = useAuth();
   const { unreadChats } = useMessages();
   const navigate = useNavigate();
 
@@ -80,11 +82,6 @@ export default function OwnerDashboard() {
                 <span className="small">Calendar</span>
               </Link>
 
-              <Link className="owner-navlink" to="/settings">
-                <span className="material-symbols-outlined">settings</span>
-                <span className="small">Settings</span>
-              </Link>
-
               <Link className="owner-navlink position-relative" to="/messages">
                 <span className="material-symbols-outlined">chat</span>
                 <span className="small">Messages</span>
@@ -92,6 +89,12 @@ export default function OwnerDashboard() {
                   <span className="badge bg-danger ms-auto">{unreadChats}</span>
                 )}
               </Link>
+
+              <Link className="owner-navlink" to="/settings">
+                <span className="material-symbols-outlined">settings</span>
+                <span className="small">Settings</span>
+              </Link>
+
             </div>
 
             <div className="d-flex flex-column gap-3">
@@ -140,14 +143,14 @@ export default function OwnerDashboard() {
             <h5 className="mb-0 fw-bold">Dashboard</h5>
 
             <div className="d-flex align-items-center gap-2">
-              <button className="owner-iconbtn" type="button">
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-              <button className="owner-iconbtn" type="button">
+              <NotificationDropdown token={token} className="od-iconWrap" />
+
+              <button className="owner-iconbtn" type="button" aria-label="help">
                 <span className="material-symbols-outlined">help</span>
               </button>
             </div>
-          </header>
+
+                      </header>
 
           <div className="owner-content">
             <div className="row g-4">

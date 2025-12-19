@@ -151,18 +151,18 @@ export default function ClientDashboard() {
               <span>Appointments</span>
             </Link>
 
-            <Link className="cd-navlink" to="/profile">
-              <span className="material-symbols-outlined">settings</span>
-              <span>Settings</span>
-            </Link>
-
             <Link className="cd-navlink position-relative" to="/messages">
               <span className="material-symbols-outlined">chat</span>
               <span>Messages</span>
               {unreadChats > 0 && (
                 <span className="badge bg-danger ms-auto">{unreadChats}</span>
               )}
+            </Link> 
+               <Link className="cd-navlink" to="/profile">
+              <span className="material-symbols-outlined">settings</span>
+              <span>Settings</span>
             </Link>
+
           </nav>
 
           <div className="cd-profile">

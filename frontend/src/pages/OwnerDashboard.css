@@ -127,3 +127,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
+.od-iconWrap .nd-bellBtn{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background: var(--bg-light);
+  color: var(--text2);
+}
+.od-iconWrap .nd-bellBtn:hover{ color: var(--primary); }
+
+/* layers / click safety */
+.owner-topbar { position: sticky; top: 0; z-index: 5000; }
+.od-iconWrap { position: relative; z-index: 8000; }
