@@ -1,9 +1,10 @@
 // src/pages/Favorites.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getFavorites, removeFavorite } from '../services/favoritesService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
+import ClientNavLayout from '../components/ClientNavLayout';
 
 /* -------- helpers (images) -------- */
 const API_ORIGIN =
@@ -28,13 +29,6 @@ export default function Favorites() {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   
-  const pageGradient = useMemo(() => ({
-    minHeight: "100vh",
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
-  }), []);
-
 
   useEffect(() => {
     let mounted = true;
@@ -65,8 +59,8 @@ export default function Favorites() {
   };
 
   return (
-    <div style={pageGradient}>
-      <Container className="py-5">
+    <ClientNavLayout title="Your Favorites" subtitle="Properties you saved for later.">
+      <Container className="py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center gap-2">
             <h3 className="fw-bold mb-0">Your Favorites</h3>
@@ -198,6 +192,6 @@ export default function Favorites() {
           </Row>
         )}
       </Container>
-    </div>
+    </ClientNavLayout>
   );
 }

@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import Logo from "../components/Logo";
+import ClientNavLayout from "../components/ClientNavLayout";
 import "./Messages.css";
 import api from "../api";
 import { useMessages } from "../context/MessageContext";
@@ -59,11 +59,6 @@ export default function Messages() {
   const [proposalSuccess, setProposalSuccess] = useState("");
   const [submittingProposal, setSubmittingProposal] = useState(false);
 
-  const profileImg = user?.profilePicture
-    ? user.profilePicture.startsWith("http")
-      ? user.profilePicture
-      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
-    : "/default-avatar.jpg";
 
   useEffect(() => {
     fetchConversations();
@@ -176,44 +171,15 @@ export default function Messages() {
   };
 
   return (
-    <div className="ms-shell">
-      <header className="ms-top">
-        <div className="ms-top-left">
-          <Link to="/dashboard" className="ms-brand">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
-          </Link>
-
-          <nav className="ms-top-nav">
-            <Link className="ms-toplink" to="/dashboard">
-              Dashboard
-            </Link>
-            <Link className="ms-toplink" to="/my-properties">
-              Properties
-            </Link>
-            <Link className="ms-toplink ms-toplink-active" to="/messages">
-              Messages
-              {unreadChats > 0 && <span className="ms-dot-badge">{unreadChats}</span>}
-            </Link>
-            <Link className="ms-toplink" to="/calendar">
-              Calendar
-            </Link>
-          </nav>
-        </div>
-
-        <div className="ms-top-right">
-          <Link to="/notifications" className="ms-iconbtn" aria-label="notifications">
-            <span className="material-symbols-outlined">notifications</span>
-          </Link>
-          <Link to="/profile" className="ms-avatarbtn" aria-label="profile">
-            <img src={profileImg} alt="profile" />
-          </Link>
-          <button className="ms-logout" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <div className="ms-page">
+    <ClientNavLayout
+      title="Messages"
+      subtitle="Chat with owners and agents"
+      headerActions={
+        <button className="ms-logout" onClick={handleLogout}>Logout</button>
+      }
+    >
+      <div className="ms-shell">
+        <div className="ms-page">
         <aside className="ms-left">
           <div className="ms-search">
             <span className="material-symbols-outlined">search</span>
@@ -400,5 +366,6 @@ export default function Messages() {
         </Form>
       </Modal>
     </div>
+    </ClientNavLayout>
   );
 }

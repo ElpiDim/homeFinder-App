@@ -30,6 +30,12 @@
   flex-direction:column;
 }
 
+.cd-aside.is-collapsed{
+  width:88px;
+  flex-basis:88px;
+  padding:16px 12px;
+}
+
 .cd-brand{
   padding: 8px 8px 16px 8px;
 }
@@ -39,6 +45,10 @@
   flex-direction:column;
   gap:6px;
   padding-top:6px;
+}
+
+.cd-aside.is-collapsed .cd-nav{
+  align-items:center;
 }
 
 .cd-navlink{
@@ -55,6 +65,25 @@
   background: rgba(127,19,236,0.10);
   color: var(--primary);
   font-weight:600;
+}
+
+.cd-navText{ white-space:nowrap; }
+
+.cd-aside.is-collapsed .cd-navlink{
+  justify-content:center;
+  position:relative;
+  padding:10px;
+}
+
+.cd-aside.is-collapsed .cd-navText,
+.cd-aside.is-collapsed .cd-profileMeta,
+.cd-aside.is-collapsed .cd-profile button{
+  display:none;
+}
+
+.cd-aside.is-collapsed .cd-navlink .badge{
+  position:absolute;
+  right:8px;
 }
 
 .cd-profile{

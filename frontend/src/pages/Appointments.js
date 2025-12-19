@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import ClientNavLayout from "../components/ClientNavLayout";
 import "./Appointments.css";
 
 export default function Appointments() {
@@ -108,25 +109,16 @@ const formatTime = (iso) =>
   if (loading) return <div className="af-page"><div className="af-wrap">Loading…</div></div>;
 
   return (
-    <div className="af-page">
-      <div className="af-wrap">
-        {/* Top bar (like screenshot header row) */}
-        <div className="af-topbar">
-          <div className="af-topbar-left">
-            <div className="af-titleBlock">
-              <h1>Your Appointments</h1>
-              <p>Track your property viewings and manage appointments</p>
-            </div>
-          </div>
-
-          <div className="af-topbar-right">
-            <button className="af-pillBtn" onClick={() => navigate("/dashboard")}>
-              ← Back
-            </button>
-          </div>
-        </div>
-
-        <div className="af-grid">
+    <ClientNavLayout
+      title="Your Appointments"
+      subtitle="Track your property viewings and manage appointments"
+      headerActions={
+        <button className="af-pillBtn" onClick={() => navigate("/dashboard")}>↩ Back</button>
+      }
+    >
+      <div className="af-page">
+        <div className="af-wrap">
+          <div className="af-grid">
           {/* LEFT COLUMN */}
           <aside className="af-left">
             <div className="af-card af-agent">
@@ -336,6 +328,6 @@ function TimelineItem({
           </div>
         </div>
       </div>
-    </div>
+    </ClientNavLayout>
   );
 }

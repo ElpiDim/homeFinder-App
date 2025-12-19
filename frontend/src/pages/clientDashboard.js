@@ -1,12 +1,10 @@
 // src/pages/clientDashboard.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useMessages } from "../context/MessageContext";
 import PropertyCard from "../components/propertyCard";
-import Logo from "../components/Logo";
-import NotificationDropdown from "../components/NotificationDropdown";
+import ClientNavLayout from "../components/ClientNavLayout";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -23,10 +21,8 @@ function normalizeUploadPath(src) {
 }
 
 export default function ClientDashboard() {
-  const { user, logout, token } = useAuth();
-  const { unreadChats } = useMessages();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [allProperties, setAllProperties] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -86,11 +82,6 @@ export default function ClientDashboard() {
     fetchFavorites();
   }, [user, fetchMatches, fetchFavorites]);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
   const handleFavorite = async (propertyId) => {
     try {
       if (favorites.includes(propertyId)) {
@@ -110,12 +101,6 @@ export default function ClientDashboard() {
     }
   };
 
-  const profileImg = user?.profilePicture
-    ? user.profilePicture.startsWith("http")
-      ? user.profilePicture
-      : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
-    : "/default-avatar.jpg";
-
   // optional: if backend returns match score
   const matchLabel = (p) => {
     const v =
@@ -128,106 +113,31 @@ export default function ClientDashboard() {
     return null;
   };
 
-  const isActive = (path) => location.pathname === path;
-
   return (
-    <div className="cd-shell">
-      <div className="cd-layout">
-        {/* SIDEBAR */}
-        <aside className="cd-aside">
-          <div className="cd-brand">
-            <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
+    <ClientNavLayout
+      title="Your Matched Properties"
+      subtitle="Properties selected based on your preferences."
+    >
+      {allProperties.length === 0 ? (
+        <div className="cd-empty">No matched properties yet.</div>
+      ) : (
+        <div className="cd-grid">
+          {allProperties.map((prop) => (
+            <div key={prop._id} className="cd-cardWrap">
+              {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
+
+              <PropertyCard
+                prop={prop}
+                isFavorite={favorites.includes(prop._id)}
+                onToggleFavorite={() => handleFavorite(prop._id)}
+                imgUrl={imgUrl}
+                showFavorite={true}
+                onOpen={() => navigate(`/property/${prop._id}`)}
+              />
             </div>
-          </div>
-
-          <nav className="cd-nav">
-            <Link className={`cd-navlink ${isActive("/dashboard") ? "active" : ""}`} to="/dashboard">
-              <span className="material-symbols-outlined fill">home</span>
-              <span>My Matches</span>
-            </Link>
-
-            <Link className={`cd-navlink ${isActive("/favorites") ? "active" : ""}`} to="/favorites">
-              <span className="material-symbols-outlined">favorite</span>
-              <span>Favorites</span>
-            </Link>
-
-            <Link
-              className={`cd-navlink ${isActive("/appointments") ? "active" : ""}`}
-              to="/appointments"
-            >
-              <span className="material-symbols-outlined">calendar_month</span>
-              <span>Appointments</span>
-            </Link>
-
-            <Link
-              className={`cd-navlink position-relative ${isActive("/messages") ? "active" : ""}`}
-              to="/messages"
-            >
-              <span className="material-symbols-outlined">chat</span>
-              <span>Messages</span>
-              {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
-            </Link>
-
-            <Link className={`cd-navlink ${isActive("/profile") ? "active" : ""}`} to="/profile">
-              <span className="material-symbols-outlined">settings</span>
-              <span>Settings</span>
-            </Link>
-          </nav>
-
-          <div className="cd-profile">
-            <Link to="/profile" className="text-decoration-none">
-              <div className="cd-profileRow">
-                <img className="cd-avatar" src={profileImg} alt="profile" />
-                <div className="cd-profileMeta">
-                  <div className="cd-name">{user?.name || "Client"}</div>
-                  <div className="cd-role">Client</div>
-                </div>
-              </div>
-            </Link>
-
-            <button className="btn btn-outline-secondary w-100 mt-3" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        </aside>
-
-        {/* MAIN */}
-        <main className="cd-main">
-          <header className="cd-topbar">
-            <div>
-              <div className="cd-title">Your Matched Properties</div>
-              <div className="cd-subtitle">Properties selected based on your preferences.</div>
-            </div>
-
-            {/* Notifications bell */}
-            <NotificationDropdown token={token} className="cd-iconWrap" />
-          </header>
-
-          <div className="cd-content">
-            {allProperties.length === 0 ? (
-              <div className="cd-empty">No matched properties yet.</div>
-            ) : (
-              <div className="cd-grid">
-                {allProperties.map((prop) => (
-                  <div key={prop._id} className="cd-cardWrap">
-                    {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
-
-                    <PropertyCard
-                      prop={prop}
-                      isFavorite={favorites.includes(prop._id)}
-                      onToggleFavorite={() => handleFavorite(prop._id)}
-                      imgUrl={imgUrl}
-                      showFavorite={true}
-                      onOpen={() => navigate(`/property/${prop._id}`)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-    </div>
+          ))}
+        </div>
+      )}
+    </ClientNavLayout>
   );
 }
