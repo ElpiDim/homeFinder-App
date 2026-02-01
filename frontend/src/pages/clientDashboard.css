@@ -40,6 +40,14 @@
   padding: 8px 8px 16px 8px;
 }
 
+.cd-brandIcon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color: var(--primary);
+  font-size:28px;
+}
+
 .cd-nav{
   display:flex;
   flex-direction:column;
