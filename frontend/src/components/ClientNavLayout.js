@@ -49,9 +49,15 @@ export default function ClientNavLayout({
       <div className="cd-layout">
         <aside className={`cd-aside ${collapsed ? "is-collapsed" : ""}`}>
           <div className="cd-brand">
-            <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
-            </div>
+            {collapsed ? (
+              <span className="material-symbols-outlined cd-brandIcon" aria-label="Home">
+                house
+              </span>
+            ) : (
+              <div style={{ color: "var(--primary)" }}>
+                <Logo as="h5" className="mb-0 logo-in-nav" />
+              </div>
+            )}
           </div>
 
           <nav className="cd-nav">
