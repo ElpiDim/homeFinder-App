@@ -40,6 +40,35 @@
   padding: 8px 8px 16px 8px;
 }
 
+.cd-brandRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.cd-toggle{
+  border:1px solid var(--border);
+  background: var(--bg-light);
+  color: var(--text);
+  border-radius:10px;
+  width:32px;
+  height:32px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.cd-toggle:hover{
+  background: rgba(127,19,236,0.08);
+}
+
+.cd-aside.is-collapsed .cd-brandRow{
+  justify-content:center;
+}
+
 .cd-nav{
   display:flex;
   flex-direction:column;

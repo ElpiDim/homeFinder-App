@@ -11,6 +11,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext"; // 👈 ΑΥΤΟ ΕΛΕΙΠΕ
 import {NotificationProvider} from "./context/NotificationContext";
 import { MessageProvider } from "./context/MessageContext";
+import { SidebarProvider } from "./context/SidebarContext";
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -25,7 +26,9 @@ root.render(
         <SocketProvider>
           <NotificationProvider>
             <MessageProvider>
-              <App />
+              <SidebarProvider>
+                <App />
+              </SidebarProvider>
             </MessageProvider>
           </NotificationProvider>
         </SocketProvider>
