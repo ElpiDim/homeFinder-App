@@ -239,7 +239,9 @@ export default function NotificationsPage() {
       <aside className={`np-aside ${isSidebarCollapsed ? "is-collapsed" : ""}`}>
         <div className="np-brand">
           <div className="np-logo">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
+            <Logo as="h5" className="mb-0 logo-in-nav">
+              {isSidebarCollapsed ? "🏠" : null}
+            </Logo>
           </div>
           <div className="np-brandMeta">
             <div className="np-brandTitle">{user?.role === "owner" ? "Owner Portal" : "Client Portal"}</div>
