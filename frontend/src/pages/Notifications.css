@@ -31,6 +31,33 @@
   flex-direction:column;
 }
 
+.np-aside.is-collapsed{
+  width:88px;
+  flex-basis:88px;
+  padding:16px 12px;
+}
+
+.np-aside.is-collapsed .np-nav{
+  align-items:center;
+}
+
+.np-aside.is-collapsed .np-link{
+  justify-content:center;
+  padding:10px;
+}
+
+.np-aside.is-collapsed .np-linkText,
+.np-aside.is-collapsed .np-brandMeta,
+.np-aside.is-collapsed .np-userMeta,
+.np-aside.is-collapsed .np-logout{
+  display:none;
+}
+
+.np-aside.is-collapsed .np-badge{
+  position:absolute;
+  right:8px;
+}
+
 .np-brand{
   display:flex;
   flex-direction:column;
@@ -60,6 +87,7 @@
   color: var(--np-text);
   font-weight:600;
   font-size:13px;
+  position:relative;
 }
 
 .np-link .material-symbols-outlined{
