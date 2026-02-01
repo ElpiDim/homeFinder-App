@@ -1,10 +1,10 @@
 // src/pages/Profile.jsx
-import React, { useMemo, useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
+import ClientNavLayout from '../components/ClientNavLayout';
 
 function Profile() {
   const { user, setUser } = useAuth();
@@ -34,18 +34,25 @@ function Profile() {
     return () => { cancelled = true; };
   }, [setUser]);
 
-  const pageGradient = useMemo(() => ({
-    minHeight: '100vh',
-    background:
-      'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-       linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
-  }), []);
+  if (loading) {
+    return (
+      <ClientNavLayout
+        title="Settings"
+        subtitle="Manage your profile and preferences"
+      >
+        <div className="container py-4">Loading profile…</div>
+      </ClientNavLayout>
+    );
+  }
 
   if (!user) {
     return (
-      <div style={pageGradient}>
-        <div className="container mt-5">Loading profile…</div>
-      </div>
+      <ClientNavLayout
+        title="Settings"
+        subtitle="Manage your profile and preferences"
+      >
+        <div className="container py-4">Unable to load your profile.</div>
+      </ClientNavLayout>
     );
   }
 
@@ -62,8 +69,11 @@ function Profile() {
   const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div className="container" style={{ maxWidth: '900px' }}>
+    <ClientNavLayout
+      title="Settings"
+      subtitle="Manage your profile and preferences"
+    >
+      <div className="container py-4" style={{ maxWidth: '900px' }}>
         {/* Header */}
         <div className="p-4 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center">
@@ -250,7 +260,7 @@ function Profile() {
           </div>
         )}
       </div>
-    </div>
+    </ClientNavLayout>
   );
 }
 

@@ -42,7 +42,7 @@ function timeAgo(iso) {
 }
 
 export default function Messages() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { conversations, unreadChats, loading, fetchConversations, markConversationAsRead } =
     useMessages();
@@ -63,11 +63,6 @@ export default function Messages() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
 
   const handleConversationClick = (propertyId, otherUserId) => {
     markConversationAsRead(propertyId, otherUserId);
@@ -174,9 +169,6 @@ export default function Messages() {
     <ClientNavLayout
       title="Messages"
       subtitle="Chat with owners and agents"
-      headerActions={
-        <button className="ms-logout" onClick={handleLogout}>Logout</button>
-      }
     >
       <div className="ms-shell">
         <div className="ms-page">

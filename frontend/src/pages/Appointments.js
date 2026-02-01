@@ -109,9 +109,14 @@ export default function Appointments() {
 
   if (loading) {
     return (
-      <div className="af-page">
-        <div className="af-wrap">Loading…</div>
-      </div>
+      <ClientNavLayout
+        title="Your Appointments"
+        subtitle="Track your property viewings and manage appointments"
+      >
+        <div className="af-page">
+          <div className="af-wrap">Loading…</div>
+        </div>
+      </ClientNavLayout>
     );
   }
 
