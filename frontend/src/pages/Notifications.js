@@ -104,6 +104,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("all"); // all | unread | appointments | matches
   const [loading, setLoading] = useState(true);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const profileImg = user?.profilePicture
     ? (user.profilePicture.startsWith("http")
@@ -235,10 +236,12 @@ export default function NotificationsPage() {
   const Sidebar = () => {
     // κρατάμε “client-like” sidebar όπως στο screenshot
     return (
-      <aside className="np-aside">
+      <aside className={`np-aside ${isSidebarCollapsed ? "is-collapsed" : ""}`}>
         <div className="np-brand">
           <div className="np-logo">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
+            <Logo as="h5" className="mb-0 logo-in-nav">
+              {isSidebarCollapsed ? "🏠" : null}
+            </Logo>
           </div>
           <div className="np-brandMeta">
             <div className="np-brandTitle">{user?.role === "owner" ? "Owner Portal" : "Client Portal"}</div>
@@ -247,37 +250,37 @@ export default function NotificationsPage() {
         </div>
 
         <nav className="np-nav">
-          <Link className="np-link" to="/dashboard">
+          <Link className="np-link" to="/dashboard" onClick={() => setIsSidebarCollapsed(true)}>
             <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
+            <span className="np-linkText">Dashboard</span>
           </Link>
 
           {user?.role !== "owner" && (
-            <Link className="np-link" to="/favorites">
+            <Link className="np-link" to="/favorites" onClick={() => setIsSidebarCollapsed(true)}>
               <span className="material-symbols-outlined">favorite</span>
-              <span>Favorites</span>
+              <span className="np-linkText">Favorites</span>
             </Link>
           )}
 
-          <Link className="np-link" to="/appointments">
+          <Link className="np-link" to="/appointments" onClick={() => setIsSidebarCollapsed(true)}>
             <span className="material-symbols-outlined">calendar_month</span>
-            <span>Appointments</span>
+            <span className="np-linkText">Appointments</span>
           </Link>
 
-          <Link className="np-link np-link-active" to="/notifications">
+          <Link className="np-link np-link-active" to="/notifications" onClick={() => setIsSidebarCollapsed(true)}>
             <span className="material-symbols-outlined">notifications</span>
-            <span>Notifications</span>
+            <span className="np-linkText">Notifications</span>
             {unreadCount > 0 && <span className="np-badge">{unreadCount}</span>}
           </Link>
 
-          <Link className="np-link" to="/profile">
+          <Link className="np-link" to="/profile" onClick={() => setIsSidebarCollapsed(true)}>
             <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
+            <span className="np-linkText">Settings</span>
           </Link>
 
-          <Link className="np-link" to="/messages">
+          <Link className="np-link" to="/messages" onClick={() => setIsSidebarCollapsed(true)}>
             <span className="material-symbols-outlined">chat</span>
-            <span>Messages</span>
+            <span className="np-linkText">Messages</span>
             {unreadChats > 0 && <span className="np-badge">{unreadChats}</span>}
           </Link>
         </nav>

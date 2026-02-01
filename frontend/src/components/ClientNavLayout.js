@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
@@ -29,7 +29,11 @@ export default function ClientNavLayout({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const collapsed = location.pathname !== "/dashboard";
+  const [isCollapsed, setIsCollapsed] = useState(location.pathname !== "/dashboard");
+
+  useEffect(() => {
+    setIsCollapsed(location.pathname !== "/dashboard");
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -45,22 +49,32 @@ export default function ClientNavLayout({
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className={`cd-shell ${collapsed ? "cd-shell--collapsed" : ""}`}>
+    <div className={`cd-shell ${isCollapsed ? "cd-shell--collapsed" : ""}`}>
       <div className="cd-layout">
-        <aside className={`cd-aside ${collapsed ? "is-collapsed" : ""}`}>
+        <aside className={`cd-aside ${isCollapsed ? "is-collapsed" : ""}`}>
           <div className="cd-brand">
             <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
+              <Logo as="h5" className="mb-0 logo-in-nav">
+                {isCollapsed ? "🏠" : null}
+              </Logo>
             </div>
           </div>
 
           <nav className="cd-nav">
-            <Link className={`cd-navlink ${isActive("/dashboard") ? "active" : ""}`} to="/dashboard">
+            <Link
+              className={`cd-navlink ${isActive("/dashboard") ? "active" : ""}`}
+              to="/dashboard"
+              onClick={() => setIsCollapsed(true)}
+            >
               <span className="material-symbols-outlined fill">home</span>
               <span className="cd-navText">My Matches</span>
             </Link>
 
-            <Link className={`cd-navlink ${isActive("/favorites") ? "active" : ""}`} to="/favorites">
+            <Link
+              className={`cd-navlink ${isActive("/favorites") ? "active" : ""}`}
+              to="/favorites"
+              onClick={() => setIsCollapsed(true)}
+            >
               <span className="material-symbols-outlined">favorite</span>
               <span className="cd-navText">Favorites</span>
             </Link>
@@ -68,6 +82,7 @@ export default function ClientNavLayout({
             <Link
               className={`cd-navlink ${isActive("/appointments") ? "active" : ""}`}
               to="/appointments"
+              onClick={() => setIsCollapsed(true)}
             >
               <span className="material-symbols-outlined">calendar_month</span>
               <span className="cd-navText">Appointments</span>
@@ -76,13 +91,18 @@ export default function ClientNavLayout({
             <Link
               className={`cd-navlink position-relative ${isActive("/messages") ? "active" : ""}`}
               to="/messages"
+              onClick={() => setIsCollapsed(true)}
             >
               <span className="material-symbols-outlined">chat</span>
               <span className="cd-navText">Messages</span>
               {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
             </Link>
 
-            <Link className={`cd-navlink ${isActive("/profile") ? "active" : ""}`} to="/profile">
+            <Link
+              className={`cd-navlink ${isActive("/profile") ? "active" : ""}`}
+              to="/profile"
+              onClick={() => setIsCollapsed(true)}
+            >
               <span className="material-symbols-outlined">settings</span>
               <span className="cd-navText">Settings</span>
             </Link>
