@@ -56,7 +56,12 @@ export default function Chat() {
   const navigate = useNavigate();
   const socket = useSocket();
 
-  const { conversations, loading, fetchConversations, markConversationAsRead } = useMessages();
+  const {
+    conversations,
+    loading,
+    fetchConversations,
+    markConversationAsRead,
+  } = useMessages();
 
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all"); // all | unread | clients
@@ -67,7 +72,9 @@ export default function Chat() {
   const [property, setProperty] = useState(null);
   const [otherUser, setOtherUser] = useState(null);
 
+  // Scroll refs
   const messagesEndRef = useRef(null);
+  const chatBodyRef = useRef(null);
 
   // ----- Propose appointment state -----
   const [showProposalModal, setShowProposalModal] = useState(false);
@@ -127,7 +134,7 @@ export default function Chat() {
       }
     }
 
-    if (token) load();
+    if (token && propertyId && receiverId) load();
     return () => {
       ignore = true;
     };
@@ -163,8 +170,8 @@ export default function Chat() {
       }
     };
 
-    if (token) fetchMessagesForChat();
-  }, [propertyId, receiverId, token, user.id]);
+    if (token && user?.id && propertyId && receiverId) fetchMessagesForChat();
+  }, [propertyId, receiverId, token, user?.id]);
 
   // mark as read
   useEffect(() => {
@@ -200,8 +207,9 @@ export default function Chat() {
     return () => socket.off("newMessage", handleNewMessage);
   }, [socket, propertyId, receiverId, user?.id, markConversationAsRead]);
 
-  // scroll bottom
+  // scroll bottom (in the message container)
   useEffect(() => {
+    // If you want smooth scroll only when you're already near bottom, you can add logic.
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -353,9 +361,9 @@ export default function Chat() {
 
   return (
     <ClientNavLayout title="Messages" subtitle="Chat with owners and agents">
-      <div className="cp-shell">
-        {/* 3-column layout */}
-        <div className="cp-layout">
+      {/* IMPORTANT: these styles ensure message area scroll works inside center column */}
+      <div className="cp-shell" style={{ height: "calc(100vh - 120px)" }}>
+        <div className="cp-layout" style={{ height: "100%" }}>
           {/* LEFT */}
           <aside className="cp-left">
             <div className="cp-search">
@@ -371,18 +379,21 @@ export default function Chat() {
               <button
                 className={`cp-tab ${tab === "all" ? "active" : ""}`}
                 onClick={() => setTab("all")}
+                type="button"
               >
                 All
               </button>
               <button
                 className={`cp-tab ${tab === "unread" ? "active" : ""}`}
                 onClick={() => setTab("unread")}
+                type="button"
               >
                 Unread
               </button>
               <button
                 className={`cp-tab ${tab === "clients" ? "active" : ""}`}
                 onClick={() => setTab("clients")}
+                type="button"
               >
                 Clients
               </button>
@@ -430,8 +441,16 @@ export default function Chat() {
           </aside>
 
           {/* CENTER */}
-          <main className="cp-center">
-            <div className="cp-chatHead">
+          <main
+            className="cp-center"
+            style={{
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0,
+            }}
+          >
+            <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
               <div className="cp-chatUser">
                 <img className="cp-chatAvatar" src={otherAvatar} alt={otherUser?.name || "User"} />
                 <div>
@@ -470,7 +489,17 @@ export default function Chat() {
               </div>
             </div>
 
-            <div className="cp-chatBody">
+            {/* SCROLL CONTAINER */}
+            <div
+              className="cp-chatBody"
+              ref={chatBodyRef}
+              style={{
+                flex: "1 1 auto",
+                minHeight: 0,
+                overflowY: "auto",
+                paddingRight: 8,
+              }}
+            >
               <div className="cp-dayPill">Today</div>
 
               {messages.map((m) => {
@@ -491,7 +520,7 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <form className="cp-chatInput" onSubmit={handleSend}>
+            <form className="cp-chatInput" onSubmit={handleSend} style={{ flex: "0 0 auto" }}>
               <button type="button" className="cp-plus" aria-label="attach">
                 <span className="material-symbols-outlined">add</span>
               </button>
