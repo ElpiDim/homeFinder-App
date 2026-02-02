@@ -58,7 +58,7 @@ export default function ClientNavLayout({
               >
                 ☰
               </button>
-              <div style={{ color: "var(--primary)" }}>
+              <div className="cd-logo-container" style={{ color: "var(--primary)" }}>
                 <Logo as="h5" className="mb-0 logo-in-nav" />
               </div>
             </div>

@@ -68,12 +68,9 @@ function Profile() {
   const p = user.preferences || {};
   const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
 
-  return (
-    <ClientNavLayout
-      title="Settings"
-      subtitle="Manage your profile and preferences"
-    >
-      <div className="container py-4" style={{ maxWidth: '900px' }}>
+  const profileContent = (
+    <div className="py-5 bg-light" style={{ minHeight: '100vh' }}>
+      <div className="container" style={{ maxWidth: '900px' }}>
         {/* Header */}
         <div className="p-4 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center">
@@ -260,7 +257,7 @@ function Profile() {
           </div>
         )}
       </div>
-    </ClientNavLayout>
+    </div>
   );
 
   if (isClient) {

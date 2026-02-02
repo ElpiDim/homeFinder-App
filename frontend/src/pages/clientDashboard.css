@@ -106,7 +106,8 @@
 
 .cd-aside.is-collapsed .cd-navText,
 .cd-aside.is-collapsed .cd-profileMeta,
-.cd-aside.is-collapsed .cd-profile button{
+.cd-aside.is-collapsed .cd-profile button,
+.cd-aside.is-collapsed .cd-logo-container{
   display:none;
 }
 
