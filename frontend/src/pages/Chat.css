@@ -8,45 +8,14 @@
   --cp-radius:14px;
 }
 
-/* Top header */
-.cp-shell{ min-height:100vh; background: var(--cp-bg); color: var(--cp-text); }
-.cp-top{
-  position:sticky; top:0; z-index:2000;
-  background:#fff; border-bottom:1px solid var(--cp-border);
-  height:64px; padding:0 18px;
-  display:flex; align-items:center; justify-content:space-between;
-}
-.cp-top-left{ display:flex; align-items:center; gap:18px; }
-.cp-brand{ text-decoration:none; color: var(--cp-primary); }
-.cp-nav{ display:flex; gap:18px; align-items:center; }
-.cp-toplink{ text-decoration:none; color: var(--cp-muted); font-weight:700; font-size:13px; }
-.cp-toplink:hover{ color: var(--cp-text); }
-.cp-toplink-active{ color: var(--cp-primary); }
-.cp-dot-badge{
-  margin-left:6px; background: rgba(127,19,236,.14); color: var(--cp-primary);
-  font-weight:900; font-size:12px; padding:2px 8px; border-radius:999px;
-}
-.cp-top-right{ display:flex; align-items:center; gap:12px; }
-.cp-iconbtn{
-  width:38px; height:38px; border-radius:12px;
-  border:1px solid var(--cp-border); background: #faf9fb;
-  display:flex; align-items:center; justify-content:center;
-  color: var(--cp-muted);
-}
-.cp-iconbtn:hover{ color: var(--cp-primary); background: rgba(127,19,236,.06); }
-.cp-avatarbtn{ width:38px; height:38px; border-radius:999px; overflow:hidden; border:1px solid var(--cp-border); }
-.cp-avatarbtn img{ width:100%; height:100%; object-fit:cover; display:block; }
-.cp-logout{
-  border:1px solid var(--cp-border); background:#fff; border-radius:12px;
-  padding:8px 12px; font-weight:900; font-size:12px; cursor:pointer;
-}
-.cp-logout:hover{ background: rgba(0,0,0,.02); }
+/* layout shell */
+.cp-shell{ min-height:100%; background: var(--cp-bg); color: var(--cp-text); }
 
 /* layout */
 .cp-layout{
   display:grid;
   grid-template-columns: 360px 1fr 360px;
-  min-height: calc(100vh - 64px);
+  min-height: 100%;
 }
 
 /* left list */
@@ -140,6 +109,13 @@
 }
 .cp-btn .material-symbols-outlined{ font-size:18px; color: var(--cp-muted); }
 .cp-btn:hover{ background: rgba(127,19,236,.06); }
+.cp-iconbtn{
+  width:38px; height:38px; border-radius:12px;
+  border:1px solid var(--cp-border); background: #faf9fb;
+  display:flex; align-items:center; justify-content:center;
+  color: var(--cp-muted);
+}
+.cp-iconbtn:hover{ color: var(--cp-primary); background: rgba(127,19,236,.06); }
 
 .cp-chatBody{
   flex:1;
@@ -334,4 +310,3 @@
   .cp-left{ display:none; }
   .cp-chatSub{ max-width: 260px; }
 }
-
