@@ -4,6 +4,7 @@ import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
+import { useSidebar } from "../context/SidebarContext";
 import "../pages/clientDashboard.css";
 
 const API_ORIGIN =
@@ -26,10 +27,9 @@ export default function ClientNavLayout({
 }) {
   const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
+  const { collapsed, toggleCollapsed } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const collapsed = location.pathname !== "/dashboard";
 
   const handleLogout = () => {
     logout();
@@ -49,8 +49,18 @@ export default function ClientNavLayout({
       <div className="cd-layout">
         <aside className={`cd-aside ${collapsed ? "is-collapsed" : ""}`}>
           <div className="cd-brand">
-            <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
+            <div className="cd-brandRow">
+              <button
+                type="button"
+                className="cd-toggle"
+                onClick={toggleCollapsed}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                ☰
+              </button>
+              <div style={{ color: "var(--primary)" }}>
+                <Logo as="h5" className="mb-0 logo-in-nav" />
+              </div>
             </div>
           </div>
 

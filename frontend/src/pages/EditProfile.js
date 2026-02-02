@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import TriStateSelect from '../components/TristateSelect';
+import ClientNavLayout from '../components/ClientNavLayout';
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -184,7 +185,7 @@ export default function EditProfile() {
 
   const isRent = prefs.dealType !== 'sale';
 
-  return (
+  const editContent = (
     <div style={pageGradient} className="py-5">
       <div className="container" style={{ maxWidth: 960 }}>
         <div className="p-4 rounded-4 shadow-sm bg-white border">
@@ -532,4 +533,14 @@ export default function EditProfile() {
       </div>
     </div>
   );
+
+  if (isClient) {
+    return (
+      <ClientNavLayout title="Edit Profile" subtitle="Update your personal information">
+        {editContent}
+      </ClientNavLayout>
+    );
+  }
+
+  return editContent;
 }
