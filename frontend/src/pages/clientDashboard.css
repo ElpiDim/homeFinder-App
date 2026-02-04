@@ -231,3 +231,60 @@
   letter-spacing:.2px;
   box-shadow:0 10px 18px rgba(0,0,0,.12);
 }
+/* ===============================
+   GLOBAL LAYOUT – NO OUTER SCROLL
+================================ */
+.cd-shell{
+  height: 100vh;
+  overflow: hidden;       /* ❌ stop page scroll */
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.cd-layout{
+  display:flex;
+  height: 100vh;          /* ❌ no min-height */
+}
+
+/* ===============================
+   SIDEBAR – NEVER SCROLLS
+================================ */
+.cd-aside{
+  height: 100vh;
+  overflow: hidden;       /* ❌ sidebar never scrolls */
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===============================
+   MAIN COLUMN
+================================ */
+.cd-main{
+  flex:1;
+  height: 100vh;
+  overflow: hidden;       /* ❌ main itself does NOT scroll */
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===============================
+   ONLY CONTENT SCROLLS
+================================ */
+.cd-content{
+  flex: 1;
+  min-height: 0;          /* ⚠️ required for flex scrolling */
+  overflow-y: auto;       /* ✅ ONLY HERE SCROLL */
+  padding: 28px;
+  overscroll-behavior: contain;
+}
+
+/* ===============================
+   SAFETY (optional but recommended)
+================================ */
+html, body, #root{
+  height: 100%;
+}
+
+body{
+  overflow: hidden;
+}

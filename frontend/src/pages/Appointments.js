@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+// src/pages/Appointments.jsx
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -60,7 +61,7 @@ export default function Appointments() {
     if (user) fetchAppointments();
   }, [user, token]);
 
-  // (optional) keep "now" stable-ish
+  // keep "now" fresh (so upcoming updates)
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60000);
@@ -172,12 +173,19 @@ export default function Appointments() {
                       View Details
                     </Link>
                   )}
-                  <button className="af-btn" type="button" onClick={() => onMessageFromAppointment(nextUp)}>
+                  <button
+                    className="af-btn"
+                    type="button"
+                    onClick={() => onMessageFromAppointment(nextUp)}
+                  >
                     Message
                   </button>
                 </div>
               )}
             </div>
+
+            {/* ✅ NOTES κάτω από το Next appointment */}
+            <AppointmentNotes appointmentId={nextUp?._id} />
           </aside>
 
           {/* MAIN COLUMN */}
@@ -343,7 +351,7 @@ function ClientCalendarView({ appointments = [], onMessage }) {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
 
-  const [selectedDay, setSelectedDay] = useState(null); // day number in month
+  const [selectedDay, setSelectedDay] = useState(null); // day number
   const [selectedApptId, setSelectedApptId] = useState(null);
 
   const monthLabel = useMemo(() => {
@@ -379,7 +387,7 @@ function ClientCalendarView({ appointments = [], onMessage }) {
     const m = currentMonth.getMonth();
     const start = new Date(y, m, 1);
     const daysInMonth = new Date(y, m + 1, 0).getDate();
-    const leadingEmpty = (start.getDay() + 6) % 7; // monday-first
+    const leadingEmpty = (start.getDay() + 6) % 7;
 
     const arr = [];
     for (let i = 0; i < leadingEmpty; i++) arr.push(null);
@@ -527,6 +535,96 @@ function ClientCalendarView({ appointments = [], onMessage }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ----------------------- NOTES (LEFT) ----------------------- */
+
+function AppointmentNotes({ appointmentId }) {
+  const storageKey = appointmentId ? `appt_notes_${appointmentId}` : "appt_notes_general";
+
+  const [text, setText] = useState("");
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      setItems(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setItems([]);
+    }
+  }, [storageKey]);
+
+  const save = (next) => {
+    setItems(next);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
+  const makeId = () => {
+    try {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    } catch {}
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  };
+
+  const add = () => {
+    const v = text.trim();
+    if (!v) return;
+    save([{ id: makeId(), text: v, done: false }, ...items]);
+    setText("");
+  };
+
+  const toggle = (id) => {
+    save(items.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
+  };
+
+  const remove = (id) => {
+    save(items.filter((x) => x.id !== id));
+  };
+
+  return (
+    <div className="af-card af-notes">
+      <div className="af-notesHead">
+        <div className="af-notesTitle">Notes</div>
+        <div className="af-notesSub">{appointmentId ? "For next appointment" : "General"}</div>
+      </div>
+
+      <div className="af-notesAdd">
+        <input
+          className="af-notesInput"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Add a note…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") add();
+          }}
+        />
+        <button className="af-notesBtn" type="button" onClick={add}>
+          Add
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="af-notesEmpty">No notes yet.</div>
+      ) : (
+        <div className="af-notesList">
+          {items.map((n) => (
+            <div key={n.id} className={`af-note ${n.done ? "done" : ""}`}>
+              <button type="button" className="af-noteCheck" onClick={() => toggle(n.id)} aria-label="toggle">
+                {n.done ? "✓" : ""}
+              </button>
+
+              <div className="af-noteText">{n.text}</div>
+
+              <button type="button" className="af-noteX" onClick={() => remove(n.id)} aria-label="remove">
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
