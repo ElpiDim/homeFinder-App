@@ -259,7 +259,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
               borderColor: "#e5e7eb",
               fontSize: "0.85rem",
             }}
-            onClick={() => setSelectedAppointmentId(appt._id)} // ✅ opens details
+            onClick={() => setSelectedAppointmentId(appt._id)} // opens details
           >
             <div className="d-flex justify-content-between align-items-start">
               <div className="fw-semibold">{title}</div>

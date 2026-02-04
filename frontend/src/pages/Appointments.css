@@ -1,10 +1,9 @@
 .af-page{
-  min-height:100vh;
-  background:
-    radial-gradient(900px circle at 16% 10%, rgba(255,255,255,.75), rgba(255,255,255,0) 45%),
-    linear-gradient(135deg,#f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%);
+  min-height: 100vh;
+  background: #f7f7fb;   /* καθαρό, πολύ απαλό */
   padding: 24px 0 48px;
 }
+
 
 .af-wrap{
   max-width: 1200px;
@@ -435,4 +434,168 @@
 /* Space between NEXT UP pill and the time (only for the next appointment) */
 .af-item.next .af-timeTag{
   margin-left: 84px;
+}
+.af-calWrap{
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.06);
+  padding: 14px;
+}
+
+.af-calHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom: 10px;
+}
+
+.af-calMonth{
+  font-weight: 900;
+}
+
+.af-calNav{
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.af-calGrid{
+  display:grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.af-calWeekday{
+  text-align:center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: rgba(0,0,0,.55);
+  padding: 4px 0;
+}
+
+.af-calCell{
+  border: 1px solid rgba(0,0,0,.08);
+  background: #f9fafb;
+  border-radius: 14px;
+  padding: 8px;
+  min-height: 86px;
+  cursor: pointer;
+  text-align:left;
+}
+
+.af-calCell.empty{
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.af-calCell.has{
+  background: rgba(127,19,236,0.08);
+}
+
+.af-calCell.selected{
+  border-color: #6d28d9;
+  box-shadow: 0 0 0 3px rgba(109,40,217,.12);
+}
+
+.af-calDayNum{
+  font-weight: 900;
+  font-size: 0.9rem;
+}
+
+.af-calEvents{
+  margin-top: 6px;
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+}
+
+.af-calEvent{
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #6d28d9;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.7rem;
+  text-align:left;
+  cursor:pointer;
+}
+
+.af-calMore{
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: rgba(0,0,0,.55);
+}
+
+.af-calInfo{
+  margin-top: 12px;
+  border-top: 1px solid rgba(0,0,0,.08);
+  padding-top: 12px;
+}
+
+.af-calEmpty{
+  color: rgba(0,0,0,.55);
+  font-weight: 800;
+}
+
+.af-calDetailTitle{
+  font-weight: 950;
+  font-size: 14px;
+}
+
+.af-calDetailSub{
+  margin-top: 4px;
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.af-calDetailActions{
+  margin-top: 10px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.af-calListTitle{
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.af-calListItems{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+}
+
+.af-calListRow{
+  border: 1px solid rgba(0,0,0,.10);
+  background: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  display:flex;
+  gap: 12px;
+  align-items:flex-start;
+  cursor:pointer;
+  text-align:left;
+}
+
+.af-calListTime{
+  font-weight: 950;
+  min-width: 70px;
+}
+
+.af-calListProp{
+  font-weight: 900;
+}
+
+.af-calListWith{
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
 }

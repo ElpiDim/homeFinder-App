@@ -61,7 +61,7 @@ export default function AppLayout() {
     return patterns.some((p) => matchPath({ path: p, end: false }, location.pathname));
   };
 
-  // Topbar title/subtitle without useMatches (works with <Routes>)
+  // works with <Routes>)
   const topbar = useMemo(() => {
     const role = user?.role;
 
@@ -70,7 +70,7 @@ export default function AppLayout() {
       { path: "/dashboard", title: role === "owner" ? "Dashboard" : "Your Matched Properties", subtitle: role === "owner" ? "Overview of your properties" : "Properties selected based on your preferences." },
       { path: "/favorites", title: "Favorites", subtitle: "Your saved listings" },
       { path: "/appointments", title: "Your Appointments", subtitle: "Track your property viewings and manage appointments" },
-      { path: "/calendar", title: role === "owner" ? "Calendar" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
+      { path: "/appointments", title: role === "owner" ? "Appointments" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
       { path: "/messages", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/profile", title: "Settings", subtitle: "Manage your account" },
