@@ -8,7 +8,7 @@ import api from "../api";
 import { getMessages, sendMessage } from "../services/messagesService";
 import { proposeAppointment } from "../services/appointmentsService";
 import { Modal, Form, InputGroup, Alert } from "react-bootstrap";
-import ClientNavLayout from "../components/ClientNavLayout";
+import AppLayout from "../components/AppLayout";
 import "./Chat.css";
 
 const API_ORIGIN =
@@ -360,7 +360,7 @@ export default function Chat() {
   };
 
   return (
-    <ClientNavLayout title="Messages" subtitle="Chat with owners and agents">
+    <AppLayout title="Messages" subtitle="Chat with owners and agents">
       {/* IMPORTANT: these styles ensure message area scroll works inside center column */}
       <div className="cp-shell" style={{ height: "calc(100vh - 120px)" }}>
         <div className="cp-layout" style={{ height: "100%" }}>
@@ -683,6 +683,6 @@ export default function Chat() {
           </Form>
         </Modal>
       </div>
-    </ClientNavLayout>
+    </AppLayout>
   );
 }

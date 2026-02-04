@@ -2,7 +2,7 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 
 const SidebarContext = createContext(null);
 
-const STORAGE_KEY = "clientSidebarCollapsed";
+const STORAGE_KEY = "appSidebarCollapsed";
 
 export const SidebarProvider = ({ children }) => {
   const [collapsed, setCollapsed] = useState(() => {

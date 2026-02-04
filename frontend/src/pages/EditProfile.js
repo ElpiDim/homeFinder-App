@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import TriStateSelect from '../components/TristateSelect';
-import ClientNavLayout from '../components/ClientNavLayout';
+import AppLayout from '../components/AppLayout';
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -536,9 +536,9 @@ export default function EditProfile() {
 
   if (isClient) {
     return (
-      <ClientNavLayout title="Edit Profile" subtitle="Update your personal information">
+      <AppLayout title="Edit Profile" subtitle="Update your personal information">
         {editContent}
-      </ClientNavLayout>
+      </AppLayout>
     );
   }
 

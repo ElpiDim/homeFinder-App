@@ -10,6 +10,7 @@ import {
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
+import AppLayout from '../components/AppLayout';
 import './AddProperty.css';
 
 const PROPERTY_TYPE_OPTIONS = [
@@ -504,28 +505,31 @@ export default function AddProperty() {
 
   if (!user || user.role !== 'owner') {
     return (
-      <div className="add-property-container">
-        <Card className="add-property-card">
-          <Card.Body className="p-4">Only owners can add properties.</Card.Body>
-        </Card>
-      </div>
+      <AppLayout title="Add Property" subtitle="List a new property">
+        <div className="add-property-container">
+          <Card className="add-property-card">
+            <Card.Body className="p-4">Only owners can add properties.</Card.Body>
+          </Card>
+        </div>
+      </AppLayout>
     );
   }
 
   const isLastPhase = currentPhase === PHASES.length - 1;
 
   return (
-    <div className="add-property-container">
-      <Card className="add-property-card shadow-lg">
-        <Card.Body className="p-4 p-md-5">
-          <div className="text-center mb-4">
-            <Logo />
-            <h3 className="mt-3 mb-1">List a New Property</h3>
-            <p className="text-muted mb-0">
-              Share details about your property and outline the tenant profile that best matches
-              onboarding preferences.
-            </p>
-          </div>
+    <AppLayout title="Add Property" subtitle="List a new property">
+      <div className="add-property-container">
+        <Card className="add-property-card shadow-lg">
+          <Card.Body className="p-4 p-md-5">
+            <div className="text-center mb-4">
+              <Logo />
+              <h3 className="mt-3 mb-1">List a New Property</h3>
+              <p className="text-muted mb-0">
+                Share details about your property and outline the tenant profile that best matches
+                onboarding preferences.
+              </p>
+            </div>
 
           <div className="phase-progress mb-4">
             {PHASES.map((phase, index) => (
@@ -1728,6 +1732,7 @@ export default function AddProperty() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

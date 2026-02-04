@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Row, Col, Form, Button } from 'react-bootstrap';
 import api from '../api';
+import AppLayout from '../components/AppLayout';
 import {
   GoogleMap,
   Marker,
@@ -384,9 +385,10 @@ function EditProperty() {
   const noKey = !apiKey;
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
-        <h4 className="fw-bold mb-4">Edit Property</h4>
+    <AppLayout title="Edit Property" subtitle="Update your listing details">
+      <div style={pageGradient} className="py-5">
+        <div className="container bg-white shadow-sm rounded p-4" style={{ maxWidth: '900px' }}>
+          <h4 className="fw-bold mb-4">Edit Property</h4>
 
         {noKey && (
           <div className="alert alert-warning">
@@ -867,8 +869,9 @@ function EditProperty() {
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

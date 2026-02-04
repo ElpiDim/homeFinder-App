@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Button, Spinner, Row, Col, Card, Badge, Container } from 'react-bootstrap';
+import AppLayout from '../components/AppLayout';
 
 export default function MyProperties() {
   const { user } = useAuth();
@@ -62,28 +63,33 @@ export default function MyProperties() {
 
   if (!user) {
     return (
-      <div style={pageGradient}>
-        <Container className="py-5">Loading…</Container>
-      </div>
+      <AppLayout title="My Properties" subtitle="Manage your listings">
+        <div style={pageGradient}>
+          <Container className="py-5">Loading…</Container>
+        </div>
+      </AppLayout>
     );
   }
 
   if (user.role !== 'owner') {
     return (
-      <div style={pageGradient}>
-        <Container className="py-5">
-          <p className="text-danger">Only owners can view this page.</p>
-          <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
-            ← Back
-          </Button>
-        </Container>
-      </div>
+      <AppLayout title="My Properties" subtitle="Manage your listings">
+        <div style={pageGradient}>
+          <Container className="py-5">
+            <p className="text-danger">Only owners can view this page.</p>
+            <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
+              ← Back
+            </Button>
+          </Container>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div style={pageGradient}>
-      <Container className="py-5">
+    <AppLayout title="My Properties" subtitle="Manage your listings">
+      <div style={pageGradient}>
+        <Container className="py-5">
         {/* Top bar: Back (left) + Title (next) + Add (right) */}
         <div className="d-flex align-items-center justify-content-between mb-4">
           <div className="d-flex align-items-center gap-3">
@@ -181,7 +187,8 @@ export default function MyProperties() {
             })}
           </Row>
         )}
-      </Container>
-    </div>
+        </Container>
+      </div>
+    </AppLayout>
   );
 }

@@ -1,17 +1,14 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useMessages } from "../context/MessageContext";
 import OwnerAppointmentsCalendar from "../components/OwnerAppointmentsCalendar";
-import Logo from "../components/Logo";
+import AppLayout from "../components/AppLayout";
 import "./OwnerDashboard.css";
-import NotificationDropdown from "../components/NotificationDropdown";
 
 
 export default function OwnerDashboard() {
-  const { user, logout, token  } = useAuth();
-  const { unreadChats } = useMessages();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [allProperties, setAllProperties] = useState([]);
@@ -49,111 +46,19 @@ export default function OwnerDashboard() {
     [allProperties]
   );
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const profileImg = user?.profilePicture || "/default-avatar.jpg";
+  const headerActions = (
+    <button className="owner-iconbtn" type="button" aria-label="help">
+      <span className="material-symbols-outlined">help</span>
+    </button>
+  );
 
   return (
-    <div className="owner-shell">
-      <div className="owner-layout">
-        {/* ================= SIDEBAR ================= */}
-        <aside className="owner-aside">
-          <div className="d-flex align-items-center gap-2 px-2 py-3">
-            <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
-            </div>
-          </div>
-
-          <div
-            className="d-flex flex-column justify-content-between"
-            style={{ height: "calc(100vh - 90px)" }}
-          >
-            <div className="d-flex flex-column gap-1 pt-2">
-              <Link className="owner-navlink active" to="/dashboard">
-                <span className="material-symbols-outlined fill">dashboard</span>
-                <span className="small">Dashboard</span>
-              </Link>
-
-              <Link className="owner-navlink" to="/calendar">
-                <span className="material-symbols-outlined">calendar_month</span>
-                <span className="small">Calendar</span>
-              </Link>
-
-              <Link className="owner-navlink position-relative" to="/messages">
-                <span className="material-symbols-outlined">chat</span>
-                <span className="small">Messages</span>
-                {unreadChats > 0 && (
-                  <span className="badge bg-danger ms-auto">{unreadChats}</span>
-                )}
-              </Link>
-
-              <Link className="owner-navlink" to="/settings">
-                <span className="material-symbols-outlined">settings</span>
-                <span className="small">Settings</span>
-              </Link>
-
-            </div>
-
-            <div className="d-flex flex-column gap-3">
-              <Link
-                to="/add-property"
-                className="btn w-100 text-white fw-bold"
-                style={{ background: "var(--primary)", borderRadius: 12, height: 40 }}
-              >
-                Add New Property
-              </Link>
-
-              <Link to="/profile" className="text-decoration-none">
-                <div className="d-flex align-items-center gap-3">
-                  <img
-                    src={profileImg}
-                    alt="profile"
-                    className="rounded-circle"
-                    style={{ width: 40, height: 40, objectFit: "cover" }}
-                  />
-                  <div>
-                    <div className="fw-semibold" style={{ color: "var(--text)" }}>
-                      {user?.name || "Owner"}
-                    </div>
-                    <div className="small" style={{ color: "var(--text2)" }}>
-                      Property Owner
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
-              <button
-                className="btn btn-outline-secondary w-100"
-                onClick={handleLogout}
-                style={{ borderRadius: 12, height: 40 }}
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* ================= MAIN ================= */}
-        <main className="owner-main">
-          {/* TOPBAR */}
-          <header className="owner-topbar d-flex align-items-center justify-content-between">
-            <h5 className="mb-0 fw-bold">Dashboard</h5>
-
-            <div className="d-flex align-items-center gap-2">
-              <NotificationDropdown token={token} className="od-iconWrap" />
-
-              <button className="owner-iconbtn" type="button" aria-label="help">
-                <span className="material-symbols-outlined">help</span>
-              </button>
-            </div>
-
-                      </header>
-
-          <div className="owner-content">
-            <div className="row g-4">
+    <AppLayout
+      title="Dashboard"
+      subtitle="Overview of your listings and performance"
+      headerActions={headerActions}
+    >
+      <div className="row g-4">
               {/* LEFT */}
               <div className="col-12 col-lg-8">
                 {/* ===== STATS (3 ίδια γραμμή) ===== */}
@@ -259,10 +164,7 @@ export default function OwnerDashboard() {
                   <OwnerAppointmentsCalendar appointments={ownerAppointments} />
                 </div>
               </div>
-            </div>
-          </div>
-        </main>
       </div>
-    </div>
+    </AppLayout>
   );
 }

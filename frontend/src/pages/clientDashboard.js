@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import PropertyCard from "../components/propertyCard";
-import ClientNavLayout from "../components/ClientNavLayout";
+import AppLayout from "../components/AppLayout";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -114,7 +114,7 @@ export default function ClientDashboard() {
   };
 
   return (
-    <ClientNavLayout
+    <AppLayout
       title="Your Matched Properties"
       subtitle="Properties selected based on your preferences."
     >
@@ -138,6 +138,6 @@ export default function ClientDashboard() {
           ))}
         </div>
       )}
-    </ClientNavLayout>
+    </AppLayout>
   );
 }

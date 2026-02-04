@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import ClientNavLayout from "../components/ClientNavLayout";
+import AppLayout from "../components/AppLayout";
 import "./Appointments.css";
 
 export default function Appointments() {
@@ -109,19 +109,19 @@ export default function Appointments() {
 
   if (loading) {
     return (
-      <ClientNavLayout
+      <AppLayout
         title="Your Appointments"
         subtitle="Track your property viewings and manage appointments"
       >
         <div className="af-page">
           <div className="af-wrap">Loading…</div>
         </div>
-      </ClientNavLayout>
+      </AppLayout>
     );
   }
 
   return (
-    <ClientNavLayout
+    <AppLayout
       title="Your Appointments"
       subtitle="Track your property viewings and manage appointments"
       headerActions={
@@ -244,7 +244,7 @@ export default function Appointments() {
           </div> {/* ✅ af-grid close */}
         </div>   {/* af-wrap */}
       </div>     {/* af-page */}
-    </ClientNavLayout>
+    </AppLayout>
   );
 }
 
