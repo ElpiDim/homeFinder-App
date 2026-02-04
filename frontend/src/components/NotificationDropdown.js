@@ -169,10 +169,11 @@ export default function NotificationsDropdown({
 
     setOpen(false);
 
-    if (note.type === "appointment" && note.referenceId) {
-      onOpenAppointment?.(note.referenceId);
-      return;
-    }
+    if ((note.type || "").toLowerCase() === "appointment") {
+      navigate("/appointments");
+    return;
+  }
+
     if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
     }
