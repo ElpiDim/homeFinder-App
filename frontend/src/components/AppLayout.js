@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Link, Outlet, useLocation, useNavigate, useMatches } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, matchPath } from "react-router-dom";
 import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
@@ -19,22 +19,12 @@ function normalizeUploadPath(src) {
   return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
 }
 
-const resolveByRole = (value, role) => {
-  if (!value) return undefined;
-  if (typeof value === "string") return value;
-  if (typeof value === "object") {
-    return value[role] ?? value.default;
-  }
-  return undefined;
-};
-
 export default function AppLayout() {
   const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
   const { collapsed, toggleCollapsed } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const matches = useMatches();
 
   const handleLogout = () => {
     logout();
@@ -65,19 +55,37 @@ export default function AppLayout() {
     ];
   }, [user?.role]);
 
-  const activeMatch = (path, matchesList = []) =>
-    [path, ...matchesList].some(
-      (entry) =>
-        location.pathname === entry || location.pathname.startsWith(`${entry}/`)
-    );
+  // Better active check using matchPath
+  const isActive = (basePath, extra = []) => {
+    const patterns = [basePath, ...(extra || [])];
+    return patterns.some((p) => matchPath({ path: p, end: false }, location.pathname));
+  };
 
-  const layoutHandle = [...matches]
-    .reverse()
-    .find((match) => match.handle?.title || match.handle?.subtitle)?.handle;
+  // Topbar title/subtitle without useMatches (works with <Routes>)
+  const topbar = useMemo(() => {
+    const role = user?.role;
 
-  const title = resolveByRole(layoutHandle?.title, user?.role);
-  const subtitle = resolveByRole(layoutHandle?.subtitle, user?.role);
-  const showTopbar = Boolean(title || subtitle);
+    // You can tweak these labels anytime
+    const routes = [
+      { path: "/dashboard", title: role === "owner" ? "Dashboard" : "Your Matched Properties", subtitle: role === "owner" ? "Overview of your properties" : "Properties selected based on your preferences." },
+      { path: "/favorites", title: "Favorites", subtitle: "Your saved listings" },
+      { path: "/appointments", title: "Your Appointments", subtitle: "Track your property viewings and manage appointments" },
+      { path: "/calendar", title: role === "owner" ? "Calendar" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
+      { path: "/messages", title: "Messages", subtitle: "Chat with owners and agents" },
+      { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
+      { path: "/profile", title: "Settings", subtitle: "Manage your account" },
+      { path: "/edit-profile", title: "Edit Profile", subtitle: "Update your information" },
+      { path: "/add-property", title: "Add Property", subtitle: "Create a new listing" },
+      { path: "/property/:propertyId", title: "Property Details", subtitle: "View listing information" },
+      { path: "/my-properties", title: role === "owner" ? "My Properties" : "My Properties", subtitle: "Manage your listings" },
+    ];
+
+    const found = routes.find((r) => matchPath({ path: r.path, end: false }, location.pathname));
+    if (!found) return { title: "", subtitle: "" };
+    return { title: found.title || "", subtitle: found.subtitle || "" };
+  }, [location.pathname, user?.role]);
+
+  const showTopbar = Boolean(topbar.title || topbar.subtitle);
 
   return (
     <div className="cd-shell">
@@ -103,7 +111,7 @@ export default function AppLayout() {
             {menuItems.map((item) => (
               <Link
                 key={item.path}
-                className={`cd-navlink ${activeMatch(item.path, item.match) ? "active" : ""}`}
+                className={`cd-navlink ${isActive(item.path, item.match) ? "active" : ""}`}
                 to={item.path}
               >
                 <span className="material-symbols-outlined fill">{item.icon}</span>
@@ -121,9 +129,7 @@ export default function AppLayout() {
                 <img className="cd-avatar" src={profileImg} alt="profile" />
                 <div className="cd-profileMeta">
                   <div className="cd-name">{user?.name || "User"}</div>
-                  <div className="cd-role">
-                    {user?.role === "owner" ? "Owner" : "Client"}
-                  </div>
+                  <div className="cd-role">{user?.role === "owner" ? "Owner" : "Client"}</div>
                 </div>
               </div>
             </Link>
@@ -138,8 +144,8 @@ export default function AppLayout() {
           {showTopbar && (
             <header className="cd-topbar">
               <div>
-                {title && <div className="cd-title">{title}</div>}
-                {subtitle && <div className="cd-subtitle">{subtitle}</div>}
+                {topbar.title && <div className="cd-title">{topbar.title}</div>}
+                {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
               </div>
 
               <div className="d-flex align-items-center gap-2">
