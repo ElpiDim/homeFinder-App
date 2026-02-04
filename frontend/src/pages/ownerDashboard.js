@@ -8,9 +8,8 @@ import Logo from "../components/Logo";
 import "./OwnerDashboard.css";
 import NotificationDropdown from "../components/NotificationDropdown";
 
-
 export default function OwnerDashboard() {
-  const { user, logout, token  } = useAuth();
+  const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
   const navigate = useNavigate();
 
@@ -37,11 +36,11 @@ export default function OwnerDashboard() {
   /* ---------- stats ---------- */
   const totalListings = allProperties.length;
   const rentedListings = useMemo(
-    () => allProperties.filter(p => (p.status || "").toLowerCase() === "rented").length,
+    () => allProperties.filter((p) => (p.status || "").toLowerCase() === "rented").length,
     [allProperties]
   );
   const likedListings = useMemo(
-    () => allProperties.filter(p => Number(p.favoritesCount || 0) > 0).length,
+    () => allProperties.filter((p) => Number(p.favoritesCount || 0) > 0).length,
     [allProperties]
   );
   const totalViews = useMemo(
@@ -55,6 +54,40 @@ export default function OwnerDashboard() {
   };
 
   const profileImg = user?.profilePicture || "/default-avatar.jpg";
+
+  // --- helpers for cards (best-effort) ---
+  const normalizeStatus = (status) => String(status || "").toLowerCase();
+  const statusLabel = (p) => {
+    const s = normalizeStatus(p.status);
+    if (s === "rented" || s === "leased") return "Leased";
+    if (s === "rent"|| s=== "for rent") return "For Rent";
+    if (s === "sale" || s === "for sale") return "For Sale";
+    if (s) return String(p.status);
+    return "Available";
+  };
+  const statusClass = (p) => {
+    const s = normalizeStatus(p.status);
+    if (s === "rented" || s === "leased") return "od-tag leased";
+    if (s === "sale" || s === "for sale") return "od-tag sale";
+    return "od-tag available";
+  };
+  const formatPrice = (p) => {
+    const price = p?.price;
+    if (!price && price !== 0) return "";
+    const n = typeof price === "number" ? price : Number(price);
+    if (Number.isNaN(n)) return String(price);
+    const base = `$${n.toLocaleString()}`;
+    // best-effort /mo for rent
+    const t = String(p?.type || "").toLowerCase();
+    if (t === "rent") return `${base}/mo`;
+    return base;
+  };
+  const safeMeta = (p) => {
+    const beds = p?.bedrooms ?? p?.beds;
+    const baths = p?.bathrooms ?? p?.baths;
+    const sqft = p?.sqft ?? p?.area ?? p?.size;
+    return { beds, baths, sqft };
+  };
 
   return (
     <div className="owner-shell">
@@ -85,16 +118,13 @@ export default function OwnerDashboard() {
               <Link className="owner-navlink position-relative" to="/messages">
                 <span className="material-symbols-outlined">chat</span>
                 <span className="small">Messages</span>
-                {unreadChats > 0 && (
-                  <span className="badge bg-danger ms-auto">{unreadChats}</span>
-                )}
+                {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
               </Link>
 
               <Link className="owner-navlink" to="/settings">
                 <span className="material-symbols-outlined">settings</span>
                 <span className="small">Settings</span>
               </Link>
-
             </div>
 
             <div className="d-flex flex-column gap-3">
@@ -149,8 +179,7 @@ export default function OwnerDashboard() {
                 <span className="material-symbols-outlined">help</span>
               </button>
             </div>
-
-                      </header>
+          </header>
 
           <div className="owner-content">
             <div className="row g-4">
@@ -185,67 +214,82 @@ export default function OwnerDashboard() {
 
                 {/* ===== MY PROPERTIES ===== */}
                 <div className="mt-4">
-                  <h4 className="fw-bold mb-3">My Properties</h4>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h4 className="fw-bold mb-0">My Properties</h4>
+                    <button
+                      type="button"
+                      className="od-viewAll"
+                      onClick={() => navigate("/properties")}
+                    >
+                      View All <span aria-hidden>→</span>
+                    </button>
+                  </div>
 
-                  <div className="d-flex flex-column gap-3">
-                    {allProperties.slice(0, 5).map((p) => (
-                      <div key={p._id} className="owner-card p-3">
-                        <div className="row g-3 align-items-center">
-                          <div className="col-12 col-md-3">
-                            <div
-                              className="rounded-3"
-                              style={{
-                                height: 120,
-                                background: "#eee",
-                                backgroundImage: p.images?.[0]
-                                  ? `url(${p.images[0]})`
-                                  : "none",
-                                backgroundSize: "cover",
-                                backgroundPosition: "center",
-                              }}
-                            />
+                  {/* ✅ Only this area changed: now grid cards */}
+                  <div className="od-propGrid">
+                    {allProperties.slice(0, 6).map((p) => {
+                      const img = p.images?.[0] || "";
+                      const price = formatPrice(p);
+                      const title = p.title || p.address || "Property";
+                      const location = p.city || p.location || "";
+                      const { beds, baths, sqft } = safeMeta(p);
+
+                      return (
+                        <div key={p._id} className="od-propCard owner-card">
+                          <div
+                            className="od-propMedia"
+                            style={{
+                              backgroundImage: img ? `url(${img})` : "none",
+                            }}
+                          >
+                            <span className={statusClass(p)}>{statusLabel(p)}</span>
+
+                            {price ? (
+                              <div className="od-pricePill">{price}</div>
+                            ) : null}
                           </div>
 
-                          <div className="col-12 col-md-5 text-center text-md-start">
-                            <div className="fw-bold">
-                              {p.title || p.address || "Property"}
+                          <div className="od-propBody">
+                            <div className="od-propTitle">{title}</div>
+                            <div className="od-propLoc">
+                              <span className="material-symbols-outlined">location_on</span>
+                              {location || "—"}
                             </div>
-                            <div className="small" style={{ color: "var(--text2)" }}>
-                              {p.city || p.location || ""}
+
+                            <div className="od-propMeta">
+                              <div className="od-metaItem">
+                                <span className="material-symbols-outlined">bed</span>
+                                <span>{beds ?? "—"}</span>
+                              </div>
+                              <div className="od-metaItem">
+                                <span className="material-symbols-outlined">bathtub</span>
+                                <span>{baths ?? "—"}</span>
+                              </div>
+                              <div className="od-metaItem">
+                                <span className="material-symbols-outlined">straighten</span>
+                                <span>{sqft ?? "—"}</span>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="col-12 col-md-2 d-flex justify-content-center justify-content-md-start">
-                            <span
-                              className={[
-                                "owner-pill",
-                                (p.status || "").toLowerCase() === "rented"
-                                  ? "owner-pill-rented"
-                                  : (p.status || "").toLowerCase() === "sale"
-                                  ? "owner-pill-sale"
-                                  : "owner-pill-vacant",
-                              ].join(" ")}
-                            >
-                              {p.status || "Vacant"}
-                            </span>
-                          </div>
-
-                          <div className="col-12 col-md-2 d-flex justify-content-center justify-content-md-end">
-                            <button
-                              className="btn fw-bold"
-                              style={{
-                                background: "rgba(127,19,236,0.10)",
-                                color: "var(--primary)",
-                                borderRadius: 10,
-                              }}
-                              onClick={() => navigate(`/property/${p._id}`)}
-                            >
-                              View Details
-                            </button>
+                            <div className="od-propActions">
+                              <button
+                                type="button"
+                                className="od-detailsBtn"
+                                onClick={() => navigate(`/property/${p._id}`)}
+                              >
+                                View Details
+                              </button>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+
+                    {allProperties.length === 0 && (
+                      <div className="owner-card p-3" style={{ color: "var(--text2)" }}>
+                        No properties yet.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -253,9 +297,7 @@ export default function OwnerDashboard() {
               {/* RIGHT */}
               <div className="col-12 col-lg-4">
                 <div className="owner-card p-3">
-                  <h4 className="fw-bold px-2 pt-2 mb-2">
-                    Upcoming Appointments
-                  </h4>
+                  <h4 className="fw-bold px-2 pt-2 mb-2">Upcoming Appointments</h4>
                   <OwnerAppointmentsCalendar appointments={ownerAppointments} />
                 </div>
               </div>

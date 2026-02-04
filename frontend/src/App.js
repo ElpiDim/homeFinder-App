@@ -152,6 +152,14 @@ function App() {
           </OnboardingProtected>
         }
       />
+      <Route
+        path="/calendar"
+        element={
+          <OnboardingProtected>
+            <Appointments />
+          </OnboardingProtected>
+        }
+      />
 
       <Route
         path="/edit-profile"
