@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useMessages } from "../context/MessageContext";
 import OwnerAppointmentsCalendar from "../components/OwnerAppointmentsCalendar";
-import Logo from "../components/Logo";
 import "./OwnerDashboard.css";
-import NotificationDropdown from "../components/NotificationDropdown";
 
 export default function OwnerDashboard() {
-  const { user, logout, token } = useAuth();
-  const { unreadChats } = useMessages();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [allProperties, setAllProperties] = useState([]);
@@ -48,13 +44,6 @@ export default function OwnerDashboard() {
     [allProperties]
   );
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const profileImg = user?.profilePicture || "/default-avatar.jpg";
-
   // --- helpers for cards (best-effort) ---
   const normalizeStatus = (status) => String(status || "").toLowerCase();
   const statusLabel = (p) => {
@@ -90,221 +79,100 @@ export default function OwnerDashboard() {
   };
 
   return (
-    <div className="owner-shell">
-      <div className="owner-layout">
-        {/* ================= SIDEBAR ================= */}
-        <aside className="owner-aside">
-          <div className="d-flex align-items-center gap-2 px-2 py-3">
-            <div style={{ color: "var(--primary)" }}>
-              <Logo as="h5" className="mb-0 logo-in-nav" />
+    <div className="owner-content">
+      <div className="row g-4">
+        {/* LEFT */}
+        <div className="col-12 col-lg-8">
+          {/* ===== STATS (3 ίδια γραμμή) ===== */}
+          <div className="owner-stats-3">
+            <div className="owner-card p-3">
+              <div className="fw-medium" style={{ color: "var(--text2)" }}>
+                Total Properties Rented
+              </div>
+              <div className="display-6 fw-bold mt-2">{rentedListings}</div>
+              <div className="small" style={{ color: "var(--text2)" }}>
+                out of {totalListings}
+              </div>
+            </div>
+
+            <div className="owner-card p-3">
+              <div className="fw-medium" style={{ color: "var(--text2)" }}>
+                Total Views This Month
+              </div>
+              <div className="display-6 fw-bold mt-2">{totalViews}</div>
+            </div>
+
+            <div className="owner-card p-3">
+              <div className="fw-medium" style={{ color: "var(--text2)" }}>
+                Total Likes Received
+              </div>
+              <div className="display-6 fw-bold mt-2">{likedListings}</div>
             </div>
           </div>
 
-          <div
-            className="d-flex flex-column justify-content-between"
-            style={{ height: "calc(100vh - 90px)" }}
-          >
-            <div className="d-flex flex-column gap-1 pt-2">
-              <Link className="owner-navlink active" to="/dashboard">
-                <span className="material-symbols-outlined fill">dashboard</span>
-                <span className="small">Dashboard</span>
-              </Link>
-
-              <Link className="owner-navlink" to="/calendar">
-                <span className="material-symbols-outlined">calendar_month</span>
-                <span className="small">Calendar</span>
-              </Link>
-
-              <Link className="owner-navlink position-relative" to="/messages">
-                <span className="material-symbols-outlined">chat</span>
-                <span className="small">Messages</span>
-                {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
-              </Link>
-
-              <Link className="owner-navlink" to="/settings">
-                <span className="material-symbols-outlined">settings</span>
-                <span className="small">Settings</span>
-              </Link>
-            </div>
-
-            <div className="d-flex flex-column gap-3">
-              <Link
-                to="/add-property"
-                className="btn w-100 text-white fw-bold"
-                style={{ background: "var(--primary)", borderRadius: 12, height: 40 }}
-              >
-                Add New Property
-              </Link>
-
-              <Link to="/profile" className="text-decoration-none">
-                <div className="d-flex align-items-center gap-3">
-                  <img
-                    src={profileImg}
-                    alt="profile"
-                    className="rounded-circle"
-                    style={{ width: 40, height: 40, objectFit: "cover" }}
-                  />
-                  <div>
-                    <div className="fw-semibold" style={{ color: "var(--text)" }}>
-                      {user?.name || "Owner"}
-                    </div>
-                    <div className="small" style={{ color: "var(--text2)" }}>
-                      Property Owner
-                    </div>
-                  </div>
-                </div>
-              </Link>
-
+          {/* ===== MY PROPERTIES ===== */}
+          <div className="mt-4">
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <h4 className="fw-bold mb-0">My Properties</h4>
               <button
-                className="btn btn-outline-secondary w-100"
-                onClick={handleLogout}
-                style={{ borderRadius: 12, height: 40 }}
+                type="button"
+                className="od-viewAll"
+                onClick={() => navigate("/properties")}
               >
-                Logout
+                View All <span aria-hidden>→</span>
               </button>
             </div>
-          </div>
-        </aside>
 
-        {/* ================= MAIN ================= */}
-        <main className="owner-main">
-          {/* TOPBAR */}
-          <header className="owner-topbar d-flex align-items-center justify-content-between">
-            <h5 className="mb-0 fw-bold">Dashboard</h5>
+            {/* ✅ Only this area changed: now grid cards */}
+            <div className="od-propGrid">
+              {allProperties.slice(0, 6).map((p) => {
+                const img = p.images?.[0] || "";
+                const price = formatPrice(p);
+                const title = p.title || p.address || "Property";
+                const location = p.city || p.location || "";
+                const { beds, baths, sqft } = safeMeta(p);
 
-            <div className="d-flex align-items-center gap-2">
-              <NotificationDropdown token={token} className="od-iconWrap" />
-
-              <button className="owner-iconbtn" type="button" aria-label="help">
-                <span className="material-symbols-outlined">help</span>
-              </button>
-            </div>
-          </header>
-
-          <div className="owner-content">
-            <div className="row g-4">
-              {/* LEFT */}
-              <div className="col-12 col-lg-8">
-                {/* ===== STATS (3 ίδια γραμμή) ===== */}
-                <div className="owner-stats-3">
-                  <div className="owner-card p-3">
-                    <div className="fw-medium" style={{ color: "var(--text2)" }}>
-                      Total Properties Rented
-                    </div>
-                    <div className="display-6 fw-bold mt-2">{rentedListings}</div>
-                    <div className="small" style={{ color: "var(--text2)" }}>
-                      out of {totalListings}
-                    </div>
-                  </div>
-
-                  <div className="owner-card p-3">
-                    <div className="fw-medium" style={{ color: "var(--text2)" }}>
-                      Total Views This Month
-                    </div>
-                    <div className="display-6 fw-bold mt-2">{totalViews}</div>
-                  </div>
-
-                  <div className="owner-card p-3">
-                    <div className="fw-medium" style={{ color: "var(--text2)" }}>
-                      Total Likes Received
-                    </div>
-                    <div className="display-6 fw-bold mt-2">{likedListings}</div>
-                  </div>
-                </div>
-
-                {/* ===== MY PROPERTIES ===== */}
-                <div className="mt-4">
-                  <div className="d-flex align-items-center justify-content-between mb-3">
-                    <h4 className="fw-bold mb-0">My Properties</h4>
-                    <button
-                      type="button"
-                      className="od-viewAll"
-                      onClick={() => navigate("/properties")}
+                return (
+                  <div key={p._id} className="od-propCard owner-card">
+                    <div
+                      className="od-propMedia"
+                      style={{ backgroundImage: `url(${img || ""})` }}
                     >
-                      View All <span aria-hidden>→</span>
-                    </button>
-                  </div>
+                      <div className={statusClass(p)}>{statusLabel(p)}</div>
+                    </div>
 
-                  {/* ✅ Only this area changed: now grid cards */}
-                  <div className="od-propGrid">
-                    {allProperties.slice(0, 6).map((p) => {
-                      const img = p.images?.[0] || "";
-                      const price = formatPrice(p);
-                      const title = p.title || p.address || "Property";
-                      const location = p.city || p.location || "";
-                      const { beds, baths, sqft } = safeMeta(p);
+                    <div className="p-3">
+                      <div className="fw-bold">{title}</div>
+                      <div className="small text-muted">{location}</div>
 
-                      return (
-                        <div key={p._id} className="od-propCard owner-card">
-                          <div
-                            className="od-propMedia"
-                            style={{
-                              backgroundImage: img ? `url(${img})` : "none",
-                            }}
-                          >
-                            <span className={statusClass(p)}>{statusLabel(p)}</span>
-
-                            {price ? (
-                              <div className="od-pricePill">{price}</div>
-                            ) : null}
-                          </div>
-
-                          <div className="od-propBody">
-                            <div className="od-propTitle">{title}</div>
-                            <div className="od-propLoc">
-                              <span className="material-symbols-outlined">location_on</span>
-                              {location || "—"}
-                            </div>
-
-                            <div className="od-propMeta">
-                              <div className="od-metaItem">
-                                <span className="material-symbols-outlined">bed</span>
-                                <span>{beds ?? "—"}</span>
-                              </div>
-                              <div className="od-metaItem">
-                                <span className="material-symbols-outlined">bathtub</span>
-                                <span>{baths ?? "—"}</span>
-                              </div>
-                              <div className="od-metaItem">
-                                <span className="material-symbols-outlined">straighten</span>
-                                <span>{sqft ?? "—"}</span>
-                              </div>
-                            </div>
-
-                            <div className="od-propActions">
-                              <button
-                                type="button"
-                                className="od-detailsBtn"
-                                onClick={() => navigate(`/property/${p._id}`)}
-                              >
-                                View Details
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {allProperties.length === 0 && (
-                      <div className="owner-card p-3" style={{ color: "var(--text2)" }}>
-                        No properties yet.
+                      <div className="d-flex align-items-center gap-3 mt-2 small text-muted">
+                        <span>{beds ? `${beds} Beds` : "— Beds"}</span>
+                        <span>{baths ? `${baths} Baths` : "— Baths"}</span>
+                        <span>{sqft ? `${sqft} sqft` : "— sqft"}</span>
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* RIGHT */}
-              <div className="col-12 col-lg-4">
-                <div className="owner-card p-3">
-                  <h4 className="fw-bold px-2 pt-2 mb-2">Upcoming Appointments</h4>
-                  <OwnerAppointmentsCalendar appointments={ownerAppointments} />
-                </div>
-              </div>
+                      <div className="mt-2 fw-semibold">{price}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </main>
+        </div>
+
+        {/* RIGHT */}
+        <div className="col-12 col-lg-4">
+          <div className="owner-card p-3 h-100">
+            <h5 className="fw-bold mb-3">Upcoming Appointments</h5>
+            {ownerAppointments.length === 0 ? (
+              <div className="text-muted">No upcoming appointments.</div>
+            ) : (
+              <OwnerAppointmentsCalendar appointments={ownerAppointments} />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
+
 }

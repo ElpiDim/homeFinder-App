@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import UserProfile from './pages/UserProfile';
-import Properties from './pages/Properties';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
@@ -19,6 +18,7 @@ import MyProperties from './pages/MyProperties';
 import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 import DashboardRouter from './pages/DashboardRouter';
+import AppLayout from './components/AppLayout';
 
 
 import './App.css';
@@ -74,129 +74,132 @@ function App() {
 
       {/* Protected + απαιτεί ολοκληρωμένο onboarding */}
       <Route
-        path="/dashboard"
         element={
           <OnboardingProtected>
-          <DashboardRouter />
-        </OnboardingProtected>
-  }
-/>
+            <AppLayout />
+          </OnboardingProtected>
+        }
+      >
+        <Route
+          path="/dashboard"
+          element={<DashboardRouter />}
+          handle={{
+            title: { owner: "Dashboard", client: "Your Matched Properties" },
+            subtitle: {
+              owner: "Overview of your listings and appointments.",
+              client: "Properties selected based on your preferences.",
+            },
+          }}
+        />
 
+        <Route
+          path="/calendar"
+          element={<Appointments />}
+        />
 
-      <Route
-        path="/chat/:propertyId/:userId"
-        element={
-          <OnboardingProtected>
-            <Chat />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/chat/:propertyId/:userId"
+          element={<Chat />}
+          handle={{
+            title: "Messages",
+            subtitle: "Chat with owners and agents",
+          }}
+        />
 
-      <Route
-        path="/profile"
-        element={
-          <OnboardingProtected>
-            <Profile />
-          </OnboardingProtected>
-        }
-      />
-      <Route
-        path="/user-profile/:userId"
-        element={
-          <OnboardingProtected>
-            <UserProfile />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/profile"
+          element={<Profile />}
+          handle={{
+            title: "Settings",
+            subtitle: "Manage your profile and preferences",
+          }}
+        />
+        <Route
+          path="/user-profile/:userId"
+          element={<UserProfile />}
+        />
 
-      <Route
-        path="/favorites"
-        element={
-          <OnboardingProtected>
-            <Favorites />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/favorites"
+          element={<Favorites />}
+          handle={{
+            title: "Your Favorites",
+            subtitle: "Properties you saved for later.",
+          }}
+        />
 
-      <Route
-        path="/messages"
-        element={
-          <OnboardingProtected>
-            <Messages />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/messages"
+          element={<Messages />}
+          handle={{
+            title: "Messages",
+            subtitle: "Chat with owners and agents",
+          }}
+        />
 
-      <Route
-        path="/match/clients"
-        element={
-          <OnboardingProtected>
-            <MatchClients />
-          </OnboardingProtected>
-        }
-      />
-      <Route
-        path="/notifications"
-        element={
-          <OnboardingProtected>
-            <Notifications />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/match/clients"
+          element={<MatchClients />}
+          handle={{
+            title: "Match Clients",
+            subtitle: "Review and manage client matches.",
+          }}
+        />
+        <Route
+          path="/notifications"
+          element={<Notifications />}
+          handle={{
+            title: "Notifications",
+            subtitle: "Stay up to date with your latest alerts.",
+          }}
+        />
 
-      <Route
-        path="/appointments"
-        element={
-          <OnboardingProtected>
-            <Appointments />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/appointments"
+          element={<Appointments />}
+        />
 
-      <Route
-        path="/edit-profile"
-        element={
-          <OnboardingProtected>
-            <EditProfile />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/edit-profile"
+          element={<EditProfile />}
+          handle={{
+            title: "Edit Profile",
+            subtitle: "Update your personal information",
+          }}
+        />
 
-      <Route
-        path="/add-property"
-        element={
-          <OnboardingProtected>
-            <AddProperty />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/add-property"
+          element={<AddProperty />}
+          handle={{
+            title: "Add Property",
+            subtitle: "List a new property for clients to discover.",
+          }}
+        />
 
-      <Route
-        path="/property/:propertyId"
-        element={
-          <OnboardingProtected>
-            <PropertyDetails />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/property/:propertyId"
+          element={<PropertyDetails />}
+        />
 
-      <Route
-        path="/my-properties"
-        element={
-          <OnboardingProtected>
-            <MyProperties />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/my-properties"
+          element={<MyProperties />}
+          handle={{
+            title: "My Properties",
+            subtitle: "Manage your active listings.",
+          }}
+        />
 
-      <Route
-        path="/edit-property/:propertyId"
-        element={
-          <OnboardingProtected>
-            <EditProperty />
-          </OnboardingProtected>
-        }
-      />
+        <Route
+          path="/edit-property/:propertyId"
+          element={<EditProperty />}
+          handle={{
+            title: "Edit Property",
+            subtitle: "Update your listing details.",
+          }}
+        />
+      </Route>
     </Routes>
   );
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import ClientNavLayout from "../components/ClientNavLayout";
 import "./Appointments.css";
 
 export default function Appointments() {
@@ -107,32 +106,41 @@ export default function Appointments() {
       minute: "2-digit",
     });
 
+  const pageTitle = user?.role === "owner" ? "Calendar" : "Your Appointments";
+  const pageSubtitle =
+    user?.role === "owner"
+      ? "Track upcoming showings and meetings."
+      : "Track your property viewings and manage appointments";
+
   if (loading) {
     return (
-      <ClientNavLayout
-        title="Your Appointments"
-        subtitle="Track your property viewings and manage appointments"
-      >
-        <div className="af-page">
-          <div className="af-wrap">Loading…</div>
+      <div className="af-page">
+        <div className="af-wrap">
+          <div className="af-topbar">
+            <div className="af-titleBlock">
+              <h1>{pageTitle}</h1>
+              <p>{pageSubtitle}</p>
+            </div>
+          </div>
+          Loading…
         </div>
-      </ClientNavLayout>
+      </div>
     );
   }
 
   return (
-    <ClientNavLayout
-      title="Your Appointments"
-      subtitle="Track your property viewings and manage appointments"
-      headerActions={
-        <button className="af-pillBtn" onClick={() => navigate("/dashboard")}>
-          ↩ Back
-        </button>
-      }
-    >
-      <div className="af-page">
-        <div className="af-wrap">
-          <div className="af-grid">
+    <div className="af-page">
+      <div className="af-wrap">
+        <div className="af-topbar">
+          <div className="af-titleBlock">
+            <h1>{pageTitle}</h1>
+            <p>{pageSubtitle}</p>
+          </div>
+          <button className="af-pillBtn" onClick={() => navigate("/dashboard")}>
+            ↩ Back
+          </button>
+        </div>
+        <div className="af-grid">
             {/* LEFT COLUMN */}
             <aside className="af-left">
               <div className="af-card af-agent">
@@ -241,10 +249,9 @@ export default function Appointments() {
                 </div>
               )}
             </main>
-          </div> {/* ✅ af-grid close */}
-        </div>   {/* af-wrap */}
-      </div>     {/* af-page */}
-    </ClientNavLayout>
+          </div>
+        </div>
+      </div>
   );
 }
 

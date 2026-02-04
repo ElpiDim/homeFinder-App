@@ -4,7 +4,6 @@ import { getFavorites, removeFavorite } from '../services/favoritesService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
-import ClientNavLayout from '../components/ClientNavLayout';
 
 /* -------- helpers (images) -------- */
 const API_ORIGIN =
@@ -59,25 +58,24 @@ export default function Favorites() {
   };
 
   return (
-    <ClientNavLayout title="Your Favorites" subtitle="Properties you saved for later.">
-      <Container className="py-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="d-flex align-items-center gap-2">
-            <h3 className="fw-bold mb-0">Your Favorites</h3>
-            {!loading && (
-              <Badge bg="primary" pill>
-                {favorites.length}
-              </Badge>
-            )}
-          </div>
-          <Button
-            variant="outline-secondary"
-            className="rounded-pill px-4"
-            onClick={() => navigate('/dashboard')}
-          >
-            ← Back to dashboard
-          </Button>
+    <Container className="py-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-2">
+          <h3 className="fw-bold mb-0">Your Favorites</h3>
+          {!loading && (
+            <Badge bg="primary" pill>
+              {favorites.length}
+            </Badge>
+          )}
         </div>
+        <Button
+          variant="outline-secondary"
+          className="rounded-pill px-4"
+          onClick={() => navigate('/dashboard')}
+        >
+          ← Back to dashboard
+        </Button>
+      </div>
 
         {/* Loading */}
         {loading && (
@@ -191,7 +189,6 @@ export default function Favorites() {
             })}
           </Row>
         )}
-      </Container>
-    </ClientNavLayout>
+    </Container>
   );
 }

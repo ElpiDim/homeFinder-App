@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import PropertyCard from "../components/propertyCard";
-import ClientNavLayout from "../components/ClientNavLayout";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -113,31 +112,24 @@ export default function ClientDashboard() {
     return null;
   };
 
-  return (
-    <ClientNavLayout
-      title="Your Matched Properties"
-      subtitle="Properties selected based on your preferences."
-    >
-      {allProperties.length === 0 ? (
-        <div className="cd-empty">No matched properties yet.</div>
-      ) : (
-        <div className="cd-grid">
-          {allProperties.map((prop) => (
-            <div key={prop._id} className="cd-cardWrap">
-              {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
+  return allProperties.length === 0 ? (
+    <div className="cd-empty">No matched properties yet.</div>
+  ) : (
+    <div className="cd-grid">
+      {allProperties.map((prop) => (
+        <div key={prop._id} className="cd-cardWrap">
+          {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
 
-              <PropertyCard
-                prop={prop}
-                isFavorite={favorites.includes(prop._id)}
-                onToggleFavorite={() => handleFavorite(prop._id)}
-                imgUrl={imgUrl}
-                showFavorite={true}
-                onOpen={() => navigate(`/property/${prop._id}`)}
-              />
-            </div>
-          ))}
+          <PropertyCard
+            prop={prop}
+            isFavorite={favorites.includes(prop._id)}
+            onToggleFavorite={() => handleFavorite(prop._id)}
+            imgUrl={imgUrl}
+            showFavorite={true}
+            onOpen={() => navigate(`/property/${prop._id}`)}
+          />
         </div>
-      )}
-    </ClientNavLayout>
+      ))}
+    </div>
   );
 }

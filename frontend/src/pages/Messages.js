@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import ClientNavLayout from "../components/ClientNavLayout";
 import "./Messages.css";
 import api from "../api";
 import { useMessages } from "../context/MessageContext";
@@ -166,12 +165,8 @@ export default function Messages() {
   };
 
   return (
-    <ClientNavLayout
-      title="Messages"
-      subtitle="Chat with owners and agents"
-    >
-      <div className="ms-shell">
-        <div className="ms-page">
+    <div className="ms-shell">
+      <div className="ms-page">
         <aside className="ms-left">
           <div className="ms-search">
             <span className="material-symbols-outlined">search</span>
@@ -358,6 +353,5 @@ export default function Messages() {
         </Form>
       </Modal>
     </div>
-    </ClientNavLayout>
   );
 }
