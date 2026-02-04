@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
 import GoogleMapView from "../components/GoogleMapView";
+import AppLayout from "../components/AppLayout";
 import "./PropertyDetails.css";
 
 const ORIENTATION_LABELS = {
@@ -250,9 +251,11 @@ export default function PropertyDetails() {
 
   if (!property) {
     return (
-      <div className="pd-page">
-        <div className="pd-wrap">Loading…</div>
-      </div>
+      <AppLayout title="Property Details" subtitle="Loading property information">
+        <div className="pd-page">
+          <div className="pd-wrap">Loading…</div>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -269,8 +272,9 @@ export default function PropertyDetails() {
   const statusLabel = property.status ? humanize(property.status) : "";
 
   return (
-    <div className="pd-page">
-      <div className="pd-wrap">
+    <AppLayout title={title} subtitle={addressLine}>
+      <div className="pd-page">
+        <div className="pd-wrap">
         {/* Breadcrumbs */}
         <div className="pd-breadcrumbs">
           <Link to="/dashboard">Home</Link>
@@ -585,7 +589,8 @@ export default function PropertyDetails() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

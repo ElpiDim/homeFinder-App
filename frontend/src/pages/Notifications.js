@@ -1,25 +1,13 @@
 // src/pages/Notifications.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useMessages } from "../context/MessageContext";
 import AppointmentModal from "../components/AppointmentModal";
-import Logo from "../components/Logo";
+import AppLayout from "../components/AppLayout";
 import "./Notifications.css";
 
 /* ---------- helpers ---------- */
-const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, "") : "") ||
-  (typeof window !== "undefined" ? window.location.origin : "");
-
-function normalizeUploadPath(src) {
-  if (!src) return "";
-  if (src.startsWith("http")) return src;
-  const clean = src.replace(/^\/+/, "");
-  return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
-}
-
 function dayStart(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -97,19 +85,12 @@ const descForNote = (n) => {
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { user, logout, token } = useAuth();
-  const { unreadChats } = useMessages();
+  const { token } = useAuth();
 
   const [items, setItems] = useState([]);
   const [activeTab, setActiveTab] = useState("all"); // all | unread | appointments | matches
   const [loading, setLoading] = useState(true);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
-
-  const profileImg = user?.profilePicture
-    ? (user.profilePicture.startsWith("http")
-        ? user.profilePicture
-        : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`)
-    : "/default-avatar.jpg";
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -210,11 +191,6 @@ export default function NotificationsPage() {
     return g;
   }, [filtered]);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
   const handleOpenNotification = async (note) => {
     const isUnread = !note.read && !note.readAt;
     if (isUnread) {
@@ -230,73 +206,6 @@ export default function NotificationsPage() {
     if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
     }
-  };
-
-  const Sidebar = () => {
-    // κρατάμε “client-like” sidebar όπως στο screenshot
-    return (
-      <aside className="np-aside">
-        <div className="np-brand">
-          <div className="np-logo">
-            <Logo as="h5" className="mb-0 logo-in-nav" />
-          </div>
-          <div className="np-brandMeta">
-            <div className="np-brandTitle">{user?.role === "owner" ? "Owner Portal" : "Client Portal"}</div>
-            <div className="np-brandSub">Manage your journey</div>
-          </div>
-        </div>
-
-        <nav className="np-nav">
-          <Link className="np-link" to="/dashboard">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span>Dashboard</span>
-          </Link>
-
-          {user?.role !== "owner" && (
-            <Link className="np-link" to="/favorites">
-              <span className="material-symbols-outlined">favorite</span>
-              <span>Favorites</span>
-            </Link>
-          )}
-
-          <Link className="np-link" to="/appointments">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Appointments</span>
-          </Link>
-
-          <Link className="np-link np-link-active" to="/notifications">
-            <span className="material-symbols-outlined">notifications</span>
-            <span>Notifications</span>
-            {unreadCount > 0 && <span className="np-badge">{unreadCount}</span>}
-          </Link>
-
-          <Link className="np-link" to="/profile">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </Link>
-
-          <Link className="np-link" to="/messages">
-            <span className="material-symbols-outlined">chat</span>
-            <span>Messages</span>
-            {unreadChats > 0 && <span className="np-badge">{unreadChats}</span>}
-          </Link>
-        </nav>
-
-        <div className="np-asideBottom">
-          <div className="np-userRow">
-            <img className="np-avatar" src={profileImg} alt="profile" />
-            <div className="np-userMeta">
-              <div className="np-userName">{user?.name || "User"}</div>
-              <div className="np-userRole">{user?.role === "owner" ? "Property Owner" : "Client"}</div>
-            </div>
-          </div>
-
-          <button className="np-logout" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </aside>
-    );
   };
 
   const Pill = ({ id, icon, label, count, active, onClick }) => (
@@ -395,87 +304,80 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="np-shell">
-      <div className="np-layout">
-        <Sidebar />
+    <>
+      <AppLayout
+        title="Notifications"
+        subtitle="Stay updated with your latest matches and alerts"
+        headerActions={(
+          <button
+            type="button"
+            className="np-markAll"
+            onClick={markAllRead}
+            disabled={unreadCount === 0}
+          >
+            <span className="material-symbols-outlined">done_all</span>
+            Mark all as read
+          </button>
+        )}
+      >
+        <div className="np-pills">
+          <Pill
+            id="all"
+            icon="done_all"
+            label="All"
+            active={activeTab === "all"}
+            onClick={() => setActiveTab("all")}
+          />
+          <Pill
+            id="unread"
+            icon="mark_email_unread"
+            label="Unread"
+            count={unreadCount}
+            active={activeTab === "unread"}
+            onClick={() => setActiveTab("unread")}
+          />
+          <Pill
+            id="appointments"
+            icon="event"
+            label="Appointments"
+            active={activeTab === "appointments"}
+            onClick={() => setActiveTab("appointments")}
+          />
+          <Pill
+            id="matches"
+            icon="home"
+            label="Matches"
+            active={activeTab === "matches"}
+            onClick={() => setActiveTab("matches")}
+          />
+        </div>
 
-        <main className="np-main">
-          <header className="np-topbar">
-            <div className="np-head">
-              <div className="np-h1">Notifications</div>
-              <div className="np-h2">Stay updated with your latest matches and alerts</div>
-
-              <div className="np-pills">
-                <Pill
-                  id="all"
-                  icon="done_all"
-                  label="All"
-                  active={activeTab === "all"}
-                  onClick={() => setActiveTab("all")}
-                />
-                <Pill
-                  id="unread"
-                  icon="mark_email_unread"
-                  label="Unread"
-                  count={unreadCount}
-                  active={activeTab === "unread"}
-                  onClick={() => setActiveTab("unread")}
-                />
-                <Pill
-                  id="appointments"
-                  icon="event"
-                  label="Appointments"
-                  active={activeTab === "appointments"}
-                  onClick={() => setActiveTab("appointments")}
-                />
-                <Pill
-                  id="matches"
-                  icon="home"
-                  label="Matches"
-                  active={activeTab === "matches"}
-                  onClick={() => setActiveTab("matches")}
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="np-markAll"
-              onClick={markAllRead}
-              disabled={unreadCount === 0}
-            >
-              <span className="material-symbols-outlined">done_all</span>
-              Mark all as read
-            </button>
-          </header>
-
-          <div className="np-content">
-            {loading ? (
-              <div className="np-empty">Loading…</div>
-            ) : filtered.length === 0 ? (
-              <div className="np-empty">No notifications.</div>
-            ) : (
-              <>
-                {groups.today.length > 0 && (
-                  <Section title="TODAY">
-                    {groups.today.map((n) => <Card key={n._id} note={n} />)}
-                  </Section>
-                )}
-                {groups.yesterday.length > 0 && (
-                  <Section title="YESTERDAY">
-                    {groups.yesterday.map((n) => <Card key={n._id} note={n} />)}
-                  </Section>
-                )}
-                {groups.older.length > 0 && (
-                  <Section title="OLDER">
-                    {groups.older.map((n) => <Card key={n._id} note={n} />)}
-                  </Section>
-                )}
-              </>
-            )}
-          </div>
-        </main>
-      </div>
+        <div className="np-content">
+          {loading ? (
+            <div className="np-empty">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="np-empty">No notifications.</div>
+          ) : (
+            <>
+              {groups.today.length > 0 && (
+                <Section title="TODAY">
+                  {groups.today.map((n) => <Card key={n._id} note={n} />)}
+                </Section>
+              )}
+              {groups.yesterday.length > 0 && (
+                <Section title="YESTERDAY">
+                  {groups.yesterday.map((n) => <Card key={n._id} note={n} />)}
+                </Section>
+              )}
+              {groups.older.length > 0 && (
+                <Section title="OLDER">
+                  {groups.older.map((n) => <Card key={n._id} note={n} />)}
+                </Section>
+              )}
+            </>
+          )}
+        </div>
+      </AppLayout>
 
       {selectedAppointmentId && (
         <AppointmentModal
@@ -483,6 +385,6 @@ export default function NotificationsPage() {
           onClose={() => setSelectedAppointmentId(null)}
         />
       )}
-    </div>
+    </>
   );
 }

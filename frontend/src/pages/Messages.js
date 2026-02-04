@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import ClientNavLayout from "../components/ClientNavLayout";
+import AppLayout from "../components/AppLayout";
 import "./Messages.css";
 import api from "../api";
 import { useMessages } from "../context/MessageContext";
@@ -166,7 +166,7 @@ export default function Messages() {
   };
 
   return (
-    <ClientNavLayout
+    <AppLayout
       title="Messages"
       subtitle="Chat with owners and agents"
     >
@@ -358,6 +358,6 @@ export default function Messages() {
         </Form>
       </Modal>
     </div>
-    </ClientNavLayout>
+    </AppLayout>
   );
 }

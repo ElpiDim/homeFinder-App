@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
+import { useNotifications } from "../context/NotificationContext";
 import { useSidebar } from "../context/SidebarContext";
 import "../pages/clientDashboard.css";
 
@@ -19,7 +20,7 @@ function normalizeUploadPath(src) {
   return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
 }
 
-export default function ClientNavLayout({
+export default function AppLayout({
   title,
   subtitle,
   headerActions,
@@ -27,6 +28,7 @@ export default function ClientNavLayout({
 }) {
   const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
+  const { unreadCount } = useNotifications() || {};
   const { collapsed, toggleCollapsed } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +44,103 @@ export default function ClientNavLayout({
       : `${API_ORIGIN}${normalizeUploadPath(user.profilePicture)}`
     : "/default-avatar.jpg";
 
-  const isActive = (path) => location.pathname === path;
+  const role = user?.role === "owner" ? "owner" : "client";
+
+  const navItems = useMemo(() => {
+    if (role === "owner") {
+      return [
+        {
+          to: "/dashboard",
+          icon: "dashboard",
+          label: "Dashboard",
+        },
+        {
+          to: "/my-properties",
+          icon: "home",
+          label: "My Properties",
+          matchPaths: ["/my-properties", "/property", "/edit-property"],
+        },
+        {
+          to: "/add-property",
+          icon: "add_home",
+          label: "Add Property",
+        },
+        {
+          to: "/appointments",
+          icon: "calendar_month",
+          label: "Appointments",
+        },
+        {
+          to: "/match/clients",
+          icon: "group",
+          label: "Matches",
+        },
+        {
+          to: "/messages",
+          icon: "chat",
+          label: "Messages",
+          badge: unreadChats,
+          matchPaths: ["/messages", "/chat"],
+        },
+        {
+          to: "/notifications",
+          icon: "notifications",
+          label: "Notifications",
+          badge: unreadCount,
+        },
+        {
+          to: "/profile",
+          icon: "settings",
+          label: "Settings",
+          matchPaths: ["/profile", "/edit-profile"],
+        },
+      ];
+    }
+
+    return [
+      {
+        to: "/dashboard",
+        icon: "home",
+        label: "My Matches",
+      },
+      {
+        to: "/favorites",
+        icon: "favorite",
+        label: "Favorites",
+      },
+      {
+        to: "/appointments",
+        icon: "calendar_month",
+        label: "Appointments",
+      },
+      {
+        to: "/messages",
+        icon: "chat",
+        label: "Messages",
+        badge: unreadChats,
+        matchPaths: ["/messages", "/chat"],
+      },
+      {
+        to: "/notifications",
+        icon: "notifications",
+        label: "Notifications",
+        badge: unreadCount,
+      },
+      {
+        to: "/profile",
+        icon: "settings",
+        label: "Settings",
+        matchPaths: ["/profile", "/edit-profile"],
+      },
+    ];
+  }, [role, unreadChats, unreadCount]);
+
+  const isActive = (item) => {
+    if (item.matchPaths?.length) {
+      return item.matchPaths.some((path) => location.pathname.startsWith(path));
+    }
+    return location.pathname === item.to;
+  };
 
   return (
     <div className={`cd-shell ${collapsed ? "cd-shell--collapsed" : ""}`}>
@@ -65,37 +163,21 @@ export default function ClientNavLayout({
           </div>
 
           <nav className="cd-nav">
-            <Link className={`cd-navlink ${isActive("/dashboard") ? "active" : ""}`} to="/dashboard">
-              <span className="material-symbols-outlined fill">home</span>
-              <span className="cd-navText">My Matches</span>
-            </Link>
-
-            <Link className={`cd-navlink ${isActive("/favorites") ? "active" : ""}`} to="/favorites">
-              <span className="material-symbols-outlined">favorite</span>
-              <span className="cd-navText">Favorites</span>
-            </Link>
-
-            <Link
-              className={`cd-navlink ${isActive("/appointments") ? "active" : ""}`}
-              to="/appointments"
-            >
-              <span className="material-symbols-outlined">calendar_month</span>
-              <span className="cd-navText">Appointments</span>
-            </Link>
-
-            <Link
-              className={`cd-navlink position-relative ${isActive("/messages") ? "active" : ""}`}
-              to="/messages"
-            >
-              <span className="material-symbols-outlined">chat</span>
-              <span className="cd-navText">Messages</span>
-              {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
-            </Link>
-
-            <Link className={`cd-navlink ${isActive("/profile") ? "active" : ""}`} to="/profile">
-              <span className="material-symbols-outlined">settings</span>
-              <span className="cd-navText">Settings</span>
-            </Link>
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                className={`cd-navlink ${item.badge ? "position-relative" : ""} ${
+                  isActive(item) ? "active" : ""
+                }`}
+                to={item.to}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span className="cd-navText">{item.label}</span>
+                {item.badge > 0 && (
+                  <span className="badge bg-danger ms-auto">{item.badge}</span>
+                )}
+              </Link>
+            ))}
           </nav>
 
           <div className="cd-profile">
@@ -103,8 +185,10 @@ export default function ClientNavLayout({
               <div className="cd-profileRow">
                 <img className="cd-avatar" src={profileImg} alt="profile" />
                 <div className="cd-profileMeta">
-                  <div className="cd-name">{user?.name || "Client"}</div>
-                  <div className="cd-role">Client</div>
+                  <div className="cd-name">{user?.name || "User"}</div>
+                  <div className="cd-role">
+                    {role === "owner" ? "Property Owner" : "Client"}
+                  </div>
                 </div>
               </div>
             </Link>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
+import AppLayout from '../components/AppLayout';
 
 function UserProfile() {
   const { userId } = useParams();
@@ -43,20 +44,24 @@ function UserProfile() {
 
   if (loading) {
     return (
-      <div style={pageGradient}>
-        <div className="container mt-5">Loading profile…</div>
-      </div>
+      <AppLayout title="User Profile" subtitle="Loading profile details">
+        <div style={pageGradient}>
+          <div className="container mt-5">Loading profile…</div>
+        </div>
+      </AppLayout>
     );
   }
 
   if (error || !user) {
     return (
+      <AppLayout title="User Profile" subtitle="Unable to load profile">
         <div style={pageGradient} className="py-5">
-            <div className="container">
-                <div className="alert alert-danger">{error || "User not found"}</div>
-                <button className="btn btn-secondary" onClick={() => navigate(-1)}>Go Back</button>
-            </div>
+          <div className="container">
+            <div className="alert alert-danger">{error || "User not found"}</div>
+            <button className="btn btn-secondary" onClick={() => navigate(-1)}>Go Back</button>
+          </div>
         </div>
+      </AppLayout>
     )
   }
 
@@ -73,8 +78,9 @@ function UserProfile() {
   const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
 
   return (
-    <div style={pageGradient} className="py-5">
-      <div className="container" style={{ maxWidth: '900px' }}>
+    <AppLayout title="User Profile" subtitle={`Viewing ${user.name || user.email}`}>
+      <div style={pageGradient} className="py-5">
+        <div className="container" style={{ maxWidth: '900px' }}>
         {/* Header */}
         <div className="p-4 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center">
@@ -252,7 +258,8 @@ function UserProfile() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
 

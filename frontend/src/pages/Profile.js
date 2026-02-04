@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
-import ClientNavLayout from '../components/ClientNavLayout';
+import AppLayout from '../components/AppLayout';
 
 function Profile() {
   const { user, setUser } = useAuth();
@@ -36,23 +36,23 @@ function Profile() {
 
   if (loading) {
     return (
-      <ClientNavLayout
+      <AppLayout
         title="Settings"
         subtitle="Manage your profile and preferences"
       >
         <div className="container py-4">Loading profile…</div>
-      </ClientNavLayout>
+      </AppLayout>
     );
   }
 
   if (!user) {
     return (
-      <ClientNavLayout
+      <AppLayout
         title="Settings"
         subtitle="Manage your profile and preferences"
       >
         <div className="container py-4">Unable to load your profile.</div>
-      </ClientNavLayout>
+      </AppLayout>
     );
   }
 
@@ -261,12 +261,12 @@ function Profile() {
   );
 
   if (isClient) {
-    return (
-      <ClientNavLayout title="Settings" subtitle="Manage your profile">
-        {profileContent}
-      </ClientNavLayout>
-    );
-  }
+  return (
+    <AppLayout title="Settings" subtitle="Manage your profile">
+      {profileContent}
+    </AppLayout>
+  );
+}
 
   return profileContent;
 }

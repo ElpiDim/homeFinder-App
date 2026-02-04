@@ -4,7 +4,7 @@ import { getFavorites, removeFavorite } from '../services/favoritesService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
-import ClientNavLayout from '../components/ClientNavLayout';
+import AppLayout from '../components/AppLayout';
 
 /* -------- helpers (images) -------- */
 const API_ORIGIN =
@@ -59,7 +59,7 @@ export default function Favorites() {
   };
 
   return (
-    <ClientNavLayout title="Your Favorites" subtitle="Properties you saved for later.">
+    <AppLayout title="Your Favorites" subtitle="Properties you saved for later.">
       <Container className="py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center gap-2">
@@ -192,6 +192,6 @@ export default function Favorites() {
           </Row>
         )}
       </Container>
-    </ClientNavLayout>
+    </AppLayout>
   );
 }
