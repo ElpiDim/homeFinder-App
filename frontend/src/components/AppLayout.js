@@ -67,10 +67,30 @@ export default function AppLayout() {
 
     // You can tweak these labels anytime
     const routes = [
-      { path: "/dashboard", title: role === "owner" ? "Dashboard" : "Your Matched Properties", subtitle: role === "owner" ? "Overview of your properties" : "Properties selected based on your preferences." },
-      { path: "/favorites", title: "Favorites", subtitle: "Your saved listings" },
-      { path: "/appointments", title: "Your Appointments", subtitle: "Track your property viewings and manage appointments" },
-      { path: "/appointments", title: role === "owner" ? "Appointments" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
+      {
+        path: "/dashboard",
+        title: role === "owner" ? "Dashboard" : "Your Matched Properties",
+        subtitle:
+          role === "owner"
+            ? "Overview of your properties"
+            : "Properties selected based on your preferences.",
+      },
+      {
+        path: "/favorites",
+        title: "Favorites",
+        subtitle: "Your saved listings",
+        suppressTitle: true,
+      },
+      {
+        path: "/appointments",
+        title: "Your Appointments",
+        subtitle: "Track your property viewings and manage appointments",
+      },
+      {
+        path: "/appointments",
+        title: role === "owner" ? "Appointments" : "Appointments",
+        subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings",
+      },
       { path: "/messages", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/profile", title: "Settings", subtitle: "Manage your account" },
@@ -81,11 +101,16 @@ export default function AppLayout() {
     ];
 
     const found = routes.find((r) => matchPath({ path: r.path, end: false }, location.pathname));
-    if (!found) return { title: "", subtitle: "" };
-    return { title: found.title || "", subtitle: found.subtitle || "" };
+    if (!found) return { title: "", subtitle: "", suppressTitle: false };
+    return {
+      title: found.title || "",
+      subtitle: found.subtitle || "",
+      suppressTitle: Boolean(found.suppressTitle),
+    };
   }, [location.pathname, user?.role]);
 
-  const showTopbar = Boolean(topbar.title || topbar.subtitle);
+  const showTitle = Boolean(topbar.title || topbar.subtitle) && !topbar.suppressTitle;
+  const showTopbar = showTitle || Boolean(token);
 
   return (
     <div className="cd-shell">
@@ -143,10 +168,14 @@ export default function AppLayout() {
         <main className="cd-main">
           {showTopbar && (
             <header className="cd-topbar">
-              <div>
-                {topbar.title && <div className="cd-title">{topbar.title}</div>}
-                {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
-              </div>
+              {showTitle ? (
+                <div>
+                  {topbar.title && <div className="cd-title">{topbar.title}</div>}
+                  {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
+                </div>
+              ) : (
+                <div aria-hidden="true" />
+              )}
 
               <div className="d-flex align-items-center gap-2">
                 {token && <NotificationDropdown token={token} className="cd-iconWrap" />}
