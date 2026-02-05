@@ -309,3 +309,24 @@ body{
   transform: scale(0.9);
 }
 
+/* ===============================
+   PROPERTY CARD – HOVER EFFECT
+================================ */
+
+/* default state */
+.card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* hover lift */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+}
+
+/* title color change on hover */
+.card:hover .card-title {
+  color: #4b0082; /* ή var(--primary) */
+}

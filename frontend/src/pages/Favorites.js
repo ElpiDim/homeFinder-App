@@ -1,194 +1,328 @@
 // src/pages/Favorites.jsx
-import React, { useEffect, useState } from 'react';
-import { getFavorites, removeFavorite } from '../services/favoritesService';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { Container, Button, Card, Row, Col, Badge } from 'react-bootstrap';
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { getFavorites, removeFavorite } from "../services/favoritesService";
+import "./Favorites.css";
 
 /* -------- helpers (images) -------- */
 const API_ORIGIN =
-  (process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace(/\/+$/, '') : '') ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
+  (process.env.REACT_APP_API_URL
+    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    : "") || (typeof window !== "undefined" ? window.location.origin : "");
 
 function normalizeUploadPath(src) {
-  if (!src) return '';
-  if (src.startsWith('http')) return src;
-  const clean = src.replace(/^\/+/, '');
-  const rel = clean.startsWith('uploads/') ? `/${clean}` : `/uploads/${clean}`;
+  if (!src) return "";
+  if (src.startsWith("http")) return src;
+  const clean = src.replace(/^\/+/, "");
+  const rel = clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
   return `${API_ORIGIN}${rel}`;
 }
 
 const currency = (n) =>
-  typeof n === 'number' ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n ?? '';
+  typeof n === "number"
+    ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : n ?? "";
+
+function getMatchLabel(p) {
+  const v =
+    p?.matchPercent ??
+    p?.matchPercentage ??
+    p?.relevancePercent ??
+    p?.scorePercent ??
+    null;
+  if (typeof v === "number" && Number.isFinite(v)) return `${Math.round(v)}% MATCH`;
+  return null;
+}
+
+function getOwnerIdFromProperty(p) {
+  // best-effort
+  const cand =
+    p?.ownerId?._id ||
+    p?.ownerId ||
+    p?.userId?._id ||
+    p?.userId ||
+    p?.createdBy?._id ||
+    p?.createdBy ||
+    null;
+
+  return typeof cand === "string" ? cand : null;
+}
 
 export default function Favorites() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
-  
+
+  /**
+   * ✅ Tabs: κρατάμε ξεχωριστό tab state
+   * - all
+   * - price
+   * - highestMatch
+   */
+  const [activeTab, setActiveTab] = useState("all");
+
+  /**
+   * ✅ Το sorting που εφαρμόζεται στην λίστα
+   */
+  const [sortKey, setSortKey] = useState("recent"); // recent | priceAsc | priceDesc | matchDesc
+
+  /**
+   * ✅ Το “τελευταίο” price state (μένει όπως το άφησες ακόμη κι αν πας σε άλλο tab)
+   */
+  const [priceSort, setPriceSort] = useState("priceAsc"); // priceAsc | priceDesc
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
         const data = await getFavorites(token);
         if (!mounted) return;
-        setFavorites(Array.isArray(data) ? data.filter((f) => f?.propertyId) : []);
+
+        const list = Array.isArray(data) ? data.filter((f) => f?.propertyId) : [];
+        setFavorites(list);
       } catch (e) {
-        console.error('Error fetching favorites:', e);
+        console.error("Error fetching favorites:", e);
+        if (mounted) setFavorites([]);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, [token]);
 
   const handleRemoveFavorite = async (propertyId) => {
-    const ok = window.confirm('Remove this property from your favorites?');
-    if (!ok) return;
     try {
       await removeFavorite(propertyId, token);
       setFavorites((prev) => prev.filter((f) => f.propertyId?._id !== propertyId));
     } catch (e) {
-      console.error('Error removing favorite:', e);
-      alert('Failed to remove from favorites.');
+      console.error("Error removing favorite:", e);
+      alert("Failed to remove from favorites.");
     }
   };
 
+  const properties = useMemo(
+    () => favorites.map((f) => f.propertyId).filter(Boolean),
+    [favorites]
+  );
+
+  const visible = useMemo(() => {
+    let arr = properties.slice();
+
+    // ✅ sort only (tabs control sortKey)
+    if (sortKey === "priceAsc") arr.sort((a, b) => (a?.rent ?? 0) - (b?.rent ?? 0));
+    if (sortKey === "priceDesc") arr.sort((a, b) => (b?.rent ?? 0) - (a?.rent ?? 0));
+    if (sortKey === "matchDesc") arr.sort((a, b) => (b?.matchPercent ?? 0) - (a?.matchPercent ?? 0));
+
+    return arr;
+  }, [properties, sortKey]);
+
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex align-items-center gap-2">
-          <h3 className="fw-bold mb-0">Your Favorites</h3>
-          {!loading && (
-            <Badge bg="primary" pill>
-              {favorites.length}
-            </Badge>
-          )}
+    <div className="fav-page">
+      <div className="fav-top">
+        <div>
+          <div className="fav-title">My Favorites</div>
+          <div className="fav-subtitle">
+            You have <b>{loading ? "…" : visible.length}</b> properties saved in your list
+          </div>
         </div>
-        <Button
-          variant="outline-secondary"
-          className="rounded-pill px-4"
-          onClick={() => navigate('/dashboard')}
-        >
-          ← Back to dashboard
-        </Button>
+
+        <div className="fav-actions">
+          <button
+            type="button"
+            className="fav-actionBtn"
+            onClick={() => {
+              // placeholder (αν θες modal φίλτρων)
+              setActiveTab("all");
+              setSortKey("recent");
+            }}
+          >
+            <span className="material-symbols-outlined">tune</span>
+            Filter Properties
+          </button>
+
+          <button
+            type="button"
+            className="fav-actionBtn"
+            onClick={() => {
+              // placeholder sorting shortcut
+              setActiveTab("all");
+              setSortKey("recent");
+            }}
+            title="Recently added"
+          >
+            <span className="material-symbols-outlined">sort</span>
+            Recently Added
+          </button>
+        </div>
       </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="text-center text-muted py-5">Loading your favorite properties…</div>
-        )}
+      {/* ✅ Underlined tabs */}
+      <div className="fav-tabsRow">
+        {/* All */}
+        <button
+          type="button"
+          className={`fav-tab ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("all");
+            setSortKey("recent");
+            // ⚠️ ΔΕΝ πειράζουμε το priceSort (μένει όπως το άφησες)
+          }}
+        >
+          All Favorites
+        </button>
 
-        {/* Empty */}
-        {!loading && favorites.length === 0 && (
-          <div className="text-center py-5">
-            <div
-              className="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
-              style={{
-                width: 72,
-                height: 72,
-                background: '#eff6ff',
-                border: '1px solid #dbeafe',
-                fontSize: 28,
-              }}
-            >
-              ⭐
-            </div>
-            <h5 className="fw-semibold mb-1">No favorites yet</h5>
-            <p className="text-muted mb-3">Tap the star on any property to save it here.</p>
-            <Button
-              onClick={() => navigate('/dashboard')}
-              className="rounded-pill px-4"
-              style={{ background: 'linear-gradient(135deg,#4b0082,#e0b0ff)', border: 'none' }}
-            >
-              Browse Properties
-            </Button>
-          </div>
-        )}
+        {/* Price toggle (remembers last state) */}
+        <button
+          type="button"
+          className={`fav-tab ${activeTab === "price" ? "active" : ""}`}
+          onClick={() => {
+            // αν είμαστε ήδη στο price tab → toggle
+            if (activeTab === "price") {
+              const next = priceSort === "priceAsc" ? "priceDesc" : "priceAsc";
+              setPriceSort(next);
+              setSortKey(next);
+              return;
+            }
 
-        {/* Grid */}
-        {!loading && favorites.length > 0 && (
-          <Row className="g-4">
-            {favorites.map((fav) => {
-              const p = fav.propertyId;
-              const img =
-                (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
-                'https://via.placeholder.com/600x360?text=No+Image';
-              return (
-                <Col md={6} lg={4} key={p._id}>
-                  <Card className="h-100 shadow-sm border-0">
-                    <Link
-                      to={`/property/${p._id}`}
-                      className="text-decoration-none text-dark"
-                      aria-label={`Open ${p.title}`}
+            // αν ερχόμαστε από άλλο tab → ενεργοποίησε price tab
+            setActiveTab("price");
+            setSortKey(priceSort);
+          }}
+        >
+          {priceSort === "priceDesc" ? "Price: High to Low" : "Price: Low to High"}
+        </button>
+
+        {/* Highest match */}
+        <button
+          type="button"
+          className={`fav-tab ${activeTab === "highestMatch" ? "active" : ""}`}
+          onClick={() => {
+            setActiveTab("highestMatch");
+            setSortKey("matchDesc");
+            // ⚠️ ΔΕΝ πειράζουμε το priceSort
+          }}
+        >
+          Highest Match
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="fav-empty">Loading your favorites…</div>
+      ) : visible.length === 0 ? (
+        <div className="fav-empty">
+          <div className="fav-emptyIcon">♡</div>
+          <div className="fav-emptyTitle">No favorites yet</div>
+          <div className="fav-emptySub">Tap the heart on any property to save it here.</div>
+          <button className="fav-primaryBtn" onClick={() => navigate("/dashboard")}>
+            Browse Properties
+          </button>
+        </div>
+      ) : (
+        <div className="fav-grid">
+          {visible.map((p) => {
+            const img =
+              (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
+              "https://via.placeholder.com/900x560?text=No+Image";
+
+            const match = getMatchLabel(p);
+            const ownerId = getOwnerIdFromProperty(p);
+
+            return (
+              <div key={p._id} className="fav-card">
+                {match && <div className="fav-match">{match}</div>}
+
+                {/* heart (favorites page -> always filled) */}
+                <button
+                  type="button"
+                  className="fav-heart is-on"
+                  onClick={() => handleRemoveFavorite(p._id)}
+                  aria-label="Remove from favorites"
+                  title="Remove from favorites"
+                >
+                  <span className="material-symbols-outlined">favorite</span>
+                </button>
+
+                <Link
+                  to={`/property/${p._id}`}
+                  className="fav-imgLink"
+                  aria-label={`Open ${p.title}`}
+                >
+                  <div className="fav-img" style={{ backgroundImage: `url(${img})` }} />
+                </Link>
+
+                <div className="fav-body">
+                  <div className="fav-row">
+                    <div className="fav-name">{p.title || "Property"}</div>
+                    <div className="fav-price">{p.rent != null ? `€${currency(p.rent)}` : ""}</div>
+                  </div>
+
+                  <div className="fav-loc">
+                    <span className="material-symbols-outlined">location_on</span>
+                    {p.location || p.address || "—"}
+                  </div>
+
+                  <div className="fav-meta">
+                    {(p.bedrooms ?? 0) > 0 && (
+                      <span className="fav-chip">
+                        <span className="material-symbols-outlined">bed</span> {p.bedrooms} Bed
+                      </span>
+                    )}
+                    {(p.bathrooms ?? 0) > 0 && (
+                      <span className="fav-chip">
+                        <span className="material-symbols-outlined">bathtub</span> {p.bathrooms} Bath
+                      </span>
+                    )}
+                    {(p.area ?? p.sqft) && (
+                      <span className="fav-chip">
+                        <span className="material-symbols-outlined">straighten</span>{" "}
+                        {p.area ?? p.sqft} sqft
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="fav-cta">
+                    <button
+                      type="button"
+                      className="fav-ctaPrimary"
+                      onClick={() => navigate("/appointments")}
+                      title="Schedule viewing"
                     >
-                      <div
-                        className="ratio ratio-16x9 rounded-top"
-                        style={{
-                          backgroundImage: `url(${img})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }}
-                      />
-                      <Card.Body>
-                        <Card.Title className="mb-1">{p.title}</Card.Title>
-                        <div className="text-muted small">📍 {p.location}</div>
+                      Schedule Viewing
+                    </button>
 
-                        <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
-                          {p.rent != null && (
-                            <Badge bg="light" text="dark">
-                              💶 {currency(p.rent)} €
-                            </Badge>
-                          )}
-                          {p.type && (
-                            <Badge
-                              bg="primary"
-                              title="Type"
-                              style={{ background: 'linear-gradient(135deg,#4b0082,#e0b0ff)' }}
-                            >
-                              {p.type}
-                            </Badge>
-                          )}
-                          {(p.bedrooms ?? 0) > 0 && (
-                            <Badge bg="light" text="dark" title="Bedrooms">
-                              🛏 {p.bedrooms}
-                            </Badge>
-                          )}
-                          {(p.bathrooms ?? 0) > 0 && (
-                            <Badge bg="light" text="dark" title="Bathrooms">
-                              🛁 {p.bathrooms}
-                            </Badge>
-                          )}
-                        </div>
-                      </Card.Body>
-                    </Link>
+                    <button
+                      type="button"
+                      className="fav-ctaSecondary"
+                      onClick={() => {
+                        if (p?._id && ownerId) navigate(`/chat/${p._id}/${ownerId}`);
+                        else navigate("/messages");
+                      }}
+                      title="Message agent"
+                    >
+                      Message Agent
+                    </button>
+                  </div>
 
-                    <Card.Footer className="bg-white border-0 d-flex justify-content-between">
-                      <Link
-                        to={`/property/${p._id}`}
-                        className="btn btn-sm btn-outline-primary rounded-pill"
-                      >
-                        View
-                      </Link>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        className="rounded-pill"
-                        onClick={() => handleRemoveFavorite(p._id)}
-                        title="Remove from favorites"
-                      >
-                        Remove
-                      </Button>
-                    </Card.Footer>
-                  </Card>
-                </Col>
-              );
-            })}
-          </Row>
-        )}
-    </Container>
+                  <button
+                    type="button"
+                    className="fav-removeLink"
+                    onClick={() => handleRemoveFavorite(p._id)}
+                  >
+                    <span className="material-symbols-outlined">heart_minus</span>
+                    Remove from Favorites
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
