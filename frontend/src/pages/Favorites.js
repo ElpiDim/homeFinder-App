@@ -35,7 +35,6 @@ function getMatchLabel(p) {
 }
 
 function getOwnerIdFromProperty(p) {
-  // best-effort
   const cand =
     p?.ownerId?._id ||
     p?.ownerId ||
@@ -48,6 +47,24 @@ function getOwnerIdFromProperty(p) {
   return typeof cand === "string" ? cand : null;
 }
 
+/**
+ * ✅ Best-effort: βρίσκουμε "ημερομηνία" για το newest/oldest
+ * - αν έχεις createdAt στο property, θα πιάσει
+ * - αλλιώς κοιτάει updatedAt
+ * - αλλιώς createdAt από favorite record (αν υπάρχει μέσα στο propertyId object)
+ */
+function getPropertyDate(p) {
+  const raw =
+    p?.createdAt ||
+    p?.updatedAt ||
+    p?.date ||
+    p?.timestamp ||
+    null;
+
+  const t = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
 export default function Favorites() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
@@ -56,22 +73,28 @@ export default function Favorites() {
   const [loading, setLoading] = useState(true);
 
   /**
-   * ✅ Tabs: κρατάμε ξεχωριστό tab state
+   * Tabs:
    * - all
    * - price
    * - highestMatch
+   * - newestMatch
    */
   const [activeTab, setActiveTab] = useState("all");
 
   /**
-   * ✅ Το sorting που εφαρμόζεται στην λίστα
+   * sortKey controls sorting
    */
-  const [sortKey, setSortKey] = useState("recent"); // recent | priceAsc | priceDesc | matchDesc
+  const [sortKey, setSortKey] = useState("recent"); // recent | priceAsc | priceDesc | matchDesc | newestMatch | oldestMatch
 
   /**
-   * ✅ Το “τελευταίο” price state (μένει όπως το άφησες ακόμη κι αν πας σε άλλο tab)
+   * Remember last price state
    */
   const [priceSort, setPriceSort] = useState("priceAsc"); // priceAsc | priceDesc
+
+  /**
+   * ✅ Remember last newest/oldest state
+   */
+  const [matchTimeSort, setMatchTimeSort] = useState("newestMatch"); // newestMatch | oldestMatch
 
   useEffect(() => {
     let mounted = true;
@@ -112,12 +135,15 @@ export default function Favorites() {
   );
 
   const visible = useMemo(() => {
-    let arr = properties.slice();
+    const arr = properties.slice();
 
-    // ✅ sort only (tabs control sortKey)
     if (sortKey === "priceAsc") arr.sort((a, b) => (a?.rent ?? 0) - (b?.rent ?? 0));
     if (sortKey === "priceDesc") arr.sort((a, b) => (b?.rent ?? 0) - (a?.rent ?? 0));
     if (sortKey === "matchDesc") arr.sort((a, b) => (b?.matchPercent ?? 0) - (a?.matchPercent ?? 0));
+
+    // ✅ newest/oldest match (by date)
+    if (sortKey === "newestMatch") arr.sort((a, b) => getPropertyDate(b) - getPropertyDate(a));
+    if (sortKey === "oldestMatch") arr.sort((a, b) => getPropertyDate(a) - getPropertyDate(b));
 
     return arr;
   }, [properties, sortKey]);
@@ -125,13 +151,10 @@ export default function Favorites() {
   return (
     <div className="fav-page">
       <div className="fav-top fav-top--compact">
-  <div className="fav-subtitle">
-    You have <b>{loading ? "…" : visible.length}</b> properties saved in your list
-  </div>
-
-
-</div>
-
+        <div className="fav-subtitle">
+          You have <b>{loading ? "…" : visible.length}</b> properties saved in your list
+        </div>
+      </div>
 
       {/* ✅ Underlined tabs */}
       <div className="fav-tabsRow">
@@ -142,26 +165,23 @@ export default function Favorites() {
           onClick={() => {
             setActiveTab("all");
             setSortKey("recent");
-            // ⚠️ ΔΕΝ πειράζουμε το priceSort (μένει όπως το άφησες)
+            // keep priceSort + matchTimeSort as-is
           }}
         >
           All Favorites
         </button>
 
-        {/* Price toggle (remembers last state) */}
+        {/* Price toggle */}
         <button
           type="button"
           className={`fav-tab ${activeTab === "price" ? "active" : ""}`}
           onClick={() => {
-            // αν είμαστε ήδη στο price tab → toggle
             if (activeTab === "price") {
               const next = priceSort === "priceAsc" ? "priceDesc" : "priceAsc";
               setPriceSort(next);
               setSortKey(next);
               return;
             }
-
-            // αν ερχόμαστε από άλλο tab → ενεργοποίησε price tab
             setActiveTab("price");
             setSortKey(priceSort);
           }}
@@ -176,10 +196,29 @@ export default function Favorites() {
           onClick={() => {
             setActiveTab("highestMatch");
             setSortKey("matchDesc");
-            // ⚠️ ΔΕΝ πειράζουμε το priceSort
           }}
         >
           Highest Match
+        </button>
+
+        {/* ✅ Newest/Oldest match toggle */}
+        <button
+          type="button"
+          className={`fav-tab ${activeTab === "newestMatch" ? "active" : ""}`}
+          onClick={() => {
+            // if already here -> toggle
+            if (activeTab === "newestMatch") {
+              const next = matchTimeSort === "newestMatch" ? "oldestMatch" : "newestMatch";
+              setMatchTimeSort(next);
+              setSortKey(next);
+              return;
+            }
+            // coming from other tab -> activate using last remembered state
+            setActiveTab("newestMatch");
+            setSortKey(matchTimeSort);
+          }}
+        >
+          {matchTimeSort === "oldestMatch" ? "Oldest Match" : "Newest Match"}
         </button>
       </div>
 
@@ -208,7 +247,6 @@ export default function Favorites() {
               <div key={p._id} className="fav-card">
                 {match && <div className="fav-match">{match}</div>}
 
-                {/* heart (favorites page -> always filled) */}
                 <button
                   type="button"
                   className="fav-heart is-on"
@@ -219,11 +257,7 @@ export default function Favorites() {
                   <span className="material-symbols-outlined">favorite</span>
                 </button>
 
-                <Link
-                  to={`/property/${p._id}`}
-                  className="fav-imgLink"
-                  aria-label={`Open ${p.title}`}
-                >
+                <Link to={`/property/${p._id}`} className="fav-imgLink" aria-label={`Open ${p.title}`}>
                   <div className="fav-img" style={{ backgroundImage: `url(${img})` }} />
                 </Link>
 

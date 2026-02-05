@@ -177,10 +177,10 @@ export default function ClientDashboard() {
                   }}
                 >
                   <span
-                    className={`material-symbols-outlined fav-heart ${isFav ? "active" : ""}`}
-                  >
-                    favorite
-                  </span>
+                  className={`material-symbols-outlined fav-heart ${isFav ? "active" : ""}`}
+                >
+                  favorite
+                </span>
 
                 </button>
 
