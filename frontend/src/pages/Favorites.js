@@ -124,43 +124,14 @@ export default function Favorites() {
 
   return (
     <div className="fav-page">
-      <div className="fav-top">
-        <div>
-          <div className="fav-title">My Favorites</div>
-          <div className="fav-subtitle">
-            You have <b>{loading ? "…" : visible.length}</b> properties saved in your list
-          </div>
-        </div>
+      <div className="fav-top fav-top--compact">
+  <div className="fav-subtitle">
+    You have <b>{loading ? "…" : visible.length}</b> properties saved in your list
+  </div>
 
-        <div className="fav-actions">
-          <button
-            type="button"
-            className="fav-actionBtn"
-            onClick={() => {
-              // placeholder (αν θες modal φίλτρων)
-              setActiveTab("all");
-              setSortKey("recent");
-            }}
-          >
-            <span className="material-symbols-outlined">tune</span>
-            Filter Properties
-          </button>
 
-          <button
-            type="button"
-            className="fav-actionBtn"
-            onClick={() => {
-              // placeholder sorting shortcut
-              setActiveTab("all");
-              setSortKey("recent");
-            }}
-            title="Recently added"
-          >
-            <span className="material-symbols-outlined">sort</span>
-            Recently Added
-          </button>
-        </div>
-      </div>
+</div>
+
 
       {/* ✅ Underlined tabs */}
       <div className="fav-tabsRow">

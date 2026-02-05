@@ -68,10 +68,10 @@ export default function AppLayout() {
     // You can tweak these labels anytime
     const routes = [
       { path: "/dashboard", title: role === "owner" ? "Dashboard" : "Your Matched Properties", subtitle: role === "owner" ? "Overview of your properties" : "Properties selected based on your preferences." },
-      { path: "/favorites", title: "Favorites", subtitle: "Your saved listings" },
+      { path: "/favorites", title: "Your Favorites", subtitle: "Your saved listings" },
       { path: "/appointments", title: "Your Appointments", subtitle: "Track your property viewings and manage appointments" },
       { path: "/appointments", title: role === "owner" ? "Appointments" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
-      { path: "/messages", title: "Messages", subtitle: "Chat with owners and agents" },
+      { path: "/messages", title: "Your Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/profile", title: "Settings", subtitle: "Manage your account" },
       { path: "/edit-profile", title: "Edit Profile", subtitle: "Update your information" },

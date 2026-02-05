@@ -349,3 +349,57 @@
   margin-top: 0;
   font-size: 13px;
 }
+/* --- Favorites page layout closer to reference --- */
+
+/* 1) Center content like a marketplace page (not full-bleed) */
+.fav-page{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 16px 28px; /* λίγο πιο “καθαρό” */
+}
+
+/* 2) Compact top bar – subtitle left, actions right */
+.fav-top--compact{
+  align-items: center;
+  padding: 6px 0 8px;   /* πιο tight */
+}
+
+.fav-top--compact .fav-subtitle{
+  margin-top: 0;
+  font-size: 13px;
+}
+
+/* 3) Tabs: closer + underline aligned */
+.fav-tabsRow{
+  gap: 18px;                 /* λίγο πιο κοντά */
+  padding: 8px 0 10px;       /* λιγότερο ύψος */
+  margin-top: 6px;           /* λιγότερο κενό */
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+/* underline να κάθεται ακριβώς πάνω στο border */
+.fav-tab.active::after{
+  bottom: -11px;             /* tiny tweak για να “κουμπώνει” */
+}
+
+/* 4) Grid padding slightly tighter (looks more like the mock) */
+.fav-grid{
+  padding: 10px 0 0;
+}
+
+/* 5) Cards: keep same but slightly more “premium” spacing */
+.fav-img{
+  height: 190px; /* λίγο πιο “hero” όπως το reference */
+}
+/* κάνει πιο μεγάλο το "You have X properties saved..." */
+.fav-top--compact .fav-subtitle{
+  font-size: 16px;      /* ήταν 13px */
+  line-height: 1.35;
+  font-weight: 700;     /* λίγο πιο έντονο */
+}
+
+/* προαιρετικό: να τονίζει λίγο το νούμερο */
+.fav-top--compact .fav-subtitle b{
+  font-weight: 900;
+  color: var(--text);
+}

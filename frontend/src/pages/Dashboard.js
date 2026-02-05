@@ -472,7 +472,7 @@ function Dashboard() {
           
           {user?.role !== 'owner' && (
             // ΑΛΛΑΓΗ: text-dark -> text-white
-            <Link to="/favorites" className="text-white text-decoration-none">Favorites</Link>
+            <Link to="/favorites" className="text-white text-decoration-none">Your Favorites</Link>
           )}
 
           {/* Notifications */}
