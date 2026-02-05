@@ -288,3 +288,24 @@ html, body, #root{
 body{
   overflow: hidden;
 }
+/* Heart base (outline) */
+.fav-heart{
+  font-size: 22px;
+  color: rgba(0,0,0,.35);      /* outline καρδιά */
+  transition:
+    color .25s ease,
+    transform .15s ease;
+  cursor: pointer;
+}
+
+/* Active = FULL purple heart */
+.fav-heart.active{
+  color: var(--primary);       /* 💜 ΟΛΗ η καρδιά μωβ */
+  transform: scale(1.15);
+}
+
+/* Click feedback */
+.fav-heart:active{
+  transform: scale(0.9);
+}
+

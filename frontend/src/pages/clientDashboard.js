@@ -1,9 +1,9 @@
 // src/pages/clientDashboard.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import PropertyCard from "../components/propertyCard";
+import { Container, Row, Col, Card, Badge } from "react-bootstrap";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -16,8 +16,14 @@ function normalizeUploadPath(src) {
   if (!src) return "";
   if (src.startsWith("http")) return src;
   const clean = src.replace(/^\/+/, "");
-  return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  const rel = clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  return `${API_ORIGIN}${rel}`;
 }
+
+const currency = (n) =>
+  typeof n === "number"
+    ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : n ?? "";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -30,13 +36,6 @@ export default function ClientDashboard() {
     if (user?.role !== "client") return undefined;
     return user?.preferences?.dealType === "sale" ? "sale" : "rent";
   }, [user]);
-
-  const imgUrl = useCallback((src) => {
-    if (!src) return "https://via.placeholder.com/400x225?text=No+Image";
-    if (src.startsWith("http")) return src;
-    const rel = normalizeUploadPath(src);
-    return `${API_ORIGIN}${rel}`;
-  }, []);
 
   const fetchMatches = useCallback(async () => {
     try {
@@ -92,7 +91,6 @@ export default function ClientDashboard() {
           { propertyId },
           { headers: { "Content-Type": "application/json" } }
         );
-        // ✅ FIXED: spread prev correctly
         setFavorites((prev) => [...prev, propertyId]);
       }
     } catch (err) {
@@ -100,7 +98,6 @@ export default function ClientDashboard() {
     }
   };
 
-  // optional: if backend returns match score
   const matchLabel = (p) => {
     const v =
       p?.matchPercent ??
@@ -108,28 +105,150 @@ export default function ClientDashboard() {
       p?.relevancePercent ??
       p?.scorePercent ??
       null;
-    if (typeof v === "number" && Number.isFinite(v)) return `${Math.round(v)}% MATCH`;
+    if (typeof v === "number" && Number.isFinite(v)) {
+      return `${Math.round(v)}% MATCH`;
+    }
     return null;
   };
 
-  return allProperties.length === 0 ? (
-    <div className="cd-empty">No matched properties yet.</div>
-  ) : (
-    <div className="cd-grid">
-      {allProperties.map((prop) => (
-        <div key={prop._id} className="cd-cardWrap">
-          {matchLabel(prop) && <div className="cd-matchPill">{matchLabel(prop)}</div>}
+  if (allProperties.length === 0) {
+    return <div className="cd-empty">No matched properties yet.</div>;
+  }
 
-          <PropertyCard
-            prop={prop}
-            isFavorite={favorites.includes(prop._id)}
-            onToggleFavorite={() => handleFavorite(prop._id)}
-            imgUrl={imgUrl}
-            showFavorite={true}
-            onOpen={() => navigate(`/property/${prop._id}`)}
-          />
-        </div>
-      ))}
-    </div>
+  return (
+    <Container className="py-2">
+      <Row className="g-4">
+        {allProperties.map((p) => {
+          const img =
+            (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
+            "https://via.placeholder.com/600x360?text=No+Image";
+
+          const isFav = favorites.includes(p._id);
+          const match = matchLabel(p);
+
+          return (
+            <Col md={6} lg={4} key={p._id}>
+              <Card className="h-100 shadow-sm border-0 position-relative">
+                {/* Match pill (optional) */}
+                {match && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 10,
+                      left: 10,
+                      zIndex: 5,
+                      padding: "6px 10px",
+                      borderRadius: 10,
+                      background: "var(--primary)",
+                      color: "#fff",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      boxShadow: "0 10px 18px rgba(0,0,0,.12)",
+                    }}
+                  >
+                    {match}
+                  </div>
+                )}
+
+                {/* ❤️ Heart favorite (top-right) */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFavorite(p._id);
+                  }}
+                  aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                  title={isFav ? "Remove from favorites" : "Add to favorites"}
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    zIndex: 6,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 999,
+                    border: "1px solid rgba(0,0,0,.10)",
+                    background: "rgba(255,255,255,.92)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span
+                    className={`material-symbols-outlined fav-heart ${isFav ? "active" : ""}`}
+                  >
+                    favorite
+                  </span>
+
+                </button>
+
+                <Link
+                  to={`/property/${p._id}`}
+                  className="text-decoration-none text-dark"
+                  aria-label={`Open ${p.title}`}
+                >
+                  <div
+                    className="ratio ratio-16x9 rounded-top"
+                    style={{
+                      backgroundImage: `url(${img})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                  <Card.Body>
+                    <Card.Title className="mb-1">{p.title}</Card.Title>
+                    <div className="text-muted small">📍 {p.location}</div>
+
+                    <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                      {p.rent != null && (
+                        <Badge bg="light" text="dark">
+                          💶 {currency(p.rent)} €
+                        </Badge>
+                      )}
+                      {p.type && (
+                        <Badge
+                          bg="primary"
+                          title="Type"
+                          style={{
+                            background:
+                              "linear-gradient(135deg,#4b0082,#e0b0ff)",
+                          }}
+                        >
+                          {p.type}
+                        </Badge>
+                      )}
+                      {(p.bedrooms ?? 0) > 0 && (
+                        <Badge bg="light" text="dark" title="Bedrooms">
+                          🛏 {p.bedrooms}
+                        </Badge>
+                      )}
+                      {(p.bathrooms ?? 0) > 0 && (
+                        <Badge bg="light" text="dark" title="Bathrooms">
+                          🛁 {p.bathrooms}
+                        </Badge>
+                      )}
+                    </div>
+                  </Card.Body>
+                </Link>
+
+                <Card.Footer className="bg-white border-0 d-flex justify-content-between">
+                  <Link
+                    to={`/property/${p._id}`}
+                    className="btn btn-sm btn-outline-primary rounded-pill"
+                  >
+                    View
+                  </Link>
+
+                  {/* κρατάμε δεξιά κενό (ή βάλε κάτι άλλο στο μέλλον) */}
+                  <div />
+                </Card.Footer>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </Container>
   );
 }
