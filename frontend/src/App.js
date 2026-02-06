@@ -116,6 +116,14 @@ function App() {
           }}
         />
         <Route
+          path="/profile"
+          element={<Profile />}
+          handle={{
+            title: "Profile",
+            subtitle: "View your account details",
+          }}
+        />
+        <Route
           path="/user-profile/:userId"
           element={<UserProfile />}
         />

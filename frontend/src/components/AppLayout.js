@@ -43,7 +43,7 @@ export default function AppLayout() {
         { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
         { label: "Calendar", path: "/calendar", icon: "calendar_month" },
         { label: "Messages", path: "/messages", icon: "chat", match: ["/chat"] },
-        { label: "Settings", path: "/profile", icon: "settings", match: ["/edit-profile"] },
+        { label: "Settings", path: "/settings", icon: "settings", match: ["/edit-profile"] },
       ];
     }
     return [
@@ -51,7 +51,7 @@ export default function AppLayout() {
       { label: "Favorites", path: "/favorites", icon: "favorite" },
       { label: "Appointments", path: "/appointments", icon: "calendar_month" },
       { label: "Messages", path: "/messages", icon: "chat", match: ["/chat"] },
-      { label: "Settings", path: "/profile", icon: "settings", match: ["/edit-profile"] },
+      { label: "Settings", path: "/settings", icon: "settings", match: ["/edit-profile"] },
     ];
   }, [user?.role]);
 
@@ -73,7 +73,8 @@ export default function AppLayout() {
       { path: "/appointments", title: role === "owner" ? "Appointments" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
       { path: "/messages", title: "Your Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
-      { path: "/profile", title: "Settings", subtitle: "Manage your account" },
+      { path: "/settings", title: "Settings", subtitle: "Manage your account" },
+      { path: "/profile", title: "Profile", subtitle: "View your account details" },
       { path: "/edit-profile", title: "Edit Profile", subtitle: "Update your information" },
       { path: "/add-property", title: "Add Property", subtitle: "Create a new listing" },
       { path: "/property/:propertyId", title: "Property Details", subtitle: "View listing information" },

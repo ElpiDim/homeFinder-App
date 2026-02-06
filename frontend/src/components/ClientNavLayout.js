@@ -92,7 +92,7 @@ export default function ClientNavLayout({
               {unreadChats > 0 && <span className="badge bg-danger ms-auto">{unreadChats}</span>}
             </Link>
 
-            <Link className={`cd-navlink ${isActive("/profile") ? "active" : ""}`} to="/profile">
+            <Link className={`cd-navlink ${isActive("/settings") ? "active" : ""}`} to="/settings">
               <span className="material-symbols-outlined">settings</span>
               <span className="cd-navText">Settings</span>
             </Link>
