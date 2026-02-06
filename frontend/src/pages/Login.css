@@ -20,8 +20,6 @@
   position: relative;
 }
 
-.lo/* src/pages/Login.css */
-
 .login-logo-container {
   position: absolute;
   top: 40px;
@@ -39,7 +37,7 @@
 .hero-text {
   font-size: 3.5rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text);
   line-height: 1.1;
   text-align: left; /* Στην εικόνα φαίνεται κεντραρισμένο ή αριστερά, το βάζω center για ασφάλεια */
   max-width: 500px;
@@ -49,7 +47,7 @@
 /* --- ΔΕΞΙΑ ΠΛΕΥΡΑ (ΦΟΡΜΑ) --- */
 .login-form-container {
   flex: 1;
-  background-color: #ffffff;
+  background-color: var(--surface);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -69,12 +67,12 @@
 .login-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111;
+  color: var(--text);
   margin-bottom: 0.5rem;
 }
 
 .login-subtitle {
-  color: #6b7280;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
@@ -88,24 +86,24 @@
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
-  color: #374151;
+  color: var(--text);
 }
 
 .form-control-custom {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.2s;
-  background-color: #f9fafb;
+  background-color: var(--bg-light);
 }
 
 .form-control-custom:focus {
   outline: none;
-  border-color: #8b5cf6; /* Μωβ border */
-  background-color: #fff;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: var(--primary); /* Μωβ border */
+  background-color: var(--surface);
+  box-shadow: 0 0 0 3px rgba(127, 19, 236, 0.1);
 }
 
 /* Password eye icon wrapper */
@@ -121,14 +119,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--muted);
   font-size: 1.1rem;
 }
 
 .forgot-link {
   float: right;
   font-size: 0.85rem;
-  color: #7c3aed;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
 }
@@ -136,7 +134,7 @@
 /* Login Button */
 .btn-login {
   width: 100%;
-  background-color: #7c3aed; /* Έντονο μωβ */
+  background-color: var(--primary); /* Έντονο μωβ */
   color: white;
   padding: 12px;
   border: none;
@@ -149,18 +147,18 @@
 }
 
 .btn-login:hover {
-  background-color: #6d28d9;
+  filter: brightness(0.9);
 }
 
 .signup-text {
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .signup-link {
-  color: #7c3aed;
+  color: var(--primary);
   font-weight: 600;
   text-decoration: none;
   margin-left: 5px;

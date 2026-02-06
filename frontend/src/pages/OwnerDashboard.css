@@ -1,16 +1,3 @@
-:root{
-  --primary:#7f13ec;
-
-  --bg-light:#f7f6f8;
-  --surface:#ffffff;
-
-  --text:#141118;
-  --text2:#756189;
-
-  --border:#e0dbe6;     /* ✅ missing */
-
-  --radius-lg: 14px;
-}
 
 .owner-shell{
   min-height:100vh;

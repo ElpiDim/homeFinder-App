@@ -92,7 +92,7 @@ function Login() {
               <div className="d-flex justify-content-between align-items-center">
                 <label className="form-label mb-0">Password</label>
                 {/* Αν έχεις σελίδα forgot password, βάλε το link εδώ, αλλιώς # */}
-                <Link to="/forgot-password" class="forgot-link">Forgot Password?</Link>
+                <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
               </div>
               
               <div className="password-wrapper mt-1">

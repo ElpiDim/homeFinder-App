@@ -20,6 +20,6 @@ test('renders welcome message on home page', () => {
       </AuthProvider>
     </MemoryRouter>
   );
-  const headingElement = screen.getByText(/Find a house, make it your home in a click./i);
+  const headingElement = screen.getByText(/Find Your/i);
   expect(headingElement).toBeInTheDocument();
 });

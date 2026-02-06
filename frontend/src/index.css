@@ -13,19 +13,29 @@
    ================================ */
 
 :root {
---bs-primary: #6f42c1;
-  --bs-primary-rgb: 111, 66, 193;
+  /* Core Colors */
+  --primary: #7f13ec;
+  --bs-primary: #7f13ec;
+  --bs-primary-rgb: 127, 19, 236;
 
-  /* Brand palette */
+  --bg-light: #f7f6f8;
+  --surface: #ffffff;
+  --text: #141118;
+  --muted: #756189;
+  --text2: var(--muted); /* Alias for backward compatibility */
+  --border: #e0dbe6;
+
+  /* Brand Palette */
   --brand-start: #4b0082;
   --brand-end:   #e0b0ff;
   --brand-grad:  linear-gradient(135deg, var(--brand-start), var(--brand-end));
 
   /* UI tokens */
   --ui-bg: rgba(255,255,255,.72);
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
+  --radius-lg: 14px;
+
+  /* Layout */
+  --search-h: 44px;
 }
 
 html, body, #root { height: 100%; }
@@ -187,7 +197,7 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
 .btn-filters:hover{ background:var(--brand-grad); color:#fff; border-color:transparent; }
 
 /* ίδιο ύψος για search & filters */
-:root { --search-h: 44px; }
+/* :root { --search-h: 44px; } MOVED TO TOP */
 
 /* Η ομάδα χωρίς κενό, ίδια ευθυγράμμιση */
 .search-group{ display:flex; align-items:stretch; gap:0; }

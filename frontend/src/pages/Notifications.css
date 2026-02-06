@@ -1,18 +1,9 @@
 /* src/pages/NotificationsPage.css */
-:root{
-  --np-primary:#7f13ec;
-  --np-bg:#f7f6f8;
-  --np-surface:#ffffff;
-  --np-text:#141118;
-  --np-muted:#756189;
-  --np-border:#e6e1ea;
-  --np-radius:14px;
-}
 
 .np-shell{
   min-height:100vh;
-  background: var(--np-bg);
-  color: var(--np-text);
+  background: var(--bg-light);
+  color: var(--text);
 }
 
 .np-layout{
@@ -24,8 +15,8 @@
 .np-aside{
   width:260px;
   flex:0 0 260px;
-  background: var(--np-surface);
-  border-right:1px solid var(--np-border);
+  background: var(--surface);
+  border-right:1px solid var(--border);
   padding:16px;
   display:flex;
   flex-direction:column;
@@ -38,10 +29,10 @@
   padding:8px 6px 14px;
 }
 
-.np-logo{ color: var(--np-primary); }
+.np-logo{ color: var(--primary); }
 .np-brandMeta{ margin-top:4px; }
 .np-brandTitle{ font-weight:800; font-size:14px; }
-.np-brandSub{ color: var(--np-muted); font-size:12px; margin-top:2px; }
+.np-brandSub{ color: var(--muted); font-size:12px; margin-top:2px; }
 
 .np-nav{
   display:flex;
@@ -57,14 +48,14 @@
   padding:10px 12px;
   border-radius:12px;
   text-decoration:none;
-  color: var(--np-text);
+  color: var(--text);
   font-weight:600;
   font-size:13px;
 }
 
 .np-link .material-symbols-outlined{
   font-size:20px;
-  color: var(--np-muted);
+  color: var(--muted);
 }
 
 .np-link:hover{
@@ -73,17 +64,17 @@
 
 .np-link-active{
   background: rgba(127,19,236,0.10);
-  color: var(--np-primary);
+  color: var(--primary);
 }
 
 .np-link-active .material-symbols-outlined{
-  color: var(--np-primary);
+  color: var(--primary);
 }
 
 .np-badge{
   margin-left:auto;
   background: rgba(127,19,236,0.12);
-  color: var(--np-primary);
+  color: var(--primary);
   font-weight:800;
   font-size:12px;
   padding:3px 9px;
@@ -93,7 +84,7 @@
 .np-asideBottom{
   margin-top:auto;
   padding-top:14px;
-  border-top:1px solid var(--np-border);
+  border-top:1px solid var(--border);
 }
 
 .np-userRow{
@@ -112,11 +103,11 @@
 }
 
 .np-userName{ font-weight:800; font-size:13px; }
-.np-userRole{ font-size:12px; color: var(--np-muted); margin-top:1px; }
+.np-userRole{ font-size:12px; color: var(--muted); margin-top:1px; }
 
 .np-logout{
   width:100%;
-  border:1px solid var(--np-border);
+  border:1px solid var(--border);
   background:#fff;
   border-radius:12px;
   padding:10px 12px;
@@ -139,7 +130,7 @@
   position:sticky;
   top:0;
   z-index:2000;
-  background: var(--np-bg);
+  background: var(--bg-light);
   padding:24px 28px;
   display:flex;
   gap:16px;
@@ -154,7 +145,7 @@
 }
 
 .np-h2{
-  color: var(--np-muted);
+  color: var(--muted);
   margin-top:4px;
   font-weight:600;
   font-size:13px;
@@ -168,7 +159,7 @@
 }
 
 .np-pill{
-  border:1px solid var(--np-border);
+  border:1px solid var(--border);
   background:#fff;
   border-radius:999px;
   padding:8px 12px;
@@ -178,9 +169,9 @@
   font-weight:800;
   font-size:12px;
   cursor:pointer;
-  color: var(--np-text);
+  color: var(--text);
 }
-.np-pill .material-symbols-outlined{ font-size:18px; color: var(--np-muted); }
+.np-pill .material-symbols-outlined{ font-size:18px; color: var(--muted); }
 .np-pill:hover{ background: rgba(127,19,236,0.06); }
 
 .np-pill-active{
@@ -193,7 +184,7 @@
 .np-pillCount{
   margin-left:2px;
   background: rgba(127,19,236,0.14);
-  color: var(--np-primary);
+  color: var(--primary);
   padding:2px 8px;
   border-radius:999px;
   font-size:11px;
@@ -201,7 +192,7 @@
 }
 
 .np-markAll{
-  border:1px solid var(--np-border);
+  border:1px solid var(--border);
   background:#fff;
   border-radius:12px;
   padding:10px 14px;
@@ -216,7 +207,7 @@
   opacity:.55;
   cursor:not-allowed;
 }
-.np-markAll .material-symbols-outlined{ font-size:18px; color: var(--np-muted); }
+.np-markAll .material-symbols-outlined{ font-size:18px; color: var(--muted); }
 
 /* --- content --- */
 .np-content{
@@ -225,18 +216,18 @@
 
 .np-empty{
   background:#fff;
-  border:1px solid var(--np-border);
-  border-radius: var(--np-radius);
+  border:1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding:18px;
   font-weight:700;
-  color: var(--np-muted);
+  color: var(--muted);
 }
 
 .np-section{ margin-top:18px; }
 .np-sectionTitle{
   font-size:11px;
   font-weight:900;
-  color: var(--np-muted);
+  color: var(--muted);
   letter-spacing:0.08em;
   margin:12px 6px;
 }
@@ -245,8 +236,8 @@
 /* --- card --- */
 .np-card{
   background:#fff;
-  border:1px solid var(--np-border);
-  border-radius: var(--np-radius);
+  border:1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding:14px 14px;
   display:flex;
   gap:12px;
@@ -254,7 +245,7 @@
 }
 
 .np-card-unread{
-  border-left:4px solid var(--np-primary);
+  border-left:4px solid var(--primary);
 }
 
 .np-cardLeft{ flex:0 0 auto; }
@@ -269,7 +260,7 @@
 }
 .np-ic .material-symbols-outlined{ font-size:20px; }
 
-.np-ic-purple{ background: rgba(127,19,236,0.10); color: var(--np-primary); }
+.np-ic-purple{ background: rgba(127,19,236,0.10); color: var(--primary); }
 .np-ic-green{ background: rgba(16,185,129,0.10); color: #059669; }
 .np-ic-red{ background: rgba(239,68,68,0.10); color: #dc2626; }
 .np-ic-gray{ background: rgba(107,114,128,0.12); color: #6b7280; }
@@ -297,7 +288,7 @@
 }
 
 .np-cardTime{
-  color: var(--np-muted);
+  color: var(--muted);
   font-weight:800;
   font-size:11px;
   flex:0 0 auto;
@@ -307,13 +298,13 @@
   width:7px;
   height:7px;
   border-radius:999px;
-  background: var(--np-primary);
+  background: var(--primary);
   display:inline-block;
 }
 
 .np-cardDesc{
   margin-top:4px;
-  color: var(--np-muted);
+  color: var(--muted);
   font-weight:650;
   font-size:12px;
   line-height:1.35;
@@ -333,15 +324,15 @@
   padding:8px 12px;
   font-weight:900;
   font-size:12px;
-  border:1px solid var(--np-border);
+  border:1px solid var(--border);
   background:#fff;
   cursor:pointer;
   white-space:nowrap;
 }
 
 .np-btn-primary{
-  background: var(--np-primary);
-  border-color: var(--np-primary);
+  background: var(--primary);
+  border-color: var(--primary);
   color:#fff;
 }
 
@@ -357,7 +348,7 @@
   align-items:center;
   justify-content:center;
 }
-.np-btn-icon .material-symbols-outlined{ font-size:20px; color: var(--np-muted); }
+.np-btn-icon .material-symbols-outlined{ font-size:20px; color: var(--muted); }
 
 @media (max-width: 992px){
   .np-aside{ display:none; }
