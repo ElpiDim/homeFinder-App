@@ -190,13 +190,10 @@ export default function ClientDashboard() {
                   aria-label={`Open ${p.title}`}
                 >
                   <div
-                    className="ratio ratio-16x9 rounded-top"
-                    style={{
-                      backgroundImage: `url(${img})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
+                  className="cd-img"
+                  style={{ backgroundImage: `url(${img})` }}
+                />
+
                   <Card.Body>
                     <Card.Title className="mb-1">{p.title}</Card.Title>
                     <div className="text-muted small">📍 {p.location}</div>

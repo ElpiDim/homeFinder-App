@@ -8,24 +8,33 @@
   --radius-lg: 14px;
 }
 
+/* ===============================
+   GLOBAL LAYOUT – NO OUTER SCROLL
+================================ */
 .cd-shell{
-  min-height:100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg-light);
   color: var(--text);
 }
 
 .cd-layout{
   display:flex;
-  min-height:100vh;
+  height: 100vh;
 }
 
-/* SIDEBAR */
+/* ===============================
+   SIDEBAR – NEVER SCROLLS
+================================ */
 .cd-aside{
   width:260px;
   flex:0 0 260px;
   background: var(--surface);
   border-right:1px solid var(--border);
   padding:16px;
+
+  height: 100vh;
+  overflow: hidden;
   display:flex;
   flex-direction:column;
 }
@@ -36,9 +45,7 @@
   padding:16px 12px;
 }
 
-.cd-brand{
-  padding: 8px 8px 16px 8px;
-}
+.cd-brand{ padding: 8px 8px 16px 8px; }
 
 .cd-brandRow{
   display:flex;
@@ -60,14 +67,9 @@
   line-height:1;
   cursor:pointer;
 }
+.cd-toggle:hover{ background: rgba(127,19,236,0.08); }
 
-.cd-toggle:hover{
-  background: rgba(127,19,236,0.08);
-}
-
-.cd-aside.is-collapsed .cd-brandRow{
-  justify-content:center;
-}
+.cd-aside.is-collapsed .cd-brandRow{ justify-content:center; }
 
 .cd-nav{
   display:flex;
@@ -76,9 +78,7 @@
   padding-top:6px;
 }
 
-.cd-aside.is-collapsed .cd-nav{
-  align-items:center;
-}
+.cd-aside.is-collapsed .cd-nav{ align-items:center; }
 
 .cd-navlink{
   display:flex;
@@ -138,10 +138,15 @@
 .cd-name{ font-weight:700; color: var(--text); }
 .cd-role{ font-size:.9rem; color: var(--text2); }
 
-/* MAIN */
+/* ===============================
+   MAIN COLUMN (only content scrolls)
+================================ */
 .cd-main{
   flex:1;
   min-width:0;
+
+  height: 100vh;
+  overflow: hidden;
   display:flex;
   flex-direction:column;
 }
@@ -182,7 +187,11 @@
 }
 
 .cd-content{
-  padding:28px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 28px;
+  overscroll-behavior: contain;
 }
 
 .cd-empty{
@@ -193,7 +202,13 @@
   color: var(--text2);
 }
 
-/* GRID */
+/* safety */
+html, body, #root{ height: 100%; }
+body{ overflow: hidden; }
+
+/* ===============================
+   GRID
+================================ */
 .cd-grid{
   display:grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -208,14 +223,19 @@
 }
 @media (max-width: 640px){
   .cd-layout{ flex-direction:column; }
-  .cd-aside{ width:100%; flex:0 0 auto; border-right:none; border-bottom:1px solid var(--border); }
+  .cd-aside{
+    width:100%;
+    flex:0 0 auto;
+    border-right:none;
+    border-bottom:1px solid var(--border);
+  }
   .cd-grid{ grid-template-columns: 1fr; }
 }
 
-/* wrapper for match badge */
-.cd-cardWrap{
-  position:relative;
-}
+/* ===============================
+   Match Pill
+================================ */
+.cd-cardWrap{ position:relative; }
 
 .cd-matchPill{
   position:absolute;
@@ -231,102 +251,88 @@
   letter-spacing:.2px;
   box-shadow:0 10px 18px rgba(0,0,0,.12);
 }
-/* ===============================
-   GLOBAL LAYOUT – NO OUTER SCROLL
-================================ */
-.cd-shell{
-  height: 100vh;
-  overflow: hidden;       /* ❌ stop page scroll */
-  background: var(--bg-light);
-  color: var(--text);
-}
 
-.cd-layout{
+/* ===============================
+   HEART (Fix double circle / halo)
+   Αυτό είναι το βασικό fix ✅
+================================ */
+.cd-heartBtn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:6;
+
+  width:38px;
+  height:38px;
+  border-radius:999px;
+
+  border:1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.92);
+
   display:flex;
-  height: 100vh;          /* ❌ no min-height */
+  align-items:center;
+  justify-content:center;
+
+  cursor:pointer;
+
+  /* ✅ removes the “second circle” feel */
+  box-shadow: none;
+  outline: none;
 }
 
-/* ===============================
-   SIDEBAR – NEVER SCROLLS
-================================ */
-.cd-aside{
-  height: 100vh;
-  overflow: hidden;       /* ❌ sidebar never scrolls */
-  display:flex;
-  flex-direction:column;
+.cd-heartBtn:hover{
+  background: rgba(255,255,255,.98);
 }
 
-/* ===============================
-   MAIN COLUMN
-================================ */
-.cd-main{
-  flex:1;
-  height: 100vh;
-  overflow: hidden;       /* ❌ main itself does NOT scroll */
-  display:flex;
-  flex-direction:column;
+.cd-heartBtn:focus,
+.cd-heartBtn:focus-visible{
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-/* ===============================
-   ONLY CONTENT SCROLLS
-================================ */
-.cd-content{
-  flex: 1;
-  min-height: 0;          /* ⚠️ required for flex scrolling */
-  overflow-y: auto;       /* ✅ ONLY HERE SCROLL */
-  padding: 28px;
-  overscroll-behavior: contain;
-}
-
-/* ===============================
-   SAFETY (optional but recommended)
-================================ */
-html, body, #root{
-  height: 100%;
-}
-
-body{
-  overflow: hidden;
-}
-/* Heart base (outline) */
+/* icon itself */
 .fav-heart{
   font-size: 22px;
-  color: rgba(0,0,0,.35);      /* outline καρδιά */
-  transition:
-    color .25s ease,
-    transform .15s ease;
+  color: rgba(0,0,0,.35);
+  transition: color .25s ease, transform .15s ease;
   cursor: pointer;
 }
 
 /* Active = FULL purple heart */
 .fav-heart.active{
-  color: var(--primary);       /* 💜 ΟΛΗ η καρδιά μωβ */
-  transform: scale(1.15);
+  color: var(--primary);
+  font-variation-settings: "FILL" 1;
+  transform: scale(1.12);
 }
 
 /* Click feedback */
-.fav-heart:active{
-  transform: scale(0.9);
+.cd-heartBtn:active .fav-heart{
+  transform: scale(0.92);
 }
 
 /* ===============================
-   PROPERTY CARD – HOVER EFFECT
+   CARD – make it like Favorites
 ================================ */
-
-/* default state */
-.card {
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+.cd-card{
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0,0,0,.08);
+  transition: transform .18s ease, box-shadow .18s ease;
 }
 
-/* hover lift */
-.card:hover {
+.cd-card:hover{
   transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+  box-shadow: 0 22px 48px rgba(0,0,0,.14);
 }
 
-/* title color change on hover */
-.card:hover .card-title {
-  color: #4b0082; /* ή var(--primary) */
+/* same image height as Favorites */
+.cd-img{
+  height: 190px;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Optional: keep bootstrap card hover subtle but not conflicting */
+.card{
+  transition: transform .18s ease, box-shadow .18s ease;
 }
