@@ -637,12 +637,11 @@ function Dashboard() {
               {properties.map((prop) => (
                  <div className="dashboard-listing-card" key={prop._id}>
                   <PropertyCard
-                    prop={prop}
+                    property={prop}
                     isFavorite={favorites.includes(prop._id)}
                     onToggleFavorite={() => handleFavorite(prop._id)}
                     imgUrl={imgUrl}
                     showFavorite={user?.role !== 'owner'}
-                    onOpen={() => navigate(`/property/${prop._id}`)}
                   />
                 </div>
               ))}

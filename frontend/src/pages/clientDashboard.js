@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
-import { Container, Row, Col, Card, Badge } from "react-bootstrap";
+import { Container, Row, Col, Badge } from "react-bootstrap";
+import PropertyCard from "../components/propertyCard";
 import "./clientDashboard.css";
 
 /* ---------- images (local/ngrok) ---------- */
@@ -119,129 +120,23 @@ export default function ClientDashboard() {
     <Container className="py-2">
       <Row className="g-4">
         {allProperties.map((p) => {
-          const img =
-            (p.images?.[0] && normalizeUploadPath(p.images[0])) ||
-            "https://via.placeholder.com/600x360?text=No+Image";
-
           const isFav = favorites.includes(p._id);
           const match = matchLabel(p);
 
+          // Try to determine ownerId for messaging
+          const ownerId = p.ownerId?._id || p.ownerId || p.userId?._id || p.userId || p.createdBy?._id || p.createdBy;
+
           return (
             <Col md={6} lg={4} key={p._id}>
-              <Card className="h-100 shadow-sm border-0 position-relative">
-                {/* Match pill (optional) */}
-                {match && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      left: 10,
-                      zIndex: 5,
-                      padding: "6px 10px",
-                      borderRadius: 10,
-                      background: "var(--primary)",
-                      color: "#fff",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      boxShadow: "0 10px 18px rgba(0,0,0,.12)",
-                    }}
-                  >
-                    {match}
-                  </div>
-                )}
-
-                {/* ❤️ Heart favorite (top-right) */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleFavorite(p._id);
-                  }}
-                  aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                  title={isFav ? "Remove from favorites" : "Add to favorites"}
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    zIndex: 6,
-                    width: 38,
-                    height: 38,
-                    borderRadius: 999,
-                    border: "1px solid rgba(0,0,0,.10)",
-                    background: "rgba(255,255,255,.92)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <span
-                  className={`material-symbols-outlined fav-heart ${isFav ? "active" : ""}`}
-                >
-                  favorite
-                </span>
-
-                </button>
-
-                <Link
-                  to={`/property/${p._id}`}
-                  className="text-decoration-none text-dark"
-                  aria-label={`Open ${p.title}`}
-                >
-                  <div
-                  className="cd-img"
-                  style={{ backgroundImage: `url(${img})` }}
-                />
-
-                  <Card.Body>
-                    <Card.Title className="mb-1">{p.title}</Card.Title>
-                    <div className="text-muted small">📍 {p.location}</div>
-
-                    <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
-                      {p.rent != null && (
-                        <Badge bg="light" text="dark">
-                          💶 {currency(p.rent)} €
-                        </Badge>
-                      )}
-                      {p.type && (
-                        <Badge
-                          bg="primary"
-                          title="Type"
-                          style={{
-                            background:
-                              "linear-gradient(135deg,#4b0082,#e0b0ff)",
-                          }}
-                        >
-                          {p.type}
-                        </Badge>
-                      )}
-                      {(p.bedrooms ?? 0) > 0 && (
-                        <Badge bg="light" text="dark" title="Bedrooms">
-                          🛏 {p.bedrooms}
-                        </Badge>
-                      )}
-                      {(p.bathrooms ?? 0) > 0 && (
-                        <Badge bg="light" text="dark" title="Bathrooms">
-                          🛁 {p.bathrooms}
-                        </Badge>
-                      )}
-                    </div>
-                  </Card.Body>
-                </Link>
-
-                <Card.Footer className="bg-white border-0 d-flex justify-content-between">
-                  <Link
-                    to={`/property/${p._id}`}
-                    className="btn btn-sm btn-outline-primary rounded-pill"
-                  >
-                    View
-                  </Link>
-
-                  {/* κρατάμε δεξιά κενό (ή βάλε κάτι άλλο στο μέλλον) */}
-                  <div />
-                </Card.Footer>
-              </Card>
+              <PropertyCard
+                property={p}
+                matchLabel={match}
+                isFavorite={isFav}
+                onToggleFavorite={() => handleFavorite(p._id)}
+                onSchedule={() => navigate("/appointments")}
+                onMessage={ownerId ? () => navigate(`/chat/${p._id}/${ownerId}`) : undefined}
+                showRemoveLink={false}
+              />
             </Col>
           );
         })}

@@ -1,71 +1,178 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import "./PropertyCard.css";
 
-const euro = (n) =>
-  typeof n === "number" ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n;
+/* ---------- helpers (images) ---------- */
+const API_ORIGIN =
+  (process.env.REACT_APP_API_URL
+    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    : "") || (typeof window !== "undefined" ? window.location.origin : "");
+
+function normalizeUploadPath(src) {
+  if (!src) return "";
+  if (src.startsWith("http")) return src;
+  const clean = src.replace(/^\/+/, "");
+  const rel = clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
+  return `${API_ORIGIN}${rel}`;
+}
+
+const currency = (n) =>
+  typeof n === "number"
+    ? n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+    : n ?? "";
 
 export default function PropertyCard({
-  prop,
+  property,
+  prop, // alias for backward compatibility
+  matchLabel = null,
   isFavorite = false,
-  onToggleFavorite = () => {},
-  imgUrl = (src) => src, // πέρασε τη δική σου helper αν θες
+  onToggleFavorite,
+  onSchedule,
+  onMessage,
+  onRemove,
+  showRemoveLink = false,
+  showFavorite = true,
+  imgUrl, // optional external helper
 }) {
-  const cover = prop?.images?.[0] ? imgUrl(prop.images[0]) : "https://placehold.co/800x450?text=No+Image";
-  const typeLabel = prop?.type || "-";
-  const price = prop?.price != null ? `€ ${euro(Number(prop.price))}` : "—";
-  const location = prop?.address || prop?.location || "—";
+  const p = property || prop;
+  if (!p) return null;
+
+  // Resolve image URL
+  let cover = "https://via.placeholder.com/600x400?text=No+Image";
+  if (p.images && p.images[0]) {
+    if (imgUrl) {
+      cover = imgUrl(p.images[0]);
+    } else {
+      cover = normalizeUploadPath(p.images[0]);
+    }
+  }
+
+  // Resolve price
+  // Some parts of app use .rent, others might use .price
+  const priceVal = p.rent != null ? p.rent : p.price;
+  const displayPrice = priceVal != null ? `€${currency(priceVal)}` : "";
+
+  // Resolve area/size
+  const areaVal = p.area ?? p.sqft ?? p.squareMeters ?? p.surface;
 
   return (
-    <div className="pcard shadow-sm rounded-4 overflow-hidden">
-      {/* IMAGE */}
-      <Link to={`/property/${prop._id}`} className="text-decoration-none">
-        <div className="pcard-media">
-          <img src={cover} alt={prop?.title || "Property"} loading="lazy" />
-          {/* overlay badges */}
-          <div className="pcard-overlay d-flex gap-2">
-            <span className="badge bg-dark bg-opacity-75 text-white rounded-pill p-2 px-3">
-              {price}
-            </span>
-            <span className={`badge rounded-pill p-2 px-3 ${typeLabel === "rent" ? "bg-info" : "bg-primary"}`}>
-              {typeLabel}
-            </span>
-          </div>
-          {/* favorite */}
-          <button
-            type="button"
-            className={`pcard-fav ${isFavorite ? "is-active" : ""}`}
-            aria-label="favorite"
-            onClick={(e) => { e.preventDefault(); onToggleFavorite(prop._id); }}
-          >
-            {isFavorite ? "★" : "☆"}
-          </button>
-        </div>
+    <div className="pc-card">
+      {/* Match Label */}
+      {matchLabel && <div className="pc-match">{matchLabel}</div>}
+
+      {/* Favorite Heart */}
+      {showFavorite && (
+        <button
+          type="button"
+          className={`pc-heart ${isFavorite ? "is-active" : ""}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onToggleFavorite) onToggleFavorite();
+          }}
+          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <span className="material-symbols-outlined">favorite</span>
+        </button>
+      )}
+
+      {/* Image Link */}
+      <Link
+        to={`/property/${p._id}`}
+        className="pc-imgLink"
+        aria-label={`Open ${p.title}`}
+      >
+        <div className="pc-img" style={{ backgroundImage: `url(${cover})` }} />
       </Link>
 
-      {/* BODY */}
-      <div className="bg-white p-3">
-        <Link to={`/property/${prop._id}`} className="text-decoration-none text-dark">
-          <h5 className="fw-semibold mb-1 text-truncate">{prop?.title || "Untitled property"}</h5>
-        </Link>
-
-        <div className="text-muted small d-flex align-items-center gap-1">
-          <span>📍</span>
-          <span className="text-truncate">{location}</span>
+      {/* Body */}
+      <div className="pc-body">
+        <div className="pc-row">
+          <Link
+            to={`/property/${p._id}`}
+            style={{ textDecoration: "none", flex: 1, minWidth: 0 }}
+          >
+            <h3 className="pc-name text-truncate" title={p.title}>
+              {p.title || "Untitled Property"}
+            </h3>
+          </Link>
+          <div className="pc-price">
+            {displayPrice}
+          </div>
         </div>
 
-        {/* quick facts line */}
-        <div className="d-flex flex-wrap gap-2 mt-2 small">
-          {prop?.bedrooms != null && (
-            <span className="pcard-chip">🛏 {prop.bedrooms}</span>
-          )}
-          {prop?.bathrooms != null && (
-            <span className="pcard-chip">🛁 {prop.bathrooms}</span>
-          )}
-          {(prop?.squareMeters || prop?.surface) && (
-            <span className="pcard-chip">📐 {prop.squareMeters || prop.surface} m²</span>
-          )}
-          {prop?.floor != null && <span className="pcard-chip">⬆️ Floor {prop.floor}</span>}
+        <div className="pc-loc">
+          <span className="material-symbols-outlined">location_on</span>
+          <span className="text-truncate">
+            {p.location || p.address || "—"}
+          </span>
         </div>
+
+        <div className="pc-meta">
+          {(p.bedrooms ?? 0) > 0 && (
+            <span className="pc-chip">
+              <span className="material-symbols-outlined">bed</span> {p.bedrooms} Bed
+            </span>
+          )}
+          {(p.bathrooms ?? 0) > 0 && (
+            <span className="pc-chip">
+              <span className="material-symbols-outlined">bathtub</span>{" "}
+              {p.bathrooms} Bath
+            </span>
+          )}
+          {areaVal && (
+            <span className="pc-chip">
+              <span className="material-symbols-outlined">straighten</span>{" "}
+              {areaVal} m²
+            </span>
+          )}
+        </div>
+
+        {/* CTA Buttons */}
+        {(onSchedule || onMessage) && (
+          <div className="pc-cta">
+            {onSchedule && (
+              <button
+                type="button"
+                className="pc-ctaPrimary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSchedule();
+                }}
+              >
+                Schedule Viewing
+              </button>
+            )}
+            {onMessage && (
+              <button
+                type="button"
+                className="pc-ctaSecondary"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onMessage();
+                }}
+              >
+                Message Agent
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Remove Link */}
+        {showRemoveLink && onRemove && (
+          <button
+            type="button"
+            className="pc-removeLink"
+            onClick={(e) => {
+              e.preventDefault();
+              onRemove();
+            }}
+          >
+            <span className="material-symbols-outlined">heart_minus</span>
+            Remove from Favorites
+          </button>
+        )}
       </div>
     </div>
   );

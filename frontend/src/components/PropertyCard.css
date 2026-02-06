@@ -1,0 +1,237 @@
+:root {
+  --pc-primary: #7f13ec;
+  --pc-surface: #ffffff;
+  --pc-text: #141118;
+  --pc-text2: #756189;
+  --pc-border: #e0dbe6;
+  --pc-shadow: 0 14px 34px rgba(0,0,0,.08);
+}
+
+.pc-card {
+  position: relative;
+  background: var(--pc-surface);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--pc-shadow);
+  transition: transform .18s ease, box-shadow .18s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(0,0,0,.14);
+}
+
+.pc-card:hover .pc-name {
+  color: #0f0b16;
+}
+
+.pc-match {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  background: rgba(127,19,236,.92);
+  color: #fff;
+  font-weight: 950;
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  box-shadow: 0 12px 26px rgba(0,0,0,.18);
+}
+
+.pc-heart {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pc-heart:hover {
+  background: #fff;
+  transform: scale(1.05);
+}
+
+.pc-heart .material-symbols-outlined {
+  font-size: 22px;
+  color: rgba(0,0,0,.35);
+  transition: color .25s ease;
+}
+
+.pc-heart.is-active {
+  border-color: rgba(127,19,236,.22);
+}
+
+.pc-heart.is-active .material-symbols-outlined {
+  color: var(--pc-primary);
+  font-variation-settings: "FILL" 1;
+}
+
+.pc-imgLink {
+  display: block;
+  text-decoration: none;
+}
+
+.pc-img {
+  height: 190px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #f0f0f0;
+}
+
+.pc-body {
+  padding: 14px 14px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pc-name {
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: -0.2px;
+  color: var(--pc-text);
+  transition: color .18s ease;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.pc-price {
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--pc-primary);
+  white-space: nowrap;
+}
+
+.pc-loc {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: rgba(0,0,0,.55);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pc-loc .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.pc-meta {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.03);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 12px;
+  color: rgba(0,0,0,.70);
+  white-space: nowrap;
+}
+
+.pc-chip .material-symbols-outlined {
+  font-size: 16px;
+  color: rgba(0,0,0,.55);
+}
+
+.pc-cta {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pc-ctaPrimary {
+  border: 0;
+  background: linear-gradient(135deg,#6d28d9,#a855f7);
+  color: #fff;
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  flex: 1;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.2s ease;
+}
+
+.pc-ctaPrimary:hover {
+  filter: brightness(1.1);
+}
+
+.pc-ctaSecondary {
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  color: var(--pc-text);
+  font-weight: 900;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  flex: 1;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.pc-ctaSecondary:hover {
+  background: #f9f9f9;
+}
+
+.pc-removeLink {
+  margin-top: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: rgba(0,0,0,.55);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 2px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.pc-removeLink:hover {
+  color: var(--pc-primary);
+}
+
+.pc-removeLink .material-symbols-outlined {
+  font-size: 18px;
+}
