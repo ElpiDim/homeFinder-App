@@ -34,9 +34,10 @@ export default function PropertyCard({
   showFavorite = true,
   imgUrl, // optional external helper
 }) {
-  const p = property || prop;
-  if (!p) return null;
+ const p = property ?? prop;
+  if (!p || typeof p !== "object") return null;
 
+  const propertyId = p._id ?? p.id;
   // Resolve image URL
   let cover = "https://via.placeholder.com/600x400?text=No+Image";
   if (p.images && p.images[0]) {
@@ -78,25 +79,39 @@ export default function PropertyCard({
       )}
 
       {/* Image Link */}
-      <Link
-        to={`/property/${p._id}`}
-        className="pc-imgLink"
-        aria-label={`Open ${p.title}`}
-      >
-        <div className="pc-img" style={{ backgroundImage: `url(${cover})` }} />
-      </Link>
+        {propertyId ? (
+        <Link
+          to={`/property/${propertyId}`}
+          className="pc-imgLink"
+          aria-label={`Open ${p.title}`}
+        >
+          <div className="pc-img" style={{ backgroundImage: `url(${cover})` }} />
+        </Link>
+      ) : (
+        <div className="pc-imgLink" aria-label={p.title}>
+          <div className="pc-img" style={{ backgroundImage: `url(${cover})` }} />
+        </div>
+      )}
 
       {/* Body */}
       <div className="pc-body">
         <div className="pc-row">
-          <Link
-            to={`/property/${p._id}`}
-            style={{ textDecoration: "none", flex: 1, minWidth: 0 }}
-          >
-            <h3 className="pc-name text-truncate" title={p.title}>
-              {p.title || "Untitled Property"}
-            </h3>
-          </Link>
+           {propertyId ? (
+            <Link
+              to={`/property/${propertyId}`}
+              style={{ textDecoration: "none", flex: 1, minWidth: 0 }}
+            >
+              <h3 className="pc-name text-truncate" title={p.title}>
+                {p.title || "Untitled Property"}
+              </h3>
+            </Link>
+          ) : (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 className="pc-name text-truncate" title={p.title}>
+                {p.title || "Untitled Property"}
+              </h3>
+            </div>
+          )}
           <div className="pc-price">
             {displayPrice}
           </div>
