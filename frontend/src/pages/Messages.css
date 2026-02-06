@@ -135,3 +135,8 @@
 }
 .ms-propose:hover{ transform: translateY(-1px); }
 .ms-propose .material-symbols-outlined{ font-size: 20px; }
+
+/* Messages.css */
+.messages-left, .msg-sidebar, .chat-list {
+  font-size: 15px; /* από 13-14 -> 15 */
+}

@@ -19,6 +19,7 @@ import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 import DashboardRouter from './pages/DashboardRouter';
 import AppLayout from './components/AppLayout';
+import Settings from './pages/Settings';
 
 
 import './App.css';
@@ -107,8 +108,8 @@ function App() {
         />
 
         <Route
-          path="/profile"
-          element={<Profile />}
+          path="/settings"
+          element={<Settings />}
           handle={{
             title: "Settings",
             subtitle: "Manage your profile and preferences",
