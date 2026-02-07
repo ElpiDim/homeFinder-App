@@ -114,7 +114,15 @@ function App() {
             subtitle: "Manage your profile and preferences",
           }}
         />
-        
+         <Route
+    path="/profile"
+    element={<Profile />}
+    handle={{
+      title: "My Profile",
+      subtitle: "View your personal info and preferences",
+    }}
+  />
+
         <Route
           path="/user-profile/:userId"
           element={<UserProfile />}
