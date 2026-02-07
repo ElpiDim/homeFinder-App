@@ -43,7 +43,7 @@ export default function AppLayout() {
         { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
         { label: "Calendar", path: "/calendar", icon: "calendar_month" },
         { label: "Messages", path: "/messages", icon: "chat", match: ["/chat"] },
-        { label: "Settings", path: "/settings", icon: "settings", match: ["/edit-profile"] },
+        { label: "Notifications", path: "/notifications", icon: "notifications" },
       ];
     }
     return [
@@ -51,7 +51,7 @@ export default function AppLayout() {
       { label: "Favorites", path: "/favorites", icon: "favorite" },
       { label: "Appointments", path: "/appointments", icon: "calendar_month" },
       { label: "Messages", path: "/messages", icon: "chat", match: ["/chat"] },
-      { label: "Settings", path: "/settings", icon: "settings", match: ["/edit-profile"] },
+      { label: "Notifications", path: "/notifications", icon: "notifications" },
     ];
   }, [user?.role]);
 
@@ -125,6 +125,14 @@ export default function AppLayout() {
           </nav>
 
           <div className="cd-profile">
+            <Link
+              to="/settings"
+              className={`cd-navlink cd-profileLink ${isActive("/settings", ["/edit-profile"]) ? "active" : ""}`}
+            >
+              <span className="material-symbols-outlined fill">settings</span>
+              <span className="cd-navText">Settings</span>
+            </Link>
+
             <Link to="/profile" className="text-decoration-none">
               <div className="cd-profileRow">
                 <img className="cd-avatar" src={profileImg} alt="profile" />

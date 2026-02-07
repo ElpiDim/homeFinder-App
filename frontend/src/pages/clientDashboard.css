@@ -112,6 +112,10 @@
   padding-top:18px;
 }
 
+.cd-profileLink{
+  margin-bottom:12px;
+}
+
 .cd-logout-btn{
   border:1px solid var(--primary);
   background: var(--primary);
