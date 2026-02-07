@@ -33,11 +33,13 @@ export default function PropertyCard({
   showRemoveLink = false,
   showFavorite = true,
   imgUrl, // optional external helper
+  linkTo,
 }) {
  const p = property ?? prop;
   if (!p || typeof p !== "object") return null;
 
   const propertyId = p._id ?? p.id;
+  const destination = linkTo ?? (propertyId ? `/property/${propertyId}` : null);
   // Resolve image URL
   let cover = "https://via.placeholder.com/600x400?text=No+Image";
   if (p.images && p.images[0]) {
@@ -79,12 +81,9 @@ export default function PropertyCard({
       )}
 
       {/* Image Link */}
-        {propertyId ? (
-        <Link
-          to={`/property/${propertyId}`}
-          className="pc-imgLink"
-          aria-label={`Open ${p.title}`}
-        >
+        {destination ? (
+        <Link to={destination} className="pc-imgLink" aria-label={`Open ${p.title}`}>
+
           <div className="pc-img" style={{ backgroundImage: `url(${cover})` }} />
         </Link>
       ) : (
@@ -192,3 +191,4 @@ export default function PropertyCard({
     </div>
   );
 }
+

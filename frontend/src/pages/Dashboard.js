@@ -642,6 +642,7 @@ function Dashboard() {
                     onToggleFavorite={() => handleFavorite(prop._id)}
                     imgUrl={imgUrl}
                     showFavorite={user?.role !== 'owner'}
+                    linkTo={user?.role === 'owner' ? `/edit-property/${prop._id}` : undefined}
                   />
                 </div>
               ))}
