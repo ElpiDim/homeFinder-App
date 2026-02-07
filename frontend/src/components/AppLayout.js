@@ -135,7 +135,7 @@ export default function AppLayout() {
               </div>
             </Link>
 
-            <button className="btn btn-outline-secondary w-100 mt-3" onClick={handleLogout}>
+            <button className="cd-logout-btn w-100 mt-3" onClick={handleLogout}>
               Logout
             </button>
           </div>

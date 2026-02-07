@@ -112,6 +112,28 @@
   padding-top:18px;
 }
 
+.cd-logout-btn{
+  border:1px solid var(--primary);
+  background: var(--primary);
+  color:#fff;
+  border-radius:12px;
+  padding:10px 16px;
+  font-weight:600;
+  transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+  cursor:pointer;
+}
+
+.cd-logout-btn:hover,
+.cd-logout-btn:focus{
+  background: #6c10cd;
+  border-color: #6c10cd;
+  color:#fff;
+}
+
+.cd-logout-btn:active{
+  transform: translateY(1px);
+}
+
 .cd-profileRow{
   display:flex;
   gap:12px;
