@@ -1,251 +1,169 @@
 // src/pages/Profile.jsx
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../api";
 
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
+const Field = ({ label, value }) => (
+  <div className="col-md-4">
+    <div className="text-uppercase text-muted small fw-semibold mb-1">
+      {label}
+    </div>
+    <div className="fw-semibold">
+      {value ?? "Not Specified"}
+    </div>
+  </div>
+);
 
-function Profile() {
+const yesNo = (v) =>
+  v === true ? "Yes" : v === false ? "No" : "Not Specified";
+
+const money = (v) =>
+  v || v === 0 ? `€ ${Number(v).toLocaleString()}` : "Not Specified";
+
+export default function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true); // <--- Πρόσθεσε αυτή τη γραμμή
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    (async() =>{
 
+    (async () => {
       try {
-        
-        const { data } = await api.get('/users/me');
+        const { data } = await api.get("/users/me");
         const fresh = data?.user || data;
         if (!cancelled && fresh) {
-           setUser(fresh);
-          localStorage.setItem('user', JSON.stringify(fresh));
-          
+          setUser(fresh);
+          localStorage.setItem("user", JSON.stringify(fresh));
         }
-      } catch (err) {
-        console.error("Failed to fetch profile", err);
+      } catch (e) {
+        console.error(e);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => (cancelled = true);
   }, [setUser]);
 
-  if (loading) {
-    return <div className="container py-4">Loading profile…</div>;
-  }
-
-  if (!user) {
-    return <div className="container py-4">Unable to load your profile.</div>;
-  }
-
-  const isClient = user.role === 'client';
-  const profilePicture = user.profilePicture || '/default-avatar.jpg';
-  const joinedDate = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-    : 'Unknown';
-
-  const bool = (v) => (v === true ? 'Yes' : v === false ? 'No' : '-');
-  const orDash = (v) => (v === 0 || v ? v : '-');
+  if (loading) return <div className="p-4">Loading…</div>;
+  if (!user) return <div className="p-4">No profile data</div>;
 
   const p = user.preferences || {};
-  const intent = p?.intent || (p?.dealType === 'sale' ? 'buy' : 'rent');
+  const isClient = user.role === "client";
+  const intent = p.intent || (p.dealType === "sale" ? "buy" : "rent");
 
-  const profileContent = (
-    <div className="py-5 bg-light" style={{ minHeight: '100vh' }}>
-      <div className="container" style={{ maxWidth: '900px' }}>
-        {/* Header */}
-        <div className="p-4 rounded-4 shadow-sm bg-white border d-flex justify-content-between align-items-center mb-4">
-          <div className="d-flex align-items-center">
-            <button
-              className="btn btn-outline-secondary rounded-pill me-3"
-              onClick={() => navigate('/dashboard')}
-            >
-              ←
-            </button>
-            <div
-              className="rounded-circle me-3"
-              style={{
-                width: 60,
-                height: 60,
-                backgroundImage: `url(${profilePicture})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            />
-            <div>
-              <h5 className="mb-1 fw-bold">{user.name || user.email}</h5>
-              <div className="text-muted">Joined in {joinedDate}</div>
-            </div>
+  return (
+    <div className="container-fluid py-4">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 className="fw-bold mb-1">Detailed User Profile Info</h3>
+          <div className="text-muted">
+            Manage your personal information and housing preferences
           </div>
-
-          <button
-            className="btn rounded-pill px-3 py-2"
-            style={{
-              background: "linear-gradient(135deg,#4b0082,#e0b0ff)",
-              color: "#fff",
-              fontWeight: 600,
-              border: "none"
-            }}
-            onClick={() => navigate('/edit-profile')}
-          >
-            Edit Profile
-          </button>
         </div>
 
-        {/* Client view */}
-        {isClient && (
-          <>
-            {/* Personal Information */}
-            <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
-              <h5 className="fw-bold mb-3">Personal Information</h5>
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="text-muted small">Name</label>
-                  <div>{user.name || '-'}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Email</label>
-                  <div>{user.email}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Phone</label>
-                  <div>{user.phone || '-'}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Age</label>
-                  <div>{orDash(user.age)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Household Size</label>
-                  <div>{orDash(user.householdSize)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Has Family</label>
-                  <div>{bool(user.hasFamily)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Has Pets</label>
-                  <div>{bool(user.hasPets)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Smoker</label>
-                  <div>{bool(user.smoker)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Willing to Have Roommate</label>
-                  <div>{bool(user.isWillingToHaveRoommate)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Occupation</label>
-                  <div>{user.occupation || '-'}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Salary</label>
-                  <div>{orDash(user.salary)}</div>
-                </div>
-              </div>
-            </div>
+        <button
+          className="btn rounded-pill px-4"
+          style={{
+            background: "#7b2ff7",
+            color: "#fff",
+            fontWeight: 600,
+          }}
+          onClick={() => navigate("/edit-profile")}
+        >
+          ✎ Edit Profile
+        </button>
+      </div>
 
-            {/* Preferences */}
-            <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
-              <h5 className="fw-bold mb-3">Preferences</h5>
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="text-muted small">Location</label>
-                  <div>{p.location || '-'}</div>
-                </div>
-                {intent === 'rent' ? (
-                  <>
-                    <div className="col-md-3">
-                      <label className="text-muted small">Rent Min (€)</label>
-                      <div>{orDash(p.rentMin)}</div>
-                    </div>
-                    <div className="col-md-3">
-                      <label className="text-muted small">Rent Max (€)</label>
-                      <div>{orDash(p.rentMax)}</div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="col-md-3">
-                      <label className="text-muted small">Purchase Min (€)</label>
-                      <div>{orDash(p.priceMin)}</div>
-                    </div>
-                    <div className="col-md-3">
-                      <label className="text-muted small">Purchase Max (€)</label>
-                      <div>{orDash(p.priceMax)}</div>
-                    </div>
-                  </>
-                )}
-                <div className="col-md-3">
-                  <label className="text-muted small">Sqm Min</label>
-                  <div>{orDash(p.sqmMin)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Sqm Max</label>
-                  <div>{orDash(p.sqmMax)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Bedrooms</label>
-                  <div>{orDash(p.bedrooms)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Bathrooms</label>
-                  <div>{orDash(p.bathrooms)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Furnished</label>
-                  <div>{bool(p.furnished)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Pets Allowed</label>
-                  <div>{bool(p.petsAllowed)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Smoking Allowed</label>
-                  <div>{bool(p.smokingAllowed)}</div>
-                </div>
-                <div className="col-md-3">
-                  <label className="text-muted small">Year Built Min</label>
-                  <div>{orDash(p.yearBuiltMin)}</div>
-                </div>
-                <div className="col-md-6">
-                  <label className="text-muted small">Heating Type</label>
-                  <div>{p.heatingType || '-'}</div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+      {/* PERSONAL INFO */}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body">
+          <h6 className="fw-bold text-primary mb-4">
+            👤 PERSONAL INFORMATION
+          </h6>
 
-        {/* Owner view */}
-        {!isClient && (
-          <div className="p-4 rounded-4 shadow-sm bg-white border mb-4">
-            <h5 className="fw-bold mb-3">Personal Information</h5>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="text-muted small">Name</label>
-                <div>{user.name || '-'}</div>
-              </div>
-              <div className="col-md-6">
-                <label className="text-muted small">Email</label>
-                <div>{user.email}</div>
-              </div>
-              <div className="col-md-6">
-                <label className="text-muted small">Phone</label>
-                <div>{user.phone || '-'}</div>
-              </div>
+          <div className="row g-4">
+            <Field label="Name" value={user.name} />
+            <Field label="Email" value={user.email} />
+            <Field label="Phone" value={user.phone} />
+
+            {isClient && (
+              <>
+                <Field label="Age" value={user.age} />
+                <Field label="Household Size" value={user.householdSize} />
+                <Field label="Has Family" value={yesNo(user.hasFamily)} />
+                <Field label="Has Pets" value={yesNo(user.hasPets)} />
+                <Field label="Smoker" value={yesNo(user.smoker)} />
+                <Field
+                  label="Willing to Have Roommate"
+                  value={yesNo(user.isWillingToHaveRoommate)}
+                />
+                <Field label="Occupation" value={user.occupation} />
+                <Field label="Salary" value={money(user.salary)} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* HOUSING PREFERENCES */}
+      {isClient && (
+        <div className="card border-0 shadow-sm">
+          <div className="card-body">
+            <h6 className="fw-bold text-primary mb-4">
+              🏠 HOUSING PREFERENCES
+            </h6>
+
+            <div className="row g-4">
+              <Field label="Preferred Location" value={p.location} />
+
+              {intent === "rent" ? (
+                <>
+                  <Field
+                    label="Rent Range"
+                    value={
+                      p.rentMin || p.rentMax
+                        ? `€${p.rentMin || 0} - €${p.rentMax || "∞"}`
+                        : "Not Specified"
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <Field
+                    label="Price Range"
+                    value={
+                      p.priceMin || p.priceMax
+                        ? `€${p.priceMin || 0} - €${p.priceMax || "∞"}`
+                        : "Not Specified"
+                    }
+                  />
+                </>
+              )}
+
+              <Field
+                label="Surface Area (sqm)"
+                value={
+                  p.sqmMin || p.sqmMax
+                    ? `${p.sqmMin || 0} - ${p.sqmMax || "∞"}`
+                    : "Not Specified"
+                }
+              />
+
+              <Field label="Bedrooms" value={p.bedrooms} />
+              <Field label="Bathrooms" value={p.bathrooms} />
+              <Field label="Furnished" value={yesNo(p.furnished)} />
+              <Field label="Pets Allowed" value={yesNo(p.petsAllowed)} />
+              <Field label="Smoking Allowed" value={yesNo(p.smokingAllowed)} />
+              <Field label="Year Built (Min)" value={p.yearBuiltMin} />
+              <Field label="Heating Type" value={p.heatingType} />
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
-
-  return profileContent;
 }
-
-export default Profile;

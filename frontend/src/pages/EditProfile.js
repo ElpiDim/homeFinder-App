@@ -1,9 +1,9 @@
 // src/pages/EditProfile.jsx
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
-import TriStateSelect from '../components/TristateSelect';
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../api";
+import TriStateSelect from "../components/TristateSelect";
 
 const clean = (obj) =>
   Object.fromEntries(
@@ -11,13 +11,13 @@ const clean = (obj) =>
       ([, v]) =>
         v !== undefined &&
         v !== null &&
-        v !== '' &&
-        !(typeof v === 'number' && isNaN(v))
+        v !== "" &&
+        !(typeof v === "number" && isNaN(v))
     )
   );
 
 const toNumOrUndef = (v) =>
-  v === '' || v === null || v === undefined ? undefined : Number(v);
+  v === "" || v === null || v === undefined ? undefined : Number(v);
 
 const ensureRange = (min, max) => {
   const vmin = toNumOrUndef(min);
@@ -28,22 +28,68 @@ const ensureRange = (min, max) => {
   return { min: vmin, max: vmax };
 };
 
+const Label = ({ children }) => (
+  <div className="text-uppercase text-muted small fw-semibold mb-1">
+    {children}
+  </div>
+);
+
+const SectionTitle = ({ icon = "●", children }) => (
+  <div className="d-flex align-items-center gap-2 mb-3">
+    <span
+      className="d-inline-flex align-items-center justify-content-center rounded-circle"
+      style={{
+        width: 22,
+        height: 22,
+        background: "rgba(123,47,247,.12)",
+        color: "#7b2ff7",
+        fontWeight: 900,
+        lineHeight: 1,
+      }}
+    >
+      {icon}
+    </span>
+    <div className="fw-bold text-primary" style={{ letterSpacing: ".06em" }}>
+      {children}
+    </div>
+  </div>
+);
+
+const YesNoSelect = ({ label, name, value, onChange }) => (
+  <div className="col-md-4">
+    <Label>{label}</Label>
+    <select
+      className="form-select"
+      name={name}
+      value={value ? "yes" : "no"}
+      onChange={(e) => {
+        const nextBool = e.target.value === "yes";
+        // fake event so we can reuse onChange(setter)
+        onChange({ target: { name, value: nextBool, type: "custom" } });
+      }}
+    >
+      <option value="no">No</option>
+      <option value="yes">Yes</option>
+    </select>
+  </div>
+);
+
 export default function EditProfile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const isClient = user?.role === 'client';
+  const isClient = user?.role === "client";
 
   // Personal
   const [personal, setPersonal] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    age: user?.age ?? '',
-    householdSize: user?.householdSize ?? '',
+    name: user?.name || "",
+    phone: user?.phone || "",
+    age: user?.age ?? "",
+    householdSize: user?.householdSize ?? "",
     hasFamily: !!user?.hasFamily,
     hasPets: !!user?.hasPets,
     smoker: !!user?.smoker,
-    occupation: user?.occupation || '',
-    salary: user?.salary ?? '',
+    occupation: user?.occupation || "",
+    salary: user?.salary ?? "",
     isWillingToHaveRoommate: !!user?.isWillingToHaveRoommate,
   });
 
@@ -51,21 +97,21 @@ export default function EditProfile() {
   const [prefs, setPrefs] = useState({
     dealType:
       user?.preferences?.dealType ||
-      (user?.preferences?.intent === 'buy' ? 'sale' : 'rent'),
-    location: user?.preferences?.location || '',
-    rentMin: user?.preferences?.rentMin ?? '',
-    rentMax: user?.preferences?.rentMax ?? '',
-    priceMin: user?.preferences?.priceMin ?? '',
-    priceMax: user?.preferences?.priceMax ?? '',
-    sqmMin: user?.preferences?.sqmMin ?? '',
-    sqmMax: user?.preferences?.sqmMax ?? '',
-    bedrooms: user?.preferences?.bedrooms ?? '',
-    bathrooms: user?.preferences?.bathrooms ?? '',
+      (user?.preferences?.intent === "buy" ? "sale" : "rent"),
+    location: user?.preferences?.location || "",
+    rentMin: user?.preferences?.rentMin ?? "",
+    rentMax: user?.preferences?.rentMax ?? "",
+    priceMin: user?.preferences?.priceMin ?? "",
+    priceMax: user?.preferences?.priceMax ?? "",
+    sqmMin: user?.preferences?.sqmMin ?? "",
+    sqmMax: user?.preferences?.sqmMax ?? "",
+    bedrooms: user?.preferences?.bedrooms ?? "",
+    bathrooms: user?.preferences?.bathrooms ?? "",
     furnished: user?.preferences?.furnished ?? null,
     petsAllowed: user?.preferences?.petsAllowed ?? null,
     smokingAllowed: user?.preferences?.smokingAllowed ?? null,
-    heatingType: user?.preferences?.heatingType || '',
-    yearBuiltMin: user?.preferences?.yearBuiltMin ?? '',
+    heatingType: user?.preferences?.heatingType || "",
+    yearBuiltMin: user?.preferences?.yearBuiltMin ?? "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -73,22 +119,22 @@ export default function EditProfile() {
 
   const onChange = (setter) => (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'custom') setter((s) => ({ ...s, [name]: value }));
-    else if (type === 'checkbox') setter((s) => ({ ...s, [name]: checked }));
+    if (type === "custom") setter((s) => ({ ...s, [name]: value }));
+    else if (type === "checkbox") setter((s) => ({ ...s, [name]: checked }));
     else setter((s) => ({ ...s, [name]: value }));
   };
 
   const validateClient = () => {
     const e = {};
     const pairs = [
-      ['rentMin', 'rentMax'],
-      ['priceMin', 'priceMax'],
-      ['sqmMin', 'sqmMax'],
+      ["rentMin", "rentMax"],
+      ["priceMin", "priceMax"],
+      ["sqmMin", "sqmMax"],
     ];
     pairs.forEach(([mi, ma]) => {
       const { min, max } = ensureRange(prefs[mi], prefs[ma]);
       if (min !== undefined && max !== undefined && min > max) {
-        e[mi] = 'Min should be ≤ Max';
+        e[mi] = "Min should be ≤ Max";
       }
     });
     setErrors(e);
@@ -97,7 +143,7 @@ export default function EditProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return alert('You need to be logged in.');
+    if (!user) return alert("You need to be logged in.");
     if (isClient && !validateClient()) return;
 
     setSaving(true);
@@ -105,7 +151,7 @@ export default function EditProfile() {
       let payload;
 
       if (isClient) {
-        const intent = prefs.dealType === 'sale' ? 'buy' : 'rent';
+        const intent = prefs.dealType === "sale" ? "buy" : "rent";
         const rent = ensureRange(prefs.rentMin, prefs.rentMax);
         const price = ensureRange(prefs.priceMin, prefs.priceMax);
         const sqm = ensureRange(prefs.sqmMin, prefs.sqmMax);
@@ -127,7 +173,7 @@ export default function EditProfile() {
           dealType: prefs.dealType,
           intent,
           location: prefs.location,
-          ...(intent === 'rent'
+          ...(intent === "rent"
             ? { rentMin: rent.min, rentMax: rent.max }
             : { priceMin: price.min, priceMax: price.max }),
           sqmMin: sqm.min,
@@ -136,7 +182,8 @@ export default function EditProfile() {
           bathrooms: toNumOrUndef(prefs.bathrooms),
           furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
           petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
-          smokingAllowed: prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
+          smokingAllowed:
+            prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
           heatingType: prefs.heatingType || undefined,
           yearBuiltMin: toNumOrUndef(prefs.yearBuiltMin),
         });
@@ -149,11 +196,11 @@ export default function EditProfile() {
         });
       }
 
-      const { data } = await api.patch('/users/me', payload);
+      const { data } = await api.patch("/users/me", payload);
       const updated = data?.user || data;
       setUser(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
-      navigate('/profile', { replace: true });
+      localStorage.setItem("user", JSON.stringify(updated));
+      navigate("/profile", { replace: true });
     } catch (err) {
       const msg = err?.response?.data?.message || err.message;
       alert(`Save failed: ${msg}`);
@@ -162,209 +209,192 @@ export default function EditProfile() {
     }
   };
 
-  const pageGradient = useMemo(
+  const pageStyle = useMemo(
     () => ({
-      minHeight: '100vh',
-      background:
-        'radial-gradient(700px circle at 18% 12%, rgba(255,255,255,.55), rgba(255,255,255,0) 42%),\
-         linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%)',
+      minHeight: "100vh",
+      background: "#f6f7fb",
     }),
     []
   );
 
   if (!user) {
     return (
-      <div style={pageGradient} className="py-4">
-        <div className="container" style={{ maxWidth: 960 }}>
-          <div className="p-4 rounded-4 shadow-sm bg-white border">Loading…</div>
+      <div style={pageStyle} className="py-4">
+        <div className="container" style={{ maxWidth: 980 }}>
+          <div className="card border-0 shadow-sm">
+            <div className="card-body p-4">Loading…</div>
+          </div>
         </div>
       </div>
     );
   }
 
-  const isRent = prefs.dealType !== 'sale';
+  const isRent = prefs.dealType !== "sale";
 
-  const editContent = (
-    <div style={pageGradient} className="py-5">
-      <div className="container" style={{ maxWidth: 960 }}>
-        <div className="p-4 rounded-4 shadow-sm bg-white border">
-          {/* Back */}
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <button
-              className="btn btn-outline-secondary rounded-pill"
-              onClick={() => navigate('/profile')}
-            >
-              ← Back
-            </button>
-            <h4 className="fw-bold mb-0">
-              {isClient ? 'Edit Profile (Personal & Preferences)' : 'Edit Profile'}
-            </h4>
+  return (
+    <div style={pageStyle} className="py-4">
+      <div className="container" style={{ maxWidth: 980 }}>
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-start mb-4">
+          <div>
+            <h3 className="fw-bold mb-1">Edit Profile</h3>
+            <div className="text-muted">
+              Update your personal information and housing preferences
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Personal */}
-            <h5 className="fw-bold mb-3">Personal Information</h5>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="text-muted small">Name</label>
-                <input
-                  className="form-control"
-                  name="name"
-                  value={personal.name}
-                  onChange={onChange(setPersonal)}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="text-muted small">Phone</label>
-                <input
-                  className="form-control"
-                  name="phone"
-                  value={personal.phone}
-                  onChange={onChange(setPersonal)}
-                />
+          <div className="d-flex gap-2">
+            <button
+              type="button"
+              className="btn btn-light border rounded-pill px-4"
+              onClick={() => navigate("/profile")}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              className="btn rounded-pill px-4"
+              style={{
+                background: "#7b2ff7",
+                color: "#fff",
+                fontWeight: 700,
+                boxShadow: "0 10px 20px rgba(123,47,247,.18)",
+              }}
+              onClick={() => {
+                // trigger form submit programmatically
+                const form = document.getElementById("editProfileForm");
+                form?.requestSubmit?.();
+              }}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </div>
+
+        <form id="editProfileForm" onSubmit={handleSubmit}>
+          {/* PERSONAL INFORMATION */}
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body p-4">
+              <SectionTitle icon="👤">PERSONAL INFORMATION</SectionTitle>
+
+              <div className="row g-4">
+                <div className="col-md-4">
+                  <Label>Name</Label>
+                  <input
+                    className="form-control"
+                    name="name"
+                    value={personal.name}
+                    onChange={onChange(setPersonal)}
+                  />
+                </div>
+
+                <div className="col-md-4">
+                  <Label>Email</Label>
+                  <input
+                    className="form-control"
+                    value={user.email || ""}
+                    disabled
+                    readOnly
+                  />
+                </div>
+
+                <div className="col-md-4">
+                  <Label>Phone</Label>
+                  <input
+                    className="form-control"
+                    name="phone"
+                    value={personal.phone}
+                    onChange={onChange(setPersonal)}
+                  />
+                </div>
+
+                {isClient && (
+                  <>
+                    <div className="col-md-4">
+                      <Label>Age</Label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        name="age"
+                        value={personal.age}
+                        onChange={onChange(setPersonal)}
+                      />
+                    </div>
+
+                    <div className="col-md-4">
+                      <Label>Household Size</Label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        name="householdSize"
+                        value={personal.householdSize}
+                        onChange={onChange(setPersonal)}
+                        placeholder="e.g. 1"
+                      />
+                    </div>
+
+                    <YesNoSelect
+                      label="Has Family"
+                      name="hasFamily"
+                      value={personal.hasFamily}
+                      onChange={onChange(setPersonal)}
+                    />
+                    <YesNoSelect
+                      label="Has Pets"
+                      name="hasPets"
+                      value={personal.hasPets}
+                      onChange={onChange(setPersonal)}
+                    />
+                    <YesNoSelect
+                      label="Smoker"
+                      name="smoker"
+                      value={personal.smoker}
+                      onChange={onChange(setPersonal)}
+                    />
+                    <YesNoSelect
+                      label="Willing to Have Roommate"
+                      name="isWillingToHaveRoommate"
+                      value={personal.isWillingToHaveRoommate}
+                      onChange={onChange(setPersonal)}
+                    />
+
+                    <div className="col-md-4">
+                      <Label>Occupation</Label>
+                      <input
+                        className="form-control"
+                        name="occupation"
+                        value={personal.occupation}
+                        onChange={onChange(setPersonal)}
+                      />
+                    </div>
+
+                    <div className="col-md-4">
+                      <Label>Annual Salary (€)</Label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        name="salary"
+                        value={personal.salary}
+                        onChange={onChange(setPersonal)}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+          </div>
 
-            {isClient && (
-              <>
-                <div className="row g-3 mt-0">
-                  <div className="col-md-3">
-                    <label className="text-muted small">Age</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="age"
-                      value={personal.age}
-                      onChange={onChange(setPersonal)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="text-muted small">Household Size</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="householdSize"
-                      value={personal.householdSize}
-                      onChange={onChange(setPersonal)}
-                    />
-                  </div>
-                  <div className="col-md-3 d-flex align-items-end">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="hasFamily"
-                        name="hasFamily"
-                        checked={personal.hasFamily}
-                        onChange={onChange(setPersonal)}
-                      />
-                      <label htmlFor="hasFamily" className="form-check-label">Has family</label>
-                    </div>
-                  </div>
-                  <div className="col-md-3 d-flex align-items-end">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="hasPets"
-                        name="hasPets"
-                        checked={personal.hasPets}
-                        onChange={onChange(setPersonal)}
-                      />
-                      <label htmlFor="hasPets" className="form-check-label">Has pets</label>
-                    </div>
-                  </div>
-                </div>
+          {/* HOUSING PREFERENCES */}
+          {isClient && (
+            <div className="card border-0 shadow-sm">
+              <div className="card-body p-4">
+                <SectionTitle icon="📍">HOUSING PREFERENCES</SectionTitle>
 
-                {/* More personal */}
-                <div className="row g-3 mt-0">
-                  <div className="col-md-3 d-flex align-items-end">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="smoker"
-                        name="smoker"
-                        checked={personal.smoker}
-                        onChange={onChange(setPersonal)}
-                      />
-                      <label htmlFor="smoker" className="form-check-label">Smoker</label>
-                    </div>
-                  </div>
-                  <div className="col-md-5">
-                    <label className="text-muted small">Occupation</label>
-                    <input
-                      className="form-control"
-                      name="occupation"
-                      value={personal.occupation}
-                      onChange={onChange(setPersonal)}
-                    />
-                  </div>
+                <div className="row g-4">
                   <div className="col-md-4">
-                    <label className="text-muted small">Salary (€)</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="salary"
-                      value={personal.salary}
-                      onChange={onChange(setPersonal)}
-                    />
-                  </div>
-                </div>
-
-                <div className="row g-3 mt-0">
-                  <div className="col-md-6 d-flex align-items-end">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="roommate"
-                        name="isWillingToHaveRoommate"
-                        checked={personal.isWillingToHaveRoommate}
-                        onChange={onChange(setPersonal)}
-                      />
-                      <label htmlFor="roommate" className="form-check-label">
-                        I’m willing to have a roommate
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Preferences */}
-                <h5 className="fw-bold mt-4 mb-3">Preferences</h5>
-                <div className="row g-3">
-                  <div className="col-md-12">
-                    <label className="text-muted small">I’m interested in</label>
-                    <div className="d-flex gap-4">
-                      <div className="form-check">
-                        <input
-                          type="radio"
-                          className="form-check-input"
-                          id="dealTypeRent"
-                          name="dealType"
-                          value="rent"
-                          checked={prefs.dealType === 'rent'}
-                          onChange={onChange(setPrefs)}
-                        />
-                        <label className="form-check-label" htmlFor="dealTypeRent">Renting</label>
-                      </div>
-                      <div className="form-check">
-                        <input
-                          type="radio"
-                          className="form-check-input"
-                          id="dealTypeSale"
-                          name="dealType"
-                          value="sale"
-                          checked={prefs.dealType === 'sale'}
-                          onChange={onChange(setPrefs)}
-                        />
-                        <label className="form-check-label" htmlFor="dealTypeSale">Buying</label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label className="text-muted small">Location</label>
+                    <Label>Preferred Location</Label>
                     <input
                       className="form-control"
                       name="location"
@@ -373,22 +403,24 @@ export default function EditProfile() {
                     />
                   </div>
 
-                  {/* Budget */}
                   {isRent ? (
                     <>
-                      <div className="col-md-3">
-                        <label className="text-muted small">Rent Min (€)</label>
+                      <div className="col-md-4">
+                        <Label>Rent Min (€)</Label>
                         <input
                           type="number"
-                          className={`form-control ${errors.rentMin ? 'is-invalid' : ''}`}
+                          className={`form-control ${errors.rentMin ? "is-invalid" : ""}`}
                           name="rentMin"
                           value={prefs.rentMin}
                           onChange={onChange(setPrefs)}
                         />
-                        {errors.rentMin && <div className="invalid-feedback">{errors.rentMin}</div>}
+                        {errors.rentMin && (
+                          <div className="invalid-feedback">{errors.rentMin}</div>
+                        )}
                       </div>
-                      <div className="col-md-3">
-                        <label className="text-muted small">Rent Max (€)</label>
+
+                      <div className="col-md-4">
+                        <Label>Rent Max (€)</Label>
                         <input
                           type="number"
                           className="form-control"
@@ -400,19 +432,22 @@ export default function EditProfile() {
                     </>
                   ) : (
                     <>
-                      <div className="col-md-3">
-                        <label className="text-muted small">Purchase Min (€)</label>
+                      <div className="col-md-4">
+                        <Label>Purchase Min (€)</Label>
                         <input
                           type="number"
-                          className={`form-control ${errors.priceMin ? 'is-invalid' : ''}`}
+                          className={`form-control ${errors.priceMin ? "is-invalid" : ""}`}
                           name="priceMin"
                           value={prefs.priceMin}
                           onChange={onChange(setPrefs)}
                         />
-                        {errors.priceMin && <div className="invalid-feedback">{errors.priceMin}</div>}
+                        {errors.priceMin && (
+                          <div className="invalid-feedback">{errors.priceMin}</div>
+                        )}
                       </div>
-                      <div className="col-md-3">
-                        <label className="text-muted small">Purchase Max (€)</label>
+
+                      <div className="col-md-4">
+                        <Label>Purchase Max (€)</Label>
                         <input
                           type="number"
                           className="form-control"
@@ -421,24 +456,30 @@ export default function EditProfile() {
                           onChange={onChange(setPrefs)}
                         />
                       </div>
+
+                      <div className="col-md-4">
+                        <Label>—</Label>
+                        <div className="form-control bg-light text-muted">Buying</div>
+                      </div>
                     </>
                   )}
-                </div>
 
-                <div className="row g-3 mt-0">
-                  <div className="col-md-3">
-                    <label className="text-muted small">Sqm Min</label>
+                  <div className="col-md-4">
+                    <Label>Sqm Min</Label>
                     <input
                       type="number"
-                      className={`form-control ${errors.sqmMin ? 'is-invalid' : ''}`}
+                      className={`form-control ${errors.sqmMin ? "is-invalid" : ""}`}
                       name="sqmMin"
                       value={prefs.sqmMin}
                       onChange={onChange(setPrefs)}
                     />
-                    {errors.sqmMin && <div className="invalid-feedback">{errors.sqmMin}</div>}
+                    {errors.sqmMin && (
+                      <div className="invalid-feedback">{errors.sqmMin}</div>
+                    )}
                   </div>
-                  <div className="col-md-3">
-                    <label className="text-muted small">Sqm Max</label>
+
+                  <div className="col-md-4">
+                    <Label>Sqm Max</Label>
                     <input
                       type="number"
                       className="form-control"
@@ -447,8 +488,9 @@ export default function EditProfile() {
                       onChange={onChange(setPrefs)}
                     />
                   </div>
-                  <div className="col-md-3">
-                    <label className="text-muted small">Bedrooms</label>
+
+                  <div className="col-md-4">
+                    <Label>Bedrooms</Label>
                     <input
                       type="number"
                       className="form-control"
@@ -457,8 +499,9 @@ export default function EditProfile() {
                       onChange={onChange(setPrefs)}
                     />
                   </div>
-                  <div className="col-md-3">
-                    <label className="text-muted small">Bathrooms</label>
+
+                  <div className="col-md-4">
+                    <Label>Bathrooms</Label>
                     <input
                       type="number"
                       className="form-control"
@@ -467,39 +510,37 @@ export default function EditProfile() {
                       onChange={onChange(setPrefs)}
                     />
                   </div>
-                </div>
 
-                {/* Tri-state */}
-                <div className="row g-3 mt-0">
-                  <div className="col-md-3">
-                    <TriStateSelect label="Furnished" name="furnished" value={prefs.furnished} onChange={onChange(setPrefs)} />
-                  </div>
-                  <div className="col-md-3">
-                    <TriStateSelect label="Pets allowed" name="petsAllowed" value={prefs.petsAllowed} onChange={onChange(setPrefs)} />
-                  </div>
-                  <div className="col-md-3">
-                    <TriStateSelect label="Smoking allowed" name="smokingAllowed" value={prefs.smokingAllowed} onChange={onChange(setPrefs)} />
-                  </div>
-                  <div className="col-md-3">
-                    <label className="text-muted small">Heating Type</label>
-                    <select
-                      className="form-select"
-                      name="heatingType"
-                      value={prefs.heatingType}
+                  {/* Tri-state dropdowns (as in screenshot "Not Specified") */}
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Furnished"
+                      name="furnished"
+                      value={prefs.furnished}
                       onChange={onChange(setPrefs)}
-                    >
-                      <option value="">Select</option>
-                      <option value="autonomous">Autonomous</option>
-                      <option value="central">Central</option>
-                      <option value="ac">AC</option>
-                      <option value="none">None</option>
-                    </select>
+                    />
                   </div>
-                </div>
 
-                <div className="row g-3 mt-0">
-                  <div className="col-md-3">
-                    <label className="text-muted small">Year Built Min</label>
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Pets Allowed"
+                      name="petsAllowed"
+                      value={prefs.petsAllowed}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Smoking Allowed"
+                      name="smokingAllowed"
+                      value={prefs.smokingAllowed}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <Label>Year Built (Min)</Label>
                     <input
                       type="number"
                       className="form-control"
@@ -508,30 +549,66 @@ export default function EditProfile() {
                       onChange={onChange(setPrefs)}
                     />
                   </div>
-                </div>
-              </>
-            )}
 
-            <div className="mt-4 d-flex justify-content-end">
-              <button
-                type="submit"
-                className="btn rounded-pill px-4"
-                style={{
-                  background: "linear-gradient(135deg,#4b0082,#e0b0ff)",
-                  color: "#fff",
-                  fontWeight: 600,
-                  border: "none"
-                }}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
+                  <div className="col-md-4">
+                    <Label>Heating Type</Label>
+                    <select
+                      className="form-select"
+                      name="heatingType"
+                      value={prefs.heatingType}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Not Specified</option>
+                      <option value="autonomous">Autonomous</option>
+                      <option value="central">Central</option>
+                      <option value="ac">AC</option>
+                      <option value="none">None</option>
+                    </select>
+                  </div>
+
+                  {/* Deal Type hidden UI but preserved logic */}
+                  <div className="col-md-4">
+                    <Label>Deal Type</Label>
+                    <select
+                      className="form-select"
+                      name="dealType"
+                      value={prefs.dealType}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="rent">Renting</option>
+                      <option value="sale">Buying</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Bottom actions (optional like screenshot has bottom bar) */}
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    className="btn btn-light border rounded-pill px-4"
+                    onClick={() => navigate("/profile")}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn rounded-pill px-4"
+                    style={{
+                      background: "#7b2ff7",
+                      color: "#fff",
+                      fontWeight: 700,
+                      boxShadow: "0 10px 20px rgba(123,47,247,.18)",
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving…" : "Update Profile"}
+                  </button>
+                </div>
+              </div>
             </div>
-          </form>
-        </div>
+          )}
+        </form>
       </div>
     </div>
   );
-
-  return editContent;
 }
