@@ -1,5 +1,5 @@
 // src/pages/EditProfile.jsx
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
@@ -34,25 +34,8 @@ const Label = ({ children }) => (
   </div>
 );
 
-const SectionTitle = ({ icon = "●", children }) => (
-  <div className="d-flex align-items-center gap-2 mb-3">
-    <span
-      className="d-inline-flex align-items-center justify-content-center rounded-circle"
-      style={{
-        width: 22,
-        height: 22,
-        background: "rgba(123,47,247,.12)",
-        color: "#7b2ff7",
-        fontWeight: 900,
-        lineHeight: 1,
-      }}
-    >
-      {icon}
-    </span>
-    <div className="fw-bold text-primary" style={{ letterSpacing: ".06em" }}>
-      {children}
-    </div>
-  </div>
+const SectionTitle = ({ children }) => (
+  <h6 className="fw-bold text-primary mb-4">{children}</h6>
 );
 
 const YesNoSelect = ({ label, name, value, onChange }) => (
@@ -209,21 +192,11 @@ export default function EditProfile() {
     }
   };
 
-  const pageStyle = useMemo(
-    () => ({
-      minHeight: "100vh",
-      background: "#f6f7fb",
-    }),
-    []
-  );
-
   if (!user) {
     return (
-      <div style={pageStyle} className="py-4">
-        <div className="container" style={{ maxWidth: 980 }}>
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-4">Loading…</div>
-          </div>
+      <div className="container-fluid py-4">
+        <div className="card border-0 shadow-sm">
+          <div className="card-body">Loading…</div>
         </div>
       </div>
     );
@@ -232,52 +205,50 @@ export default function EditProfile() {
   const isRent = prefs.dealType !== "sale";
 
   return (
-    <div style={pageStyle} className="py-4">
-      <div className="container" style={{ maxWidth: 980 }}>
-        {/* Header */}
-        <div className="d-flex justify-content-between align-items-start mb-4">
-          <div>
-            <h3 className="fw-bold mb-1">Edit Profile</h3>
-            <div className="text-muted">
-              Update your personal information and housing preferences
-            </div>
-          </div>
-
-          <div className="d-flex gap-2">
-            <button
-              type="button"
-              className="btn btn-light border rounded-pill px-4"
-              onClick={() => navigate("/profile")}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              className="btn rounded-pill px-4"
-              style={{
-                background: "#7b2ff7",
-                color: "#fff",
-                fontWeight: 700,
-                boxShadow: "0 10px 20px rgba(123,47,247,.18)",
-              }}
-              onClick={() => {
-                // trigger form submit programmatically
-                const form = document.getElementById("editProfileForm");
-                form?.requestSubmit?.();
-              }}
-              disabled={saving}
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
+    <div className="container-fluid py-4">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 className="fw-bold mb-1">Edit Profile</h3>
+          <div className="text-muted">
+            Update your personal information and housing preferences
           </div>
         </div>
+
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-light border rounded-pill px-4"
+            onClick={() => navigate("/profile")}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            className="btn rounded-pill px-4"
+            style={{
+              background: "#7b2ff7",
+              color: "#fff",
+              fontWeight: 600,
+            }}
+            onClick={() => {
+              // trigger form submit programmatically
+              const form = document.getElementById("editProfileForm");
+              form?.requestSubmit?.();
+            }}
+            disabled={saving}
+          >
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </div>
+      </div>
 
         <form id="editProfileForm" onSubmit={handleSubmit}>
           {/* PERSONAL INFORMATION */}
           <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body p-4">
-              <SectionTitle icon="👤">PERSONAL INFORMATION</SectionTitle>
+            <div className="card-body">
+              <SectionTitle>👤 PERSONAL INFORMATION</SectionTitle>
 
               <div className="row g-4">
                 <div className="col-md-4">
@@ -389,8 +360,8 @@ export default function EditProfile() {
           {/* HOUSING PREFERENCES */}
           {isClient && (
             <div className="card border-0 shadow-sm">
-              <div className="card-body p-4">
-                <SectionTitle icon="📍">HOUSING PREFERENCES</SectionTitle>
+              <div className="card-body">
+                <SectionTitle>🏠 HOUSING PREFERENCES</SectionTitle>
 
                 <div className="row g-4">
                   <div className="col-md-4">
@@ -581,34 +552,10 @@ export default function EditProfile() {
                   </div>
                 </div>
 
-                {/* Bottom actions (optional like screenshot has bottom bar) */}
-                <div className="d-flex justify-content-end gap-2 mt-4">
-                  <button
-                    type="button"
-                    className="btn btn-light border rounded-pill px-4"
-                    onClick={() => navigate("/profile")}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn rounded-pill px-4"
-                    style={{
-                      background: "#7b2ff7",
-                      color: "#fff",
-                      fontWeight: 700,
-                      boxShadow: "0 10px 20px rgba(123,47,247,.18)",
-                    }}
-                    disabled={saving}
-                  >
-                    {saving ? "Saving…" : "Update Profile"}
-                  </button>
-                </div>
               </div>
             </div>
           )}
         </form>
-      </div>
     </div>
   );
 }
