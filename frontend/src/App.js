@@ -5,7 +5,6 @@ import UserProfile from './pages/UserProfile';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './pages/Profile';
 import Favorites from './pages/Favorites';
-import Messages from './pages/Messages';
 import Chat from './pages/Chat';
 import MatchClients from './pages/MatchClients';
 import Notifications from './pages/Notifications';
@@ -139,7 +138,7 @@ function App() {
 
         <Route
           path="/messages"
-          element={<Messages />}
+          element={<Chat />}
           handle={{
             title: "Messages",
             subtitle: "Chat with owners and agents",

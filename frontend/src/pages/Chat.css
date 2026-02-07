@@ -163,6 +163,26 @@
   flex-direction:column;
   gap:14px;
 }
+
+.cp-emptyState{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+  padding:32px;
+}
+.cp-emptyTitle{
+  font-weight:900;
+  font-size:18px;
+  color: var(--cp-text);
+}
+.cp-emptySub{
+  margin-top:8px;
+  font-weight:700;
+  color: var(--cp-muted);
+}
 .cp-dayPill{
   align-self:center;
   background:#fff;
@@ -251,6 +271,22 @@
   border-left:1px solid var(--cp-border);
   padding:14px;
   overflow:auto;
+}
+.cp-rightEmpty{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:14px 6px;
+  text-align:left;
+}
+.cp-rightEmptyTitle{
+  font-weight:900;
+  font-size:14px;
+}
+.cp-rightEmptySub{
+  color: var(--cp-muted);
+  font-weight:700;
+  font-size:12px;
 }
 .cp-rightTitle{
   color: var(--cp-muted);

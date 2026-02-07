@@ -54,6 +54,7 @@ export default function Chat() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const socket = useSocket();
+  const hasActiveConversation = Boolean(propertyId && receiverId);
 
   const {
     conversations,
@@ -133,11 +134,11 @@ export default function Chat() {
       }
     }
 
-    if (token && propertyId && receiverId) load();
+    if (token && hasActiveConversation) load();
     return () => {
       ignore = true;
     };
-  }, [token, propertyId, receiverId, user?.id]);
+  }, [token, propertyId, receiverId, user?.id, hasActiveConversation]);
 
   // load messages
   useEffect(() => {
@@ -169,18 +170,18 @@ export default function Chat() {
       }
     };
 
-    if (token && user?.id && propertyId && receiverId) fetchMessagesForChat();
-  }, [propertyId, receiverId, token, user?.id]);
+    if (token && user?.id && hasActiveConversation) fetchMessagesForChat();
+  }, [propertyId, receiverId, token, user?.id, hasActiveConversation]);
 
   // mark as read
   useEffect(() => {
-    if (!user?.id || !propertyId || !receiverId) return;
+    if (!user?.id || !hasActiveConversation) return;
     markConversationAsRead(propertyId, receiverId);
-  }, [user?.id, propertyId, receiverId, markConversationAsRead]);
+  }, [user?.id, propertyId, receiverId, markConversationAsRead, hasActiveConversation]);
 
   // socket new message
   useEffect(() => {
-    if (!user?.id || !socket) return;
+    if (!user?.id || !socket || !hasActiveConversation) return;
 
     const handleNewMessage = (m) => {
       const ok =
@@ -204,17 +205,18 @@ export default function Chat() {
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, propertyId, receiverId, user?.id, markConversationAsRead]);
+  }, [socket, propertyId, receiverId, user?.id, markConversationAsRead, hasActiveConversation]);
 
   // scroll bottom (in the message container)
   useEffect(() => {
     // If you want smooth scroll only when you're already near bottom, you can add logic.
+    if (!hasActiveConversation) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, hasActiveConversation]);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !hasActiveConversation) return;
 
     try {
       const saved = await sendMessage(receiverId, propertyId, newMessage.trim());
@@ -449,170 +451,199 @@ export default function Chat() {
               minHeight: 0,
             }}
           >
-            <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
-              <div className="cp-chatUser">
-                <img className="cp-chatAvatar" src={otherAvatar} alt={otherUser?.name || "User"} />
-                <div>
-                  <div className="cp-chatName">{otherUser?.name || "Conversation"}</div>
-                  <div className="cp-chatSub">
-                    Inquiry for <span className="cp-linkish">{property?.title || "a listing"}</span>
+            {hasActiveConversation ? (
+              <>
+                <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
+                  <div className="cp-chatUser">
+                    <img
+                      className="cp-chatAvatar"
+                      src={otherAvatar}
+                      alt={otherUser?.name || "User"}
+                    />
+                    <div>
+                      <div className="cp-chatName">{otherUser?.name || "Conversation"}</div>
+                      <div className="cp-chatSub">
+                        Inquiry for{" "}
+                        <span className="cp-linkish">{property?.title || "a listing"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="cp-chatActions">
+                    {canProposeAppointment && (
+                      <button
+                        type="button"
+                        className="chat-propose-btn"
+                        onClick={openPropose}
+                        disabled={!property || submittingProposal}
+                      >
+                        <span className="material-symbols-outlined">calendar_add_on</span>
+                        Propose appointment
+                      </button>
+                    )}
+
+                    <button
+                      className="cp-btn"
+                      type="button"
+                      onClick={() => navigate(`/property/${propertyId}`)}
+                    >
+                      <span className="material-symbols-outlined">visibility</span>
+                      View Listing
+                    </button>
+
+                    <button className="cp-iconbtn" type="button" aria-label="more">
+                      <span className="material-symbols-outlined">more_vert</span>
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              <div className="cp-chatActions">
-                {canProposeAppointment && (
-                  <button
-                    type="button"
-                    className="chat-propose-btn"
-                    onClick={openPropose}
-                    disabled={!property || submittingProposal}
-                  >
-                    <span className="material-symbols-outlined">calendar_add_on</span>
-                    Propose appointment
-                  </button>
-                )}
-
-                <button
-                  className="cp-btn"
-                  type="button"
-                  onClick={() => navigate(`/property/${propertyId}`)}
+                {/* SCROLL CONTAINER */}
+                <div
+                  className="cp-chatBody"
+                  ref={chatBodyRef}
+                  style={{
+                    flex: "1 1 auto",
+                    minHeight: 0,
+                    overflowY: "auto",
+                    paddingRight: 8,
+                  }}
                 >
-                  <span className="material-symbols-outlined">visibility</span>
-                  View Listing
-                </button>
+                  <div className="cp-dayPill">Today</div>
 
-                <button className="cp-iconbtn" type="button" aria-label="more">
-                  <span className="material-symbols-outlined">more_vert</span>
-                </button>
+                  {messages.map((m) => {
+                    const isSelf = String(m.senderId?._id) === String(user.id);
+                    return (
+                      <div key={m._id} className={`cp-msgRow ${isSelf ? "self" : "other"}`}>
+                        {!isSelf && <img className="cp-msgAvatar" src={otherAvatar} alt="avatar" />}
+
+                        <div className={`cp-bubble ${isSelf ? "self" : "other"}`}>
+                          <div className="cp-bubbleText">{m.content}</div>
+                          <div className="cp-bubbleTime">{formatMsgTime(m.timeStamp)}</div>
+                        </div>
+
+                        {isSelf && <img className="cp-msgAvatar" src={profileImg} alt="me" />}
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <form className="cp-chatInput" onSubmit={handleSend} style={{ flex: "0 0 auto" }}>
+                  <button type="button" className="cp-plus" aria-label="attach">
+                    <span className="material-symbols-outlined">add</span>
+                  </button>
+                  <input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type your message..."
+                  />
+                  <button type="button" className="cp-emoji" aria-label="emoji">
+                    <span className="material-symbols-outlined">sentiment_satisfied</span>
+                  </button>
+                  <button type="submit" className="cp-send" aria-label="send">
+                    <span className="material-symbols-outlined">send</span>
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="cp-emptyState">
+                <div className="cp-emptyTitle">Select a conversation</div>
+                <div className="cp-emptySub">
+                  Choose a chat from the left to view messages.
+                </div>
               </div>
-            </div>
-
-            {/* SCROLL CONTAINER */}
-            <div
-              className="cp-chatBody"
-              ref={chatBodyRef}
-              style={{
-                flex: "1 1 auto",
-                minHeight: 0,
-                overflowY: "auto",
-                paddingRight: 8,
-              }}
-            >
-              <div className="cp-dayPill">Today</div>
-
-              {messages.map((m) => {
-                const isSelf = String(m.senderId?._id) === String(user.id);
-                return (
-                  <div key={m._id} className={`cp-msgRow ${isSelf ? "self" : "other"}`}>
-                    {!isSelf && <img className="cp-msgAvatar" src={otherAvatar} alt="avatar" />}
-
-                    <div className={`cp-bubble ${isSelf ? "self" : "other"}`}>
-                      <div className="cp-bubbleText">{m.content}</div>
-                      <div className="cp-bubbleTime">{formatMsgTime(m.timeStamp)}</div>
-                    </div>
-
-                    {isSelf && <img className="cp-msgAvatar" src={profileImg} alt="me" />}
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <form className="cp-chatInput" onSubmit={handleSend} style={{ flex: "0 0 auto" }}>
-              <button type="button" className="cp-plus" aria-label="attach">
-                <span className="material-symbols-outlined">add</span>
-              </button>
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-              />
-              <button type="button" className="cp-emoji" aria-label="emoji">
-                <span className="material-symbols-outlined">sentiment_satisfied</span>
-              </button>
-              <button type="submit" className="cp-send" aria-label="send">
-                <span className="material-symbols-outlined">send</span>
-              </button>
-            </form>
+            )}
           </main>
 
           {/* RIGHT */}
           <aside className="cp-right">
-            <div className="cp-rightTitle">PROPERTY DETAILS</div>
+            {hasActiveConversation ? (
+              <>
+                <div className="cp-rightTitle">PROPERTY DETAILS</div>
 
-            <div className="cp-propCard">
-              <div className="cp-propImg">
-                <img src={propImage} alt={propTitle} />
-                {propType && <span className="cp-propTag">{propType}</span>}
-              </div>
-
-              <div className="cp-propBody">
-                <div className="cp-propName">{propTitle}</div>
-                <div className="cp-propAddr">{propAddr}</div>
-
-                <div className="cp-propRow">
-                  <div className="cp-propPrice">
-                    {propPrice ? (
-                      <>
-                        <span className="cp-propPriceMain">${propPrice}</span>
-                        {property?.type === "rent" && <span className="cp-propPriceSub">/mo</span>}
-                      </>
-                    ) : (
-                      <span className="cp-propPriceMain">—</span>
-                    )}
+                <div className="cp-propCard">
+                  <div className="cp-propImg">
+                    <img src={propImage} alt={propTitle} />
+                    {propType && <span className="cp-propTag">{propType}</span>}
                   </div>
 
-                  {propStatus && (
-                    <span
-                      className={`cp-status ${
-                        String(propStatus).toLowerCase() === "available" ? "ok" : "muted"
-                      }`}
-                    >
-                      {propStatus}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+                  <div className="cp-propBody">
+                    <div className="cp-propName">{propTitle}</div>
+                    <div className="cp-propAddr">{propAddr}</div>
 
-            <div className="cp-block">
-              <div className="cp-blockTitle">SHARED FILES</div>
-              <div className="cp-file">
-                <div className="cp-fileIc pdf">PDF</div>
-                <div className="cp-fileMeta">
-                  <div className="cp-fileName">Lease_Agreement.pdf</div>
-                  <div className="cp-fileSub">2.4 MB • 2 days ago</div>
-                </div>
-              </div>
-              <div className="cp-file">
-                <div className="cp-fileIc img">IMG</div>
-                <div className="cp-fileMeta">
-                  <div className="cp-fileName">Kitchen_Renovation.jpg</div>
-                  <div className="cp-fileSub">4.1 MB • Today</div>
-                </div>
-              </div>
-            </div>
+                    <div className="cp-propRow">
+                      <div className="cp-propPrice">
+                        {propPrice ? (
+                          <>
+                            <span className="cp-propPriceMain">${propPrice}</span>
+                            {property?.type === "rent" && (
+                              <span className="cp-propPriceSub">/mo</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="cp-propPriceMain">—</span>
+                        )}
+                      </div>
 
-            <div className="cp-block">
-              <div className="cp-blockTitle">PARTICIPANTS</div>
-              <div className="cp-part">
-                <img src={profileImg} alt="me" />
-                <div>
-                  <div className="cp-partName">You</div>
-                  <div className="cp-partRole">
-                    {user?.role === "owner" ? "Property Owner" : "Client"}
+                      {propStatus && (
+                        <span
+                          className={`cp-status ${
+                            String(propStatus).toLowerCase() === "available" ? "ok" : "muted"
+                          }`}
+                        >
+                          {propStatus}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="cp-part">
-                <img src={otherAvatar} alt="other" />
-                <div>
-                  <div className="cp-partName">{otherUser?.name || "User"}</div>
-                  <div className="cp-partRole">Potential Tenant</div>
+
+                <div className="cp-block">
+                  <div className="cp-blockTitle">SHARED FILES</div>
+                  <div className="cp-file">
+                    <div className="cp-fileIc pdf">PDF</div>
+                    <div className="cp-fileMeta">
+                      <div className="cp-fileName">Lease_Agreement.pdf</div>
+                      <div className="cp-fileSub">2.4 MB • 2 days ago</div>
+                    </div>
+                  </div>
+                  <div className="cp-file">
+                    <div className="cp-fileIc img">IMG</div>
+                    <div className="cp-fileMeta">
+                      <div className="cp-fileName">Kitchen_Renovation.jpg</div>
+                      <div className="cp-fileSub">4.1 MB • Today</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cp-block">
+                  <div className="cp-blockTitle">PARTICIPANTS</div>
+                  <div className="cp-part">
+                    <img src={profileImg} alt="me" />
+                    <div>
+                      <div className="cp-partName">You</div>
+                      <div className="cp-partRole">
+                        {user?.role === "owner" ? "Property Owner" : "Client"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="cp-part">
+                    <img src={otherAvatar} alt="other" />
+                    <div>
+                      <div className="cp-partName">{otherUser?.name || "User"}</div>
+                      <div className="cp-partRole">Potential Tenant</div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="cp-rightEmpty">
+                <div className="cp-rightEmptyTitle">No conversation selected</div>
+                <div className="cp-rightEmptySub">
+                  Pick a chat to see the listing details and participants.
                 </div>
               </div>
-            </div>
+            )}
           </aside>
         </div>
 
