@@ -133,7 +133,11 @@ export default function OwnerDashboard() {
                 const { beds, baths, sqft } = safeMeta(p);
 
                 return (
-                  <div key={p._id} className="od-propCard owner-card">
+                  <div
+                    key={p._id}
+                    className="od-propCard owner-card"
+                    onClick={() => navigate(`/property/${p._id}`)}
+                  >
                     <div
                       className="od-propMedia"
                       style={{ backgroundImage: `url(${img || ""})` }}
