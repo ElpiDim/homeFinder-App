@@ -2,23 +2,11 @@ import React, { createContext, useContext, useMemo, useState } from "react";
 
 const SidebarContext = createContext(null);
 
-const STORAGE_KEY = "clientSidebarCollapsed";
-
 export const SidebarProvider = ({ children }) => {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "true";
-  });
+  const [collapsed, setCollapsed] = useState(false);
 
   const setAndStore = (nextValue) => {
-    setCollapsed((prev) => {
-      const resolved = typeof nextValue === "function" ? nextValue(prev) : nextValue;
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, String(resolved));
-      }
-      return resolved;
-    });
+    setCollapsed((prev) => (typeof nextValue === "function" ? nextValue(prev) : nextValue));
   };
 
   const toggleCollapsed = () => setAndStore((prev) => !prev);
