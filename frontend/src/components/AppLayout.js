@@ -1,3 +1,4 @@
+// src/components/AppLayout.jsx
 import React, { useMemo } from "react";
 import { Link, Outlet, useLocation, useNavigate, matchPath } from "react-router-dom";
 import Logo from "./Logo";
@@ -67,10 +68,25 @@ export default function AppLayout() {
 
     // You can tweak these labels anytime
     const routes = [
-      { path: "/dashboard", title: role === "owner" ? "Dashboard" : "Your Matched Properties", subtitle: role === "owner" ? "Overview of your properties" : "Properties selected based on your preferences." },
+      {
+        path: "/dashboard",
+        title: role === "owner" ? "Dashboard" : "Your Matched Properties",
+        subtitle:
+          role === "owner"
+            ? "Overview of your properties"
+            : "Properties selected based on your preferences.",
+      },
       { path: "/favorites", title: "Your Favorites", subtitle: "Your saved listings" },
-      { path: "/appointments", title: "Your Appointments", subtitle: "Track your property viewings and manage appointments" },
-      { path: "/appointments", title: role === "owner" ? "Appointments" : "Appointments", subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings" },
+      {
+        path: "/appointments",
+        title: "Your Appointments",
+        subtitle: "Track your property viewings and manage appointments",
+      },
+      {
+        path: "/appointments",
+        title: role === "owner" ? "Appointments" : "Appointments",
+        subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings",
+      },
       { path: "/messages", title: "Your Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/settings", title: "Settings", subtitle: "Manage your account" },
@@ -94,14 +110,16 @@ export default function AppLayout() {
         <aside className={`cd-aside ${collapsed ? "is-collapsed" : ""}`}>
           <div className="cd-brand">
             <div className="cd-brandRow">
+              {/* Desktop-only toggle (mobile uses the one in topbar) */}
               <button
                 type="button"
-                className="cd-toggle"
+                className="cd-toggle cd-toggle--desktop"
                 onClick={toggleCollapsed}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 ☰
               </button>
+
               <div className="cd-logo-container" style={{ color: "var(--primary)" }}>
                 <Logo as="h5" className="mb-0 logo-in-nav" />
               </div>
@@ -152,9 +170,21 @@ export default function AppLayout() {
         <main className="cd-main">
           {showTopbar && (
             <header className="cd-topbar">
-              <div>
-                {topbar.title && <div className="cd-title">{topbar.title}</div>}
-                {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
+              <div className="cd-topbarLeft">
+                {/* Mobile-only toggle (desktop uses the one in sidebar) */}
+                <button
+                  type="button"
+                  className="cd-toggle cd-toggle--mobile"
+                  onClick={toggleCollapsed}
+                  aria-label="Open menu"
+                >
+                  ☰
+                </button>
+
+                <div>
+                  {topbar.title && <div className="cd-title">{topbar.title}</div>}
+                  {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
+                </div>
               </div>
 
               <div className="d-flex align-items-center gap-2">

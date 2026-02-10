@@ -1,31 +1,31 @@
+:root{
+  --primary:#7f13ec;
+  --bg-light:#f7f6f8;
+  --surface:#ffffff;
+  --text:#141118;
+  --text2:#756189;
+  --border:#e0dbe6;
+  --radius-lg: 14px;
+}
 
-/* ===============================
-   GLOBAL LAYOUT – NO OUTER SCROLL
-================================ */
 .cd-shell{
-  height: 100vh;
-  overflow: hidden;
+  min-height:100vh;
   background: var(--bg-light);
   color: var(--text);
 }
 
 .cd-layout{
   display:flex;
-  height: 100vh;
+  min-height:100vh;
 }
 
-/* ===============================
-   SIDEBAR – NEVER SCROLLS
-================================ */
+/* SIDEBAR */
 .cd-aside{
   width:260px;
   flex:0 0 260px;
   background: var(--surface);
   border-right:1px solid var(--border);
   padding:16px;
-
-  height: 100vh;
-  overflow: hidden;
   display:flex;
   flex-direction:column;
 }
@@ -36,7 +36,9 @@
   padding:16px 12px;
 }
 
-.cd-brand{ padding: 8px 8px 16px 8px; }
+.cd-brand{
+  padding: 8px 8px 16px 8px;
+}
 
 .cd-brandRow{
   display:flex;
@@ -58,9 +60,14 @@
   line-height:1;
   cursor:pointer;
 }
-.cd-toggle:hover{ background: rgba(127,19,236,0.08); }
 
-.cd-aside.is-collapsed .cd-brandRow{ justify-content:center; }
+.cd-toggle:hover{
+  background: rgba(127,19,236,0.08);
+}
+
+.cd-aside.is-collapsed .cd-brandRow{
+  justify-content:center;
+}
 
 .cd-nav{
   display:flex;
@@ -69,7 +76,9 @@
   padding-top:6px;
 }
 
-.cd-aside.is-collapsed .cd-nav{ align-items:center; }
+.cd-aside.is-collapsed .cd-nav{
+  align-items:center;
+}
 
 .cd-navlink{
   display:flex;
@@ -112,32 +121,6 @@
   padding-top:18px;
 }
 
-.cd-profileLink{
-  margin-bottom:12px;
-}
-
-.cd-logout-btn{
-  border:1px solid var(--primary);
-  background: var(--primary);
-  color:#fff;
-  border-radius:12px;
-  padding:10px 16px;
-  font-weight:600;
-  transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
-  cursor:pointer;
-}
-
-.cd-logout-btn:hover,
-.cd-logout-btn:focus{
-  background: #6c10cd;
-  border-color: #6c10cd;
-  color:#fff;
-}
-
-.cd-logout-btn:active{
-  transform: translateY(1px);
-}
-
 .cd-profileRow{
   display:flex;
   gap:12px;
@@ -155,15 +138,10 @@
 .cd-name{ font-weight:700; color: var(--text); }
 .cd-role{ font-size:.9rem; color: var(--text2); }
 
-/* ===============================
-   MAIN COLUMN (only content scrolls)
-================================ */
+/* MAIN */
 .cd-main{
   flex:1;
   min-width:0;
-
-  height: 100vh;
-  overflow: hidden;
   display:flex;
   flex-direction:column;
 }
@@ -204,11 +182,7 @@
 }
 
 .cd-content{
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 28px;
-  overscroll-behavior: contain;
+  padding:28px;
 }
 
 .cd-empty{
@@ -219,13 +193,7 @@
   color: var(--text2);
 }
 
-/* safety */
-html, body, #root{ height: 100%; }
-body{ overflow: hidden; }
-
-/* ===============================
-   GRID
-================================ */
+/* GRID */
 .cd-grid{
   display:grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -240,11 +208,152 @@ body{ overflow: hidden; }
 }
 @media (max-width: 640px){
   .cd-layout{ flex-direction:column; }
-  .cd-aside{
-    width:100%;
-    flex:0 0 auto;
-    border-right:none;
-    border-bottom:1px solid var(--border);
-  }
+  .cd-aside{ width:100%; flex:0 0 auto; border-right:none; border-bottom:1px solid var(--border); }
   .cd-grid{ grid-template-columns: 1fr; }
 }
+
+/* wrapper for match badge */
+.cd-cardWrap{
+  position:relative;
+}
+
+.cd-matchPill{
+  position:absolute;
+  left:10px;
+  top:10px;
+  z-index:5;
+  padding:6px 10px;
+  border-radius:10px;
+  background: var(--primary);
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.2px;
+  box-shadow:0 10px 18px rgba(0,0,0,.12);
+}
+/* ===============================
+   GLOBAL LAYOUT – NO OUTER SCROLL
+================================ */
+.cd-shell{
+  height: 100vh;
+  overflow: hidden;       /* ❌ stop page scroll */
+  background: var(--bg-light);
+  color: var(--text);
+}
+
+.cd-layout{
+  display:flex;
+  height: 100vh;          /* ❌ no min-height */
+}
+
+/* ===============================
+   SIDEBAR – NEVER SCROLLS
+================================ */
+.cd-aside{
+  height: 100vh;
+  overflow: hidden;       /* ❌ sidebar never scrolls */
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===============================
+   MAIN COLUMN
+================================ */
+.cd-main{
+  flex:1;
+  height: 100vh;
+  overflow: hidden;       /* ❌ main itself does NOT scroll */
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===============================
+   ONLY CONTENT SCROLLS
+================================ */
+.cd-content{
+  flex: 1;
+  min-height: 0;          /* ⚠️ required for flex scrolling */
+  overflow-y: auto;       /* ✅ ONLY HERE SCROLL */
+  padding: 28px;
+  overscroll-behavior: contain;
+}
+
+/* ===============================
+   SAFETY (optional but recommended)
+================================ */
+html, body, #root{
+  height: 100%;
+}
+
+body{
+  overflow: hidden;
+}
+/* Heart base (outline) */
+.fav-heart{
+  font-size: 22px;
+  color: rgba(0,0,0,.35);      /* outline καρδιά */
+  transition:
+    color .25s ease,
+    transform .15s ease;
+  cursor: pointer;
+}
+
+/* Active = FULL purple heart */
+.fav-heart.active{
+  color: var(--primary);       /* 💜 ΟΛΗ η καρδιά μωβ */
+  transform: scale(1.15);
+}
+
+/* Click feedback */
+.fav-heart:active{
+  transform: scale(0.9);
+}
+
+/* ===============================
+   PROPERTY CARD – HOVER EFFECT
+================================ */
+
+/* default state */
+.card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* hover lift */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.14);
+}
+
+/* title color change on hover */
+.card:hover .card-title {
+  color: #4b0082; /* ή var(--primary) */
+}
+/* κάνει τα cards ίδια αισθητική/μέγεθος με Favorites */
+
+.cd-card{
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0,0,0,.08);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.cd-card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(0,0,0,.14);
+}
+
+/* ίδια εικόνα-height με Favorites (≈190px) */
+.cd-img{
+  height: 190px;
+  background-size: cover;
+  background-position: center;
+}
+
+/* κάνε την καρδιά μωβ όταν είναι active (όλη filled) */
+.fav-heart.active{
+  color: #7f13ec;
+  font-variation-settings: "FILL" 1;
+}
+
