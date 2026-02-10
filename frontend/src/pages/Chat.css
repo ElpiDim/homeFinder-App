@@ -129,6 +129,18 @@
   display:flex; align-items:center; justify-content:space-between; gap:16px;
 }
 .cp-chatUser{ display:flex; align-items:center; gap:12px; min-width:0; }
+.cp-mobileBack{
+  width:34px;
+  height:34px;
+  border:1px solid var(--cp-border);
+  border-radius:10px;
+  background:#fff;
+  color: var(--cp-muted);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
 .cp-chatAvatar{ width:40px; height:40px; border-radius:999px; object-fit:cover; }
 .cp-chatName{ font-weight:900; font-size:14px; display:flex; align-items:center; gap:8px; }
 .cp-chatSub{ color: var(--cp-muted); font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:520px; }
@@ -381,6 +393,5 @@
 }
 @media (max-width: 820px){
   .cp-layout{ grid-template-columns: 1fr; }
-  .cp-left{ display:none; }
-  .cp-chatSub{ max-width: 260px; }
+
 }

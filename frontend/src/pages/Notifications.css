@@ -137,7 +137,9 @@
   align-items:flex-start;
   justify-content:space-between;
 }
-
+.np-head{
+  min-width:0;
+}
 .np-h1{
   font-size:34px;
   font-weight:900;
@@ -352,9 +354,117 @@
 
 @media (max-width: 992px){
   .np-aside{ display:none; }
-  .np-topbar{ padding:18px 16px; }
+  .np-topbar{
+    padding:18px 16px;
+    gap:14px;
+    align-items:stretch;
+    flex-direction:column;
+  }
   .np-content{ padding:0 16px 18px; }
   .np-h1{ font-size:26px; }
   .np-card{ align-items:flex-start; }
   .np-cardActions{ flex-wrap:wrap; justify-content:flex-end; }
+  .np-markAll{ align-self:flex-start; }
+}
+
+@media (max-width: 640px){
+  .np-topbar{
+    padding:14px 12px;
+    gap:12px;
+  }
+
+  .np-content{ padding:0 12px 16px; }
+
+  .np-h1{
+    font-size:22px;
+    line-height:1.15;
+  }
+
+  .np-h2{
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .np-pills{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding-bottom:4px;
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+  }
+
+  .np-pills::-webkit-scrollbar{ display:none; }
+
+  .np-pill{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+
+  .np-markAll{
+    width:100%;
+    justify-content:center;
+    padding:10px 12px;
+  }
+
+  .np-card{
+    padding:12px;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .np-cardBody{
+    min-width:0;
+    width:calc(100% - 52px);
+  }
+
+  .np-cardTitleRow{
+    gap:8px;
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .np-cardTime{
+    font-size:10px;
+  }
+
+  .np-cardDesc{
+    max-width:none;
+    font-size:11px;
+  }
+
+  .np-cardActions{
+    width:100%;
+    justify-content:flex-start;
+    padding-left:52px;
+    gap:8px;
+  }
+
+  .np-btn{
+    padding:7px 10px;
+    font-size:11px;
+  }
+
+  .np-btn-icon{
+    width:32px;
+    height:32px;
+  }
+}
+.np-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .np-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .np-markAll {
+    width: 100%;
+    justify-content: center;
+  }
 }

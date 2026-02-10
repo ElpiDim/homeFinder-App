@@ -397,56 +397,51 @@ export default function NotificationsPage() {
   return (
   <div className="np-shell">
     <main className="np-main np-main--noaside">
-      <header className="np-topbar">
-        <div className="np-head">
-          <div className="np-h1">Notifications</div>
-          <div className="np-h2">Stay updated with your latest matches and alerts</div>
-
-          <div className="np-pills">
-            <Pill
-              id="all"
-              icon="done_all"
-              label="All"
-              active={activeTab === "all"}
-              onClick={() => setActiveTab("all")}
-            />
-            <Pill
-              id="unread"
-              icon="mark_email_unread"
-              label="Unread"
-              count={unreadCount}
-              active={activeTab === "unread"}
-              onClick={() => setActiveTab("unread")}
-            />
-            <Pill
-              id="appointments"
-              icon="event"
-              label="Appointments"
-              active={activeTab === "appointments"}
-              onClick={() => setActiveTab("appointments")}
-            />
-            <Pill
-              id="matches"
-              icon="home"
-              label="Matches"
-              active={activeTab === "matches"}
-              onClick={() => setActiveTab("matches")}
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="np-markAll"
-          onClick={markAllRead}
-          disabled={unreadCount === 0}
-        >
-          <span className="material-symbols-outlined">done_all</span>
-          Mark all as read
-        </button>
-      </header>
-
       <div className="np-content">
+        <div className="np-toolbar">
+  <div className="np-pills">
+    <Pill
+      id="all"
+      icon="done_all"
+      label="All"
+      active={activeTab === "all"}
+      onClick={() => setActiveTab("all")}
+    />
+    <Pill
+      id="unread"
+      icon="mark_email_unread"
+      label="Unread"
+      count={unreadCount}
+      active={activeTab === "unread"}
+      onClick={() => setActiveTab("unread")}
+    />
+    <Pill
+      id="appointments"
+      icon="event"
+      label="Appointments"
+      active={activeTab === "appointments"}
+      onClick={() => setActiveTab("appointments")}
+    />
+    <Pill
+      id="matches"
+      icon="home"
+      label="Matches"
+      active={activeTab === "matches"}
+      onClick={() => setActiveTab("matches")}
+    />
+  </div>
+
+  <button
+    type="button"
+    className="np-markAll"
+    onClick={markAllRead}
+    disabled={unreadCount === 0}
+  >
+    <span className="material-symbols-outlined">done_all</span>
+    Mark all as read
+  </button>
+</div>
+
         {loading ? (
           <div className="np-empty">Loading…</div>
         ) : filtered.length === 0 ? (

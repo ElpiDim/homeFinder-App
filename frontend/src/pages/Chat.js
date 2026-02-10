@@ -82,6 +82,9 @@ export default function Chat() {
   const [proposalError, setProposalError] = useState("");
   const [proposalSuccess, setProposalSuccess] = useState("");
   const [submittingProposal, setSubmittingProposal] = useState(false);
+    const [mobileView, setMobileView] = useState(
+    hasActiveConversation ? "chat" : "list"
+  );
 
   const profileImg = user?.profilePicture
     ? user.profilePicture.startsWith("http")
@@ -92,6 +95,10 @@ export default function Chat() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+    useEffect(() => {
+    setMobileView(hasActiveConversation ? "chat" : "list");
+  }, [hasActiveConversation]);
+
 
   // load property + other user info
   useEffect(() => {
@@ -250,6 +257,7 @@ export default function Chat() {
 
   const openConversation = (pid, ouid) => {
     markConversationAsRead(pid, ouid);
+    setMobileView("chat");
     navigate(`/chat/${pid}/${ouid}`);
   };
 
@@ -363,7 +371,12 @@ export default function Chat() {
   return (
     <>
       {/* IMPORTANT: these styles ensure message area scroll works inside center column */}
-      <div className="cp-shell" style={{ height: "calc(100vh - 120px)" }}>
+        <div
+          className={`cp-layout ${
+            mobileView === "list" ? "cp-mobile-list" : "cp-mobile-chat"
+          }`}
+          style={{ height: "100%" }}
+        >
         <div className="cp-layout" style={{ height: "100%" }}>
           {/* LEFT */}
           <aside className="cp-left">
