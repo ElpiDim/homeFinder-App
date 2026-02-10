@@ -1,5 +1,5 @@
 // src/components/AppLayout.jsx
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, matchPath } from "react-router-dom";
 import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
@@ -24,8 +24,39 @@ export default function AppLayout() {
   const { user, logout, token } = useAuth();
   const { unreadChats } = useMessages();
   const { collapsed, toggleCollapsed } = useSidebar();
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false
+  );
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const syncMobile = (event) => {
+      setIsMobile(event.matches);
+      if (!event.matches) {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", syncMobile);
+
+    return () => mediaQuery.removeEventListener("change", syncMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) {
+      document.body.classList.remove("cd-mobile-drawer-open");
+      return;
+    }
+
+    document.body.classList.toggle("cd-mobile-drawer-open", isMobileDrawerOpen);
+    return () => document.body.classList.remove("cd-mobile-drawer-open");
+  }, [isMobile, isMobileDrawerOpen]);
 
   const handleLogout = () => {
     logout();
@@ -104,17 +135,48 @@ export default function AppLayout() {
 
   const showTopbar = Boolean(topbar.title || topbar.subtitle);
 
+  const handleMenuToggle = () => {
+    if (isMobile) {
+      setIsMobileDrawerOpen((prev) => !prev);
+      return;
+    }
+    toggleCollapsed();
+  };
+
+  const handleMenuItemClick = () => {
+    if (isMobile) {
+      setIsMobileDrawerOpen(false);
+    }
+  };
+
+  const asideClassName = [
+    "cd-aside",
+    !isMobile && collapsed ? "is-collapsed" : "",
+    isMobile && isMobileDrawerOpen ? "is-mobile-open" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="cd-shell">
+      {isMobile && isMobileDrawerOpen && (
+        <button
+          type="button"
+          className="cd-mobile-backdrop"
+          aria-label="Close menu"
+          onClick={() => setIsMobileDrawerOpen(false)}
+        />
+      )}
+
       <div className="cd-layout">
-        <aside className={`cd-aside ${collapsed ? "is-collapsed" : ""}`}>
+        <aside className={asideClassName}>
           <div className="cd-brand">
             <div className="cd-brandRow">
               {/* Desktop-only toggle (mobile uses the one in topbar) */}
               <button
                 type="button"
                 className="cd-toggle cd-toggle--desktop"
-                onClick={toggleCollapsed}
+                onClick={handleMenuToggle}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 ☰
@@ -132,6 +194,7 @@ export default function AppLayout() {
                 key={item.path}
                 className={`cd-navlink ${isActive(item.path, item.match) ? "active" : ""}`}
                 to={item.path}
+                onClick={handleMenuItemClick}
               >
                 <span className="material-symbols-outlined fill">{item.icon}</span>
                 <span className="cd-navText">{item.label}</span>
@@ -146,6 +209,7 @@ export default function AppLayout() {
             <Link
               to="/settings"
               className={`cd-navlink cd-profileLink ${isActive("/settings", ["/edit-profile"]) ? "active" : ""}`}
+              onClick={handleMenuItemClick}
             >
               <span className="material-symbols-outlined fill">settings</span>
               <span className="cd-navText">Settings</span>
@@ -175,8 +239,8 @@ export default function AppLayout() {
                 <button
                   type="button"
                   className="cd-toggle cd-toggle--mobile"
-                  onClick={toggleCollapsed}
-                  aria-label="Open menu"
+                  onClick={handleMenuToggle}
+                  aria-label={isMobileDrawerOpen ? "Close menu" : "Open menu"}
                 >
                   ☰
                 </button>
