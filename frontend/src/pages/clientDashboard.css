@@ -240,11 +240,52 @@ body{ overflow: hidden; }
 }
 @media (max-width: 640px){
   .cd-layout{ flex-direction:column; }
-  .cd-aside{
-    width:100%;
-    flex:0 0 auto;
-    border-right:none;
-    border-bottom:1px solid var(--border);
+
+  /* Reset width for both states on mobile */
+  .cd-aside,
+  .cd-aside.is-collapsed {
+    width: 100% !important;
+    flex: 0 0 auto;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s ease;
+    padding: 12px;
   }
+
+  /* When collapsed (Mobile default ideally), hide the navigation items */
+  .cd-aside.is-collapsed .cd-nav,
+  .cd-aside.is-collapsed .cd-profile {
+    display: none;
+  }
+
+  /* When expanded, show them */
+  .cd-aside .cd-nav,
+  .cd-aside .cd-profile {
+    display: flex;
+  }
+
+  /* Ensure brand row is always visible and laid out correctly */
+  .cd-brandRow {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Override specific desktop collapsed styles for mobile */
+  .cd-aside.is-collapsed .cd-brandRow {
+    justify-content: space-between;
+  }
+
+  .cd-aside.is-collapsed .cd-logo-container {
+    display: block;
+  }
+
+  /* Make toggle larger for touch */
+  .cd-toggle {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
   .cd-grid{ grid-template-columns: 1fr; }
 }
