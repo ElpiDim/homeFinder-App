@@ -8,7 +8,11 @@ export const SidebarProvider = ({ children }) => {
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "true";
+    if (stored !== null) {
+      return stored === "true";
+    }
+    // Default to collapsed on mobile
+    return window.innerWidth < 640;
   });
 
   const setAndStore = (nextValue) => {
