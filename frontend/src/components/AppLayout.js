@@ -113,11 +113,22 @@ export default function AppLayout() {
         title: "Your Appointments",
         subtitle: "Track your property viewings and manage appointments",
       },
+     { 
+      path:"/calendar",
+      title: role === "owner" ? "Calendar": "Calendar",
+      subtitle: "Track your property viewings and manage appointments", 
+
+     }, 
       {
         path: "/appointments",
         title: role === "owner" ? "Appointments" : "Appointments",
         subtitle: role === "owner" ? "Your scheduled viewings" : "Your scheduled viewings",
       },
+    {
+      path:"/notifications",
+      title: "Notifications", 
+      subtitle: "Stay updated with your latest matches and alerts",
+    },
       { path: "/messages", title: "Your Messages", subtitle: "Chat with owners and agents" },
       { path: "/chat/:propertyId/:userId", title: "Messages", subtitle: "Chat with owners and agents" },
       { path: "/settings", title: "Settings", subtitle: "Manage your account" },
