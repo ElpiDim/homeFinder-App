@@ -875,3 +875,227 @@
   font-weight: 700;
   font-size: 12px;
 }
+
+/* ---------- Mobile improvements ---------- */
+@media (max-width: 768px){
+  .af-page{
+    padding: 14px 0 28px;
+  }
+
+  .af-wrap{
+    padding: 0 12px;
+  }
+
+  .af-grid{
+    gap: 12px;
+  }
+
+  .af-stats{
+    gap: 10px;
+  }
+
+  .af-tabsRow{
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px 0;
+  }
+
+  .af-tab{
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  .af-filter{
+    margin-left: auto;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .af-item{
+    grid-template-columns: 52px 16px 1fr;
+    gap: 8px;
+  }
+
+  .af-dateRail{
+    padding-top: 6px;
+  }
+
+  .af-day{
+    font-size: 17px;
+  }
+
+  .af-mon{
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  .af-rail{
+    padding-top: 12px;
+  }
+
+  .af-line{
+    top: 20px;
+  }
+
+  .af-apptCard{
+    padding: 12px;
+  }
+
+  .af-apptGrid{
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .af-apptImg img{
+    height: 180px;
+  }
+
+  .af-item.next .af-timeTag{
+    margin-left: 0;
+    margin-top: 26px;
+  }
+
+  .af-apptTop{
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .af-btn{
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .af-notesAdd{
+    flex-direction: column;
+  }
+
+  .af-notesBtn{
+    width: 100%;
+  }
+
+  .af-calGrid{
+    gap: 5px;
+  }
+
+  .af-calCell{
+    padding: 8px 6px;
+    min-height: 72px;
+    border-radius: 12px;
+  }
+
+  .af-calDayNum{
+    font-size: 12px;
+  }
+
+  .af-calEvent{
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .af-calListRow{
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px){
+  .af-stats{
+    grid-template-columns: 1fr;
+  }
+
+  .af-month{
+    padding: 12px;
+  }
+
+  .af-tabsRow{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+
+  .af-tabsSpacer{
+    display: none;
+  }
+
+  .af-filter{
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .af-item{
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .af-dateRail{
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding-top: 0;
+  }
+
+  .af-rail{
+    display: none;
+  }
+
+  .af-apptTop{
+    margin-bottom: 10px;
+  }
+
+  .af-item.next .af-timeTag{
+    margin-top: 30px;
+  }
+
+  .af-apptImg img{
+    height: 160px;
+  }
+
+  .af-apptActions .af-btn,
+  .af-calDetailActions .af-btn{
+    width: 100%;
+    text-align: center;
+  }
+
+  .af-notesHead{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .af-calWrap{
+    padding: 10px;
+  }
+
+  .af-calWeekday{
+    font-size: 10px;
+  }
+
+  .af-calCell{
+    min-height: 66px;
+    padding: 6px 5px;
+  }
+
+  .af-calEvents{
+    gap: 4px;
+  }
+
+  .af-calEvent{
+    font-size: 9px;
+    padding: 4px 7px;
+  }
+
+  .af-calMore{
+    font-size: 10px;
+    padding-left: 3px;
+  }
+
+  .af-calListRow{
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .af-calListTime{
+    min-width: 0;
+  }
+}
