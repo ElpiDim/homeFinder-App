@@ -54,7 +54,10 @@ export default function Chat() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const socket = useSocket();
-  const hasActiveConversation = Boolean(propertyId && receiverId);
+  const hasActiveConversation =
+    Boolean(propertyId && receiverId) &&
+    !["undefined", "null"].includes(String(propertyId)) &&
+    !["undefined", "null"].includes(String(receiverId));
 
   const {
     conversations,
@@ -256,6 +259,7 @@ export default function Chat() {
   }, [conversations, query, tab]);
 
   const openConversation = (pid, ouid) => {
+      if (!pid || !ouid) return;
     markConversationAsRead(pid, ouid);
     setMobileView("chat");
     navigate(`/chat/${pid}/${ouid}`);
@@ -377,7 +381,6 @@ export default function Chat() {
           }`}
           style={{ height: "100%" }}
         >
-        <div className="cp-layout" style={{ height: "100%" }}>
           {/* LEFT */}
           <aside className="cp-left">
             <div className="cp-search">
@@ -387,7 +390,8 @@ export default function Chat() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search client or address..."
               />
-            </div>
+              </div>
+
 
             <div className="cp-tabs">
               <button
@@ -421,18 +425,20 @@ export default function Chat() {
               ) : (
                 filteredConversations.map(
                   ({ property: p, otherUser: ou, lastMessage, unreadCount, conversationId }) => {
-                    const key = conversationId || `${p?._id}-${ou?._id}`;
+                     const conversationPropertyId = p?._id || p?.id || p;
+                    const conversationUserId = ou?._id || ou?.id || ou;
+                    const key = conversationId || `${conversationPropertyId}-${conversationUserId}`;
                     const avatar = assetUrl(ou?.profilePicture, "/default-avatar.jpg");
                     const active =
-                      String(p?._id) === String(propertyId) &&
-                      String(ou?._id) === String(receiverId);
+                       String(conversationPropertyId) === String(propertyId) &&
+                      String(conversationUserId) === String(receiverId);
 
                     return (
                       <button
                         type="button"
                         key={key}
                         className={`cp-row ${active ? "active" : ""}`}
-                        onClick={() => openConversation(p._id, ou._id)}
+                        onClick={() => openConversation(conversationPropertyId, conversationUserId)}
                       >
                         <img className="cp-row-avatar" src={avatar} alt={ou?.name || "User"} />
                         <div className="cp-row-body">
@@ -468,6 +474,34 @@ export default function Chat() {
               <>
                 <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
                   <div className="cp-chatUser">
+            {/* ✅ Mobile back to list */}
+            <button
+              type="button"
+              className="cp-mobileBack"
+              onClick={() => {
+                setMobileView("list");
+                navigate("/messages"); // επιστρέφει στη λίστα χωρίς active chat
+              }}
+              aria-label="Back to conversations"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+
+            <img
+              className="cp-chatAvatar"
+              src={otherAvatar}
+              alt={otherUser?.name || "User"}
+            />
+
+            <div>
+              <div className="cp-chatName">{otherUser?.name || "Conversation"}</div>
+              <div className="cp-chatSub">
+                Inquiry for{" "}
+                <span className="cp-linkish">{property?.title || "a listing"}</span>
+              </div>
+            </div>
+          
+
                     <img
                       className="cp-chatAvatar"
                       src={otherAvatar}
@@ -725,7 +759,6 @@ export default function Chat() {
             </Modal.Footer>
           </Form>
         </Modal>
-      </div>
     </>
   );
 }

@@ -419,3 +419,13 @@ body.cd-mobile-drawer-open{
   color: #7f13ec;
   font-variation-settings: "FILL" 1;
 }
+/* Add this at the end of src/pages/clientDashboard.css */
+
+.cd-content--flush{
+  padding: 0 !important;
+}
+.cd-topbar--compact{
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  align-items: center !important;
+}
