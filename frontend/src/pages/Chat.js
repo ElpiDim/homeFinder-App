@@ -54,6 +54,7 @@ export default function Chat() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const socket = useSocket();
+
   const hasActiveConversation =
     Boolean(propertyId && receiverId) &&
     !["undefined", "null"].includes(String(propertyId)) &&
@@ -85,7 +86,8 @@ export default function Chat() {
   const [proposalError, setProposalError] = useState("");
   const [proposalSuccess, setProposalSuccess] = useState("");
   const [submittingProposal, setSubmittingProposal] = useState(false);
-    const [mobileView, setMobileView] = useState(
+
+  const [mobileView, setMobileView] = useState(
     hasActiveConversation ? "chat" : "list"
   );
 
@@ -98,10 +100,10 @@ export default function Chat() {
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
-    useEffect(() => {
+
+  useEffect(() => {
     setMobileView(hasActiveConversation ? "chat" : "list");
   }, [hasActiveConversation]);
-
 
   // load property + other user info
   useEffect(() => {
@@ -187,7 +189,13 @@ export default function Chat() {
   useEffect(() => {
     if (!user?.id || !hasActiveConversation) return;
     markConversationAsRead(propertyId, receiverId);
-  }, [user?.id, propertyId, receiverId, markConversationAsRead, hasActiveConversation]);
+  }, [
+    user?.id,
+    propertyId,
+    receiverId,
+    markConversationAsRead,
+    hasActiveConversation,
+  ]);
 
   // socket new message
   useEffect(() => {
@@ -215,11 +223,17 @@ export default function Chat() {
 
     socket.on("newMessage", handleNewMessage);
     return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, propertyId, receiverId, user?.id, markConversationAsRead, hasActiveConversation]);
+  }, [
+    socket,
+    propertyId,
+    receiverId,
+    user?.id,
+    markConversationAsRead,
+    hasActiveConversation,
+  ]);
 
-  // scroll bottom (in the message container)
+  // scroll bottom
   useEffect(() => {
-    // If you want smooth scroll only when you're already near bottom, you can add logic.
     if (!hasActiveConversation) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, hasActiveConversation]);
@@ -259,7 +273,7 @@ export default function Chat() {
   }, [conversations, query, tab]);
 
   const openConversation = (pid, ouid) => {
-      if (!pid || !ouid) return;
+    if (!pid || !ouid) return;
     markConversationAsRead(pid, ouid);
     setMobileView("chat");
     navigate(`/chat/${pid}/${ouid}`);
@@ -274,7 +288,8 @@ export default function Chat() {
     : "https://placehold.co/420x280?text=No+Image";
 
   const propTitle = property?.title || "Property details";
-  const propAddr = property?.address || property?.location || property?.city || "";
+  const propAddr =
+    property?.address || property?.location || property?.city || "";
   const propPrice = property?.price
     ? `${property.price.toLocaleString?.() ?? property.price}`
     : "";
@@ -286,7 +301,6 @@ export default function Chat() {
       : "";
   const propStatus = property?.status || "";
 
-  // ----- Propose appointment logic (owner only) -----
   const isOwnerOfProperty = useMemo(() => {
     if (!user || user.role !== "owner" || !property) return false;
     const ownerId = property?.ownerId?._id || property?.ownerId;
@@ -374,391 +388,460 @@ export default function Chat() {
 
   return (
     <>
-      {/* IMPORTANT: these styles ensure message area scroll works inside center column */}
-        <div
-          className={`cp-layout ${
-            mobileView === "list" ? "cp-mobile-list" : "cp-mobile-chat"
-          }`}
-          style={{ height: "100%" }}
-        >
-          {/* LEFT */}
-          <aside className="cp-left">
-            <div className="cp-search">
-              <span className="material-symbols-outlined">search</span>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search client or address..."
-              />
-              </div>
-
-
-            <div className="cp-tabs">
-              <button
-                className={`cp-tab ${tab === "all" ? "active" : ""}`}
-                onClick={() => setTab("all")}
-                type="button"
-              >
-                All
-              </button>
-              <button
-                className={`cp-tab ${tab === "unread" ? "active" : ""}`}
-                onClick={() => setTab("unread")}
-                type="button"
-              >
-                Unread
-              </button>
-              <button
-                className={`cp-tab ${tab === "clients" ? "active" : ""}`}
-                onClick={() => setTab("clients")}
-                type="button"
-              >
-                Clients
-              </button>
-            </div>
-
-            <div className="cp-list">
-              {loading ? (
-                <div className="cp-empty">Loading…</div>
-              ) : filteredConversations.length === 0 ? (
-                <div className="cp-empty">No conversations yet.</div>
-              ) : (
-                filteredConversations.map(
-                  ({ property: p, otherUser: ou, lastMessage, unreadCount, conversationId }) => {
-                     const conversationPropertyId = p?._id || p?.id || p;
-                    const conversationUserId = ou?._id || ou?.id || ou;
-                    const key = conversationId || `${conversationPropertyId}-${conversationUserId}`;
-                    const avatar = assetUrl(ou?.profilePicture, "/default-avatar.jpg");
-                    const active =
-                       String(conversationPropertyId) === String(propertyId) &&
-                      String(conversationUserId) === String(receiverId);
-
-                    return (
-                      <button
-                        type="button"
-                        key={key}
-                        className={`cp-row ${active ? "active" : ""}`}
-                        onClick={() => openConversation(conversationPropertyId, conversationUserId)}
-                      >
-                        <img className="cp-row-avatar" src={avatar} alt={ou?.name || "User"} />
-                        <div className="cp-row-body">
-                          <div className="cp-row-top">
-                            <div className="cp-row-name">{ou?.name || "User"}</div>
-                            <div className="cp-row-time">{timeAgo(lastMessage?.timeStamp)}</div>
-                          </div>
-                          <div className="cp-row-mid">
-                            <div className="cp-row-prop">{p?.title || p?.address || "Property"}</div>
-                            {(unreadCount || 0) > 0 && <span className="cp-unread-dot" />}
-                          </div>
-                          <div className="cp-row-msg">{lastMessage?.content || ""}</div>
-                        </div>
-                      </button>
-                    );
-                  }
-                )
-              )}
-            </div>
-          </aside>
-
-          {/* CENTER */}
-          <main
-            className="cp-center"
-            style={{
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
-            }}
-          >
-            {hasActiveConversation ? (
-              <>
-                <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
-                  <div className="cp-chatUser">
-            {/* ✅ Mobile back to list */}
-            <button
-              type="button"
-              className="cp-mobileBack"
-              onClick={() => {
-                setMobileView("list");
-                navigate("/messages"); // επιστρέφει στη λίστα χωρίς active chat
-              }}
-              aria-label="Back to conversations"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-            </button>
-
-            <img
-              className="cp-chatAvatar"
-              src={otherAvatar}
-              alt={otherUser?.name || "User"}
+      <div
+        className={`cp-layout ${
+          mobileView === "list" ? "cp-mobile-list" : "cp-mobile-chat"
+        }`}
+        style={{ height: "100%" }}
+      >
+        {/* LEFT */}
+        <aside className="cp-left">
+          <div className="cp-search">
+            <span className="material-symbols-outlined">search</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search client or address..."
             />
+          </div>
 
-            <div>
-              <div className="cp-chatName">{otherUser?.name || "Conversation"}</div>
-              <div className="cp-chatSub">
-                Inquiry for{" "}
-                <span className="cp-linkish">{property?.title || "a listing"}</span>
-              </div>
-            </div>
-          
+          <div className="cp-tabs">
+            <button
+              className={`cp-tab ${tab === "all" ? "active" : ""}`}
+              onClick={() => setTab("all")}
+              type="button"
+            >
+              All
+            </button>
+            <button
+              className={`cp-tab ${tab === "unread" ? "active" : ""}`}
+              onClick={() => setTab("unread")}
+              type="button"
+            >
+              Unread
+            </button>
+            <button
+              className={`cp-tab ${tab === "clients" ? "active" : ""}`}
+              onClick={() => setTab("clients")}
+              type="button"
+            >
+              Clients
+            </button>
+          </div>
 
-                    <img
-                      className="cp-chatAvatar"
-                      src={otherAvatar}
-                      alt={otherUser?.name || "User"}
-                    />
-                    <div>
-                      <div className="cp-chatName">{otherUser?.name || "Conversation"}</div>
-                      <div className="cp-chatSub">
-                        Inquiry for{" "}
-                        <span className="cp-linkish">{property?.title || "a listing"}</span>
-                      </div>
-                    </div>
-                  </div>
+          <div className="cp-list">
+            {loading ? (
+              <div className="cp-empty">Loading…</div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="cp-empty">No conversations yet.</div>
+            ) : (
+              filteredConversations.map(
+                ({
+                  property: p,
+                  otherUser: ou,
+                  lastMessage,
+                  unreadCount,
+                  conversationId,
+                }) => {
+                  const conversationPropertyId = p?._id || p?.id || p;
+                  const conversationUserId = ou?._id || ou?.id || ou;
+                  const key =
+                    conversationId ||
+                    `${conversationPropertyId}-${conversationUserId}`;
+                  const avatar = assetUrl(
+                    ou?.profilePicture,
+                    "/default-avatar.jpg"
+                  );
+                  const active =
+                    String(conversationPropertyId) === String(propertyId) &&
+                    String(conversationUserId) === String(receiverId);
 
-                  <div className="cp-chatActions">
-                    {canProposeAppointment && (
-                      <button
-                        type="button"
-                        className="chat-propose-btn"
-                        onClick={openPropose}
-                        disabled={!property || submittingProposal}
-                      >
-                        <span className="material-symbols-outlined">calendar_add_on</span>
-                        Propose appointment
-                      </button>
-                    )}
-
+                  return (
                     <button
-                      className="cp-btn"
                       type="button"
-                      onClick={() => navigate(`/property/${propertyId}`)}
+                      key={key}
+                      className={`cp-row ${active ? "active" : ""}`}
+                      onClick={() =>
+                        openConversation(
+                          conversationPropertyId,
+                          conversationUserId
+                        )
+                      }
                     >
-                      <span className="material-symbols-outlined">visibility</span>
-                      View Listing
-                    </button>
-
-                    <button className="cp-iconbtn" type="button" aria-label="more">
-                      <span className="material-symbols-outlined">more_vert</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* SCROLL CONTAINER */}
-                <div
-                  className="cp-chatBody"
-                  ref={chatBodyRef}
-                  style={{
-                    flex: "1 1 auto",
-                    minHeight: 0,
-                    overflowY: "auto",
-                    paddingRight: 8,
-                  }}
-                >
-                  <div className="cp-dayPill">Today</div>
-
-                  {messages.map((m) => {
-                    const isSelf = String(m.senderId?._id) === String(user.id);
-                    return (
-                      <div key={m._id} className={`cp-msgRow ${isSelf ? "self" : "other"}`}>
-                        {!isSelf && <img className="cp-msgAvatar" src={otherAvatar} alt="avatar" />}
-
-                        <div className={`cp-bubble ${isSelf ? "self" : "other"}`}>
-                          <div className="cp-bubbleText">{m.content}</div>
-                          <div className="cp-bubbleTime">{formatMsgTime(m.timeStamp)}</div>
+                      <img
+                        className="cp-row-avatar"
+                        src={avatar}
+                        alt={ou?.name || "User"}
+                      />
+                      <div className="cp-row-body">
+                        <div className="cp-row-top">
+                          <div className="cp-row-name">
+                            {ou?.name || "User"}
+                          </div>
+                          <div className="cp-row-time">
+                            {timeAgo(lastMessage?.timeStamp)}
+                          </div>
                         </div>
-
-                        {isSelf && <img className="cp-msgAvatar" src={profileImg} alt="me" />}
+                        <div className="cp-row-mid">
+                          <div className="cp-row-prop">
+                            {p?.title || p?.address || "Property"}
+                          </div>
+                          {(unreadCount || 0) > 0 && (
+                            <span className="cp-unread-dot" />
+                          )}
+                        </div>
+                        <div className="cp-row-msg">
+                          {lastMessage?.content || ""}
+                        </div>
                       </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <form className="cp-chatInput" onSubmit={handleSend} style={{ flex: "0 0 auto" }}>
-                  <button type="button" className="cp-plus" aria-label="attach">
-                    <span className="material-symbols-outlined">add</span>
-                  </button>
-                  <input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type your message..."
-                  />
-                  <button type="button" className="cp-emoji" aria-label="emoji">
-                    <span className="material-symbols-outlined">sentiment_satisfied</span>
-                  </button>
-                  <button type="submit" className="cp-send" aria-label="send">
-                    <span className="material-symbols-outlined">send</span>
-                  </button>
-                </form>
-              </>
-            ) : (
-              <div className="cp-emptyState">
-                <div className="cp-emptyTitle">Select a conversation</div>
-                <div className="cp-emptySub">
-                  Choose a chat from the left to view messages.
-                </div>
-              </div>
+                    </button>
+                  );
+                }
+              )
             )}
-          </main>
+          </div>
+        </aside>
 
-          {/* RIGHT */}
-          <aside className="cp-right">
-            {hasActiveConversation ? (
-              <>
-                <div className="cp-rightTitle">PROPERTY DETAILS</div>
+        {/* CENTER */}
+        <main
+          className="cp-center"
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+          }}
+        >
+          {hasActiveConversation ? (
+            <>
+              {/* ✅ FIXED HEADER (NO DUPLICATE NAME/AVATAR) */}
+              <div className="cp-chatHead" style={{ flex: "0 0 auto" }}>
+                <div className="cp-chatUser" style={{ minWidth: 0 }}>
+                  <button
+                    type="button"
+                    className="cp-mobileBack"
+                    onClick={() => {
+                      setMobileView("list");
+                      navigate("/messages");
+                    }}
+                    aria-label="Back to conversations"
+                  >
+                    <span className="material-symbols-outlined">
+                      arrow_back
+                    </span>
+                  </button>
 
-                <div className="cp-propCard">
-                  <div className="cp-propImg">
-                    <img src={propImage} alt={propTitle} />
-                    {propType && <span className="cp-propTag">{propType}</span>}
-                  </div>
-
-                  <div className="cp-propBody">
-                    <div className="cp-propName">{propTitle}</div>
-                    <div className="cp-propAddr">{propAddr}</div>
-
-                    <div className="cp-propRow">
-                      <div className="cp-propPrice">
-                        {propPrice ? (
-                          <>
-                            <span className="cp-propPriceMain">${propPrice}</span>
-                            {property?.type === "rent" && (
-                              <span className="cp-propPriceSub">/mo</span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="cp-propPriceMain">—</span>
-                        )}
-                      </div>
-
-                      {propStatus && (
-                        <span
-                          className={`cp-status ${
-                            String(propStatus).toLowerCase() === "available" ? "ok" : "muted"
-                          }`}
-                        >
-                          {propStatus}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cp-block">
-                  <div className="cp-blockTitle">SHARED FILES</div>
-                  <div className="cp-file">
-                    <div className="cp-fileIc pdf">PDF</div>
-                    <div className="cp-fileMeta">
-                      <div className="cp-fileName">Lease_Agreement.pdf</div>
-                      <div className="cp-fileSub">2.4 MB • 2 days ago</div>
-                    </div>
-                  </div>
-                  <div className="cp-file">
-                    <div className="cp-fileIc img">IMG</div>
-                    <div className="cp-fileMeta">
-                      <div className="cp-fileName">Kitchen_Renovation.jpg</div>
-                      <div className="cp-fileSub">4.1 MB • Today</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cp-block">
-                  <div className="cp-blockTitle">PARTICIPANTS</div>
-                  <div className="cp-part">
-                    <img src={profileImg} alt="me" />
-                    <div>
-                      <div className="cp-partName">You</div>
-                      <div className="cp-partRole">
-                        {user?.role === "owner" ? "Property Owner" : "Client"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="cp-part">
-                    <img src={otherAvatar} alt="other" />
-                    <div>
-                      <div className="cp-partName">{otherUser?.name || "User"}</div>
-                      <div className="cp-partRole">Potential Tenant</div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="cp-rightEmpty">
-                <div className="cp-rightEmptyTitle">No conversation selected</div>
-                <div className="cp-rightEmptySub">
-                  Pick a chat to see the listing details and participants.
-                </div>
-              </div>
-            )}
-          </aside>
-        </div>
-
-        {/* Propose Appointment Modal */}
-        <Modal show={showProposalModal} onHide={() => setShowProposalModal(false)} centered>
-          <Form onSubmit={handlePropose}>
-            <Modal.Header closeButton>
-              <Modal.Title>Propose appointment times</Modal.Title>
-            </Modal.Header>
-
-            <Modal.Body>
-              <p className="text-muted mb-3">
-                Suggest one or more date/time options for{" "}
-                <strong>{otherUser?.name || "the tenant"}</strong>.
-              </p>
-
-              {proposalError && (
-                <Alert variant="danger" onClose={() => setProposalError("")} dismissible>
-                  {proposalError}
-                </Alert>
-              )}
-
-              {proposalSuccess && (
-                <Alert variant="success" onClose={() => setProposalSuccess("")} dismissible>
-                  {proposalSuccess}
-                </Alert>
-              )}
-
-              {slotInputs.map((slot, index) => (
-                <InputGroup className="mb-2" key={`slot-${index}`}>
-                  <Form.Control
-                    type="datetime-local"
-                    value={slot}
-                    onChange={(e) => handleProposalSlotChange(index, e.target.value)}
-                    required
+                  <img
+                    className="cp-chatAvatar"
+                    src={otherAvatar}
+                    alt={otherUser?.name || "User"}
                   />
-                  {slotInputs.length > 1 && (
+
+                  <div style={{ minWidth: 0 }}>
+                    <div className="cp-chatName">
+                      {otherUser?.name || "Conversation"}
+                    </div>
+                    <div className="cp-chatSub">
+                      Inquiry for{" "}
+                      <span className="cp-linkish">
+                        {property?.title || "a listing"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cp-chatActions">
+                  {canProposeAppointment && (
                     <button
                       type="button"
-                      className="btn btn-outline-danger"
-                      onClick={() => handleRemoveSlot(index)}
+                      className="chat-propose-btn"
+                      onClick={openPropose}
+                      disabled={!property || submittingProposal}
                     >
-                      Remove
+                      <span className="material-symbols-outlined">
+                        calendar_add_on
+                      </span>
+                      Propose appointment
                     </button>
                   )}
-                </InputGroup>
-              ))}
 
-              <button type="button" className="btn btn-outline-primary" onClick={handleAddSlot}>
-                Add another option
-              </button>
-            </Modal.Body>
+                  <button
+                    className="cp-btn"
+                    type="button"
+                    onClick={() => navigate(`/property/${propertyId}`)}
+                  >
+                    <span className="material-symbols-outlined">visibility</span>
+                    View Listing
+                  </button>
 
-            <Modal.Footer>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowProposalModal(false)}
-                disabled={submittingProposal}
+                  <button className="cp-iconbtn" type="button" aria-label="more">
+                    <span className="material-symbols-outlined">more_vert</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* SCROLL CONTAINER */}
+              <div
+                className="cp-chatBody"
+                ref={chatBodyRef}
+                style={{
+                  flex: "1 1 auto",
+                  minHeight: 0,
+                  overflowY: "auto",
+                  paddingRight: 8,
+                }}
               >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-success" disabled={submittingProposal}>
-                {submittingProposal ? "Sending…" : "Send proposal"}
-              </button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
+                <div className="cp-dayPill">Today</div>
+
+                {messages.map((m) => {
+                  const isSelf = String(m.senderId?._id) === String(user.id);
+                  return (
+                    <div
+                      key={m._id}
+                      className={`cp-msgRow ${isSelf ? "self" : "other"}`}
+                    >
+                      {!isSelf && (
+                        <img
+                          className="cp-msgAvatar"
+                          src={otherAvatar}
+                          alt="avatar"
+                        />
+                      )}
+
+                      <div className={`cp-bubble ${isSelf ? "self" : "other"}`}>
+                        <div className="cp-bubbleText">{m.content}</div>
+                        <div className="cp-bubbleTime">
+                          {formatMsgTime(m.timeStamp)}
+                        </div>
+                      </div>
+
+                      {isSelf && (
+                        <img
+                          className="cp-msgAvatar"
+                          src={profileImg}
+                          alt="me"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <form
+                className="cp-chatInput"
+                onSubmit={handleSend}
+                style={{ flex: "0 0 auto" }}
+              >
+                <button type="button" className="cp-plus" aria-label="attach">
+                  <span className="material-symbols-outlined">add</span>
+                </button>
+                <input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type your message..."
+                />
+                <button type="button" className="cp-emoji" aria-label="emoji">
+                  <span className="material-symbols-outlined">
+                    sentiment_satisfied
+                  </span>
+                </button>
+                <button type="submit" className="cp-send" aria-label="send">
+                  <span className="material-symbols-outlined">send</span>
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="cp-emptyState">
+              <div className="cp-emptyTitle">Select a conversation</div>
+              <div className="cp-emptySub">
+                Choose a chat from the left to view messages.
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* RIGHT */}
+        <aside className="cp-right">
+          {hasActiveConversation ? (
+            <>
+              <div className="cp-rightTitle">PROPERTY DETAILS</div>
+
+              <div className="cp-propCard">
+                <div className="cp-propImg">
+                  <img src={propImage} alt={propTitle} />
+                  {propType && <span className="cp-propTag">{propType}</span>}
+                </div>
+
+                <div className="cp-propBody">
+                  <div className="cp-propName">{propTitle}</div>
+                  <div className="cp-propAddr">{propAddr}</div>
+
+                  <div className="cp-propRow">
+                    <div className="cp-propPrice">
+                      {propPrice ? (
+                        <>
+                          <span className="cp-propPriceMain">${propPrice}</span>
+                          {property?.type === "rent" && (
+                            <span className="cp-propPriceSub">/mo</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="cp-propPriceMain">—</span>
+                      )}
+                    </div>
+
+                    {propStatus && (
+                      <span
+                        className={`cp-status ${
+                          String(propStatus).toLowerCase() === "available"
+                            ? "ok"
+                            : "muted"
+                        }`}
+                      >
+                        {propStatus}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="cp-block">
+                <div className="cp-blockTitle">SHARED FILES</div>
+                <div className="cp-file">
+                  <div className="cp-fileIc pdf">PDF</div>
+                  <div className="cp-fileMeta">
+                    <div className="cp-fileName">Lease_Agreement.pdf</div>
+                    <div className="cp-fileSub">2.4 MB • 2 days ago</div>
+                  </div>
+                </div>
+                <div className="cp-file">
+                  <div className="cp-fileIc img">IMG</div>
+                  <div className="cp-fileMeta">
+                    <div className="cp-fileName">Kitchen_Renovation.jpg</div>
+                    <div className="cp-fileSub">4.1 MB • Today</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="cp-block">
+                <div className="cp-blockTitle">PARTICIPANTS</div>
+                <div className="cp-part">
+                  <img src={profileImg} alt="me" />
+                  <div>
+                    <div className="cp-partName">You</div>
+                    <div className="cp-partRole">
+                      {user?.role === "owner" ? "Property Owner" : "Client"}
+                    </div>
+                  </div>
+                </div>
+                <div className="cp-part">
+                  <img src={otherAvatar} alt="other" />
+                  <div>
+                    <div className="cp-partName">{otherUser?.name || "User"}</div>
+                    <div className="cp-partRole">Potential Tenant</div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="cp-rightEmpty">
+              <div className="cp-rightEmptyTitle">No conversation selected</div>
+              <div className="cp-rightEmptySub">
+                Pick a chat to see the listing details and participants.
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* Propose Appointment Modal */}
+      <Modal
+        show={showProposalModal}
+        onHide={() => setShowProposalModal(false)}
+        centered
+      >
+        <Form onSubmit={handlePropose}>
+          <Modal.Header closeButton>
+            <Modal.Title>Propose appointment times</Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body>
+            <p className="text-muted mb-3">
+              Suggest one or more date/time options for{" "}
+              <strong>{otherUser?.name || "the tenant"}</strong>.
+            </p>
+
+            {proposalError && (
+              <Alert
+                variant="danger"
+                onClose={() => setProposalError("")}
+                dismissible
+              >
+                {proposalError}
+              </Alert>
+            )}
+
+            {proposalSuccess && (
+              <Alert
+                variant="success"
+                onClose={() => setProposalSuccess("")}
+                dismissible
+              >
+                {proposalSuccess}
+              </Alert>
+            )}
+
+            {slotInputs.map((slot, index) => (
+              <InputGroup className="mb-2" key={`slot-${index}`}>
+                <Form.Control
+                  type="datetime-local"
+                  value={slot}
+                  onChange={(e) =>
+                    handleProposalSlotChange(index, e.target.value)
+                  }
+                  required
+                />
+                {slotInputs.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={() => handleRemoveSlot(index)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </InputGroup>
+            ))}
+
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={handleAddSlot}
+            >
+              Add another option
+            </button>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowProposalModal(false)}
+              disabled={submittingProposal}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-success"
+              disabled={submittingProposal}
+            >
+              {submittingProposal ? "Sending…" : "Send proposal"}
+            </button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </>
   );
 }
