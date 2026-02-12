@@ -131,7 +131,7 @@ const FAMILY_STATUS_OPTIONS = [
   { value: 'family', label: 'Family' },
 ];
 const GOOGLE_LIBRARIES = ['places'];
-const MAP_LOADER_ID = 'add-property-map';
+const MAP_LOADER_ID = 'gmap'; // ✅ ίδιο id με το GoogleMapView
 const MAP_CONTAINER_STYLE = { width: '100%', height: '320px' };
 const DEFAULT_CENTER = { lat: 37.9838, lng: 23.7275 };
 
