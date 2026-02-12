@@ -337,17 +337,6 @@
   overscroll-behavior: contain;
 }
 
-/* ===============================
-   SAFETY (optional but recommended)
-================================ */
-html, body, #root{
-  height: 100%;
-}
-
-body{
-  overflow: hidden;
-}
-
 body.cd-mobile-drawer-open{
   overflow: hidden;
 }
