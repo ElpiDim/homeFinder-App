@@ -40,6 +40,8 @@ const toArray = (v) => {
   return str.split(",").map((s) => s.trim()).filter(Boolean);
 };
 
+const normalizeRole = (role) => String(role || "").toLowerCase();
+const isOwnerRole = (role) => normalizeRole(role) === "owner";
 const normalizeRoommatePreference = (value) => {
   if (!hasValue(value)) return undefined;
   const val = String(value).toLowerCase();
@@ -91,8 +93,7 @@ const extractImagesFromReq = (req) => {
 /* --------------------------- CREATE PROPERTY --------------------------- */
 exports.createProperty = async (req, res) => {
   const ownerId = req.user?.userId;
-
-  if (!ownerId || req.user.role !== "owner") {
+if (!ownerId || !isOwnerRole(req.user?.role)) {
     return res.status(403).json({ message: "Only owners can add properties" });
   }
 
@@ -362,7 +363,7 @@ exports.getAllProperties = async (req, res) => {
 /* ------------------------- GET MY PROPS + STATS ------------------------ */
 exports.getMyProperties = async (req, res) => {
   try {
-    if (req.user.role !== "owner") {
+    if (!isOwnerRole(req.user?.role)) {
       return res
         .status(403)
         .json({ message: "Only owners can view their properties" });

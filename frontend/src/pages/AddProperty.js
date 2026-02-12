@@ -149,6 +149,7 @@ const toNumOrUndef = (v) => (v === '' || v === null || v === undefined ? undefin
 export default function AddProperty() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isOwner = String(user?.role || '').toLowerCase() === 'owner';
 
   const [form, setForm] = useState({
     title: '',
