@@ -2,6 +2,7 @@
 
 .onboarding-container {
   min-height: 100vh;
+  overflow-y: auto;
   background: radial-gradient(
       700px circle at 18% 12%,
       rgba(255, 255, 255, 0.55),
@@ -9,7 +10,7 @@
     ),
     linear-gradient(135deg, #f3e5f5 0%, #ede7f6 33%, #e1bee7 66%, #f8f1fa 100%);
   display: flex;
-  align-items: center;
+  align-items: flex-start;   /* 👈 αντί για center */
   justify-content: center;
   padding: 2.5rem 1.25rem;
 }

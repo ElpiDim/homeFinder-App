@@ -33,6 +33,14 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 
+/* ---------- Serve React build ---------- */
+app.use(express.static(path.join(__dirname, "build")));
+
+// SPA fallback (everything except /api)
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
 /* ---------- 404 μόνο για API ---------- */
 app.use("/api", (_req, res) => {
   res.status(404).json({ message: "Not found" });
