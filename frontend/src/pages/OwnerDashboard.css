@@ -132,6 +132,19 @@
    (adds only; doesn't break existing)
    ========================= */
 
+.od-addProperty {
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.od-addProperty:hover {
+  filter: brightness(0.95);
+}
+
 .od-viewAll {
   border: 0;
   background: transparent;

@@ -73,6 +73,7 @@ export default function AppLayout() {
     if (user?.role === "owner") {
       return [
         { label: "Dashboard", path: "/dashboard", icon: "dashboard" },
+        { label: "Add Property", path: "/add-property", icon: "add_home" },
         { label: "Calendar", path: "/calendar", icon: "calendar_month" },
         { label: "Messages", path: "/messages", icon: "chat", match: ["/chat"] },
         { label: "Notifications", path: "/notifications", icon: "notifications" },

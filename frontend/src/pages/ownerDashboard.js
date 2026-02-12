@@ -114,13 +114,22 @@ export default function OwnerDashboard() {
           <div className="mt-4">
             <div className="d-flex align-items-center justify-content-between mb-3">
               <h4 className="fw-bold mb-0">My Properties</h4>
-              <button
-                type="button"
-                className="od-viewAll"
-                onClick={() => navigate("/properties")}
-              >
-                View All <span aria-hidden>→</span>
-              </button>
+                  <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="od-addProperty"
+                  onClick={() => navigate("/add-property")}
+                >
+                  + Add Property
+                </button>
+                <button
+                  type="button"
+                  className="od-viewAll"
+                  onClick={() => navigate("/properties")}
+                >
+                  View All <span aria-hidden>→</span>
+                </button>
+              </div>
             </div>
 
             {/* ✅ Only this area changed: now grid cards */}
