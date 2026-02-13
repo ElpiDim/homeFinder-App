@@ -42,6 +42,10 @@ const toArray = (v) => {
 
 const normalizeRole = (role) => String(role || "").toLowerCase();
 const isOwnerRole = (role) => normalizeRole(role) === "owner";
+const statusNotificationText = {
+  rented: "has been rented",
+  sold: "has been sold",
+};
 const normalizeRoommatePreference = (value) => {
   if (!hasValue(value)) return undefined;
   const val = String(value).toLowerCase();
@@ -50,6 +54,29 @@ const normalizeRoommatePreference = (value) => {
     return 'roommates_only';
   if (['solo', 'private', 'no-roommates', 'noroommates'].includes(val)) return 'no_roommates';
   return undefined;
+};
+
+const getInterestedUserIds = async (propertyId) => {
+  const [favorites, appointments] = await Promise.all([
+    Favorites.find({ propertyId }).select("userId").lean(),
+    Appointment.find({ propertyId }).select("tenantId").lean(),
+  ]);
+
+  const favoriteUserIds = favorites.map((f) => String(f.userId));
+  const tenantIds = appointments
+    .map((a) => (a.tenantId ? String(a.tenantId) : null))
+    .filter(Boolean);
+
+  return [...new Set([...favoriteUserIds, ...tenantIds])];
+};
+
+const emitNotifications = (req, notifications) => {
+  const io = req.app.get("io");
+  if (!io) return;
+
+  notifications.forEach((notification) => {
+    io.to(notification.userId.toString()).emit("notification", notification);
+  });
 };
 
 // Map user.preferences -> keys που περιμένει το matching util
@@ -249,8 +276,14 @@ exports.getAllProperties = async (req, res) => {
     const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
     const numericPage = Math.max(1, parseInt(page) || 1);
     const skip = (numericPage - 1) * numericLimit;
+    const requesterRole = req.currentUser?.role || req.user?.role;
 
     const match = {};
+
+    // Client match feed should only include currently available listings.
+    if (requesterRole === "client") {
+      match.status = "available";
+    }
 
     // free text search
     if (hasValue(q)) {
@@ -444,6 +477,7 @@ exports.updateProperty = async (req, res) => {
 
     const { images: newImages, floorPlanImage } = extractImagesFromReq(req);
     const b = req.body;
+    const previousStatus = property.status;
 
     // core
     if (hasValue(b.title)) property.title = b.title;
@@ -599,6 +633,30 @@ exports.updateProperty = async (req, res) => {
     }
 
     await property.save();
+
+    if (
+      previousStatus !== property.status &&
+      ["rented", "sold"].includes(property.status)
+    ) {
+      const targetUserIds = await getInterestedUserIds(property._id);
+      const notificationMessage = property.title
+        ? `The property "${property.title}" ${statusNotificationText[property.status]}.`
+        : `A property you interacted with ${statusNotificationText[property.status]}.`;
+
+      const notifications = targetUserIds.map((uid) => ({
+        userId: uid,
+        type: "property_status",
+        referenceId: property._id,
+        senderId: req.user.userId,
+        message: notificationMessage,
+      }));
+
+      if (notifications.length) {
+        const createdNotifications = await Notification.insertMany(notifications);
+        emitNotifications(req, createdNotifications);
+      }
+    }
+
     res.json({
       message: "Property updated",
       property: property.toObject({ virtuals: true }),
@@ -644,12 +702,7 @@ exports.deleteProperty = async (req, res) => {
     // 4) Υπολογίζουμε σε ποιους χρήστες θα στείλουμε property_removed notification:
     //    - users που είχαν favorite
     //    - tenants από appointments
-    const favUserIds = favorites.map((f) => String(f.userId));
-    const tenantIds = appointments
-      .map((a) => (a.tenantId ? String(a.tenantId) : null))
-      .filter(Boolean);
-
-    const targetUserIds = [...new Set([...favUserIds, ...tenantIds])];
+    const targetUserIds = await getInterestedUserIds(property._id);
 
     if (targetUserIds.length) {
       const notifications = targetUserIds.map((uid) => ({
@@ -662,7 +715,8 @@ exports.deleteProperty = async (req, res) => {
           : "A property you interacted with is no longer available. Related appointments have been cancelled.",
       }));
 
-      await Notification.insertMany(notifications);
+      const createdNotifications = await Notification.insertMany(notifications);
+      emitNotifications(req, createdNotifications);
     }
 
     // 5) Σβήνουμε το ίδιο το property

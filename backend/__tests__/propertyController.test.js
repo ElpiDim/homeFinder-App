@@ -184,5 +184,61 @@ describe("Property controller", () => {
       expect(res.body).toHaveLength(1);
       expect(res.body[0].title).toBe("Family Home");
     });
+
+    test("client feed excludes rented and sold properties", async () => {
+      const owner = await User.create({
+        email: "owner3@example.com",
+        password: "password",
+        role: "owner",
+      });
+
+      const client = await User.create({
+        email: "client3@example.com",
+        password: "password",
+        role: "client",
+        preferences: { dealType: "rent", city: "Patras" },
+      });
+
+      const clientToken = jwt.sign(
+        { userId: client._id.toString(), role: "client" },
+        process.env.JWT_SECRET
+      );
+
+      await Property.create([
+        {
+          ownerId: owner._id,
+          title: "Available Home",
+          location: "Patras",
+          price: 850,
+          type: "rent",
+          status: "available",
+        },
+        {
+          ownerId: owner._id,
+          title: "Already Rented",
+          location: "Patras",
+          price: 840,
+          type: "rent",
+          status: "rented",
+        },
+        {
+          ownerId: owner._id,
+          title: "Already Sold",
+          location: "Patras",
+          price: 140000,
+          type: "sale",
+          status: "sold",
+        },
+      ]);
+
+      const res = await request(app)
+        .get("/api/properties")
+        .set("Authorization", `Bearer ${clientToken}`)
+        .expect(200);
+
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].title).toBe("Available Home");
+      expect(res.body[0].status).toBe("available");
+    });
   });
 });

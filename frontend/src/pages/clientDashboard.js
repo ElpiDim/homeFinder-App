@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../context/SocketContext";
 import { Container, Row, Col, Badge } from "react-bootstrap";
 import PropertyCard from "../components/propertyCard";
 import "./clientDashboard.css";
@@ -28,6 +29,7 @@ const currency = (n) =>
 
 export default function ClientDashboard() {
   const { user } = useAuth();
+  const socket = useSocket();
   const navigate = useNavigate();
 
   const [allProperties, setAllProperties] = useState([]);
@@ -80,6 +82,23 @@ export default function ClientDashboard() {
     fetchMatches();
     fetchFavorites();
   }, [user, fetchMatches, fetchFavorites]);
+
+  useEffect(() => {
+    if (!socket || user?.role !== "client") return;
+
+    const refreshMatchesOnListingChange = (note) => {
+      const type = (note?.type || "").toLowerCase();
+      if (type === "property_status" || type === "property_removed") {
+        fetchMatches();
+        fetchFavorites();
+      }
+    };
+
+    socket.on("notification", refreshMatchesOnListingChange);
+    return () => {
+      socket.off("notification", refreshMatchesOnListingChange);
+    };
+  }, [socket, user?.role, fetchMatches, fetchFavorites]);
 
   const handleFavorite = async (propertyId) => {
     try {
