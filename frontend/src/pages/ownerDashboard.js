@@ -134,7 +134,7 @@ export default function OwnerDashboard() {
 
             {/* ✅ Only this area changed: now grid cards */}
             <div className="od-propGrid">
-              {allProperties.slice(0, 6).map((p) => {
+              {allProperties.map((p) => {
                 const img = p.images?.[0] || "";
                 const price = formatPrice(p);
                 const title = p.title || p.address || "Property";
