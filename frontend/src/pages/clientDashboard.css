@@ -418,3 +418,31 @@ body.cd-mobile-drawer-open{
   padding-bottom: 12px !important;
   align-items: center !important;
 }
+
+.cd-logout-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border:1px solid var(--border);
+  background: var(--bg-light);
+  color: var(--text);
+  border-radius:12px;
+  padding:10px 12px;
+  font-weight:600;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+
+.cd-logout-btn:hover{
+  background: rgba(127,19,236,0.08);
+  border-color: rgba(127,19,236,0.35);
+  color: var(--primary);
+}
+
+.cd-logout-btn .material-symbols-outlined{
+  font-size:18px;
+}
+
+.cd-aside.is-collapsed .cd-logout-btn{
+  display:none;
+}
