@@ -276,8 +276,14 @@ exports.getAllProperties = async (req, res) => {
     const numericLimit = Math.max(1, Math.min(100, parseInt(limit) || 24));
     const numericPage = Math.max(1, parseInt(page) || 1);
     const skip = (numericPage - 1) * numericLimit;
+    const requesterRole = req.currentUser?.role || req.user?.role;
 
     const match = {};
+
+    // Client match feed should only include currently available listings.
+    if (requesterRole === "client") {
+      match.status = "available";
+    }
 
     // free text search
     if (hasValue(q)) {
