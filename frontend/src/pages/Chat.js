@@ -805,14 +805,19 @@ export default function Chat() {
         show={showProposalModal}
         onHide={() => setShowProposalModal(false)}
         centered
+        dialogClassName="cp-proposalModalDialog"
+        contentClassName="cp-proposalModalContent"
       >
         <Form onSubmit={handlePropose}>
-          <Modal.Header closeButton>
-            <Modal.Title>Propose appointment times</Modal.Title>
+          <Modal.Header closeButton className="cp-proposalModalHeader">
+            <div>
+              <p className="cp-proposalEyebrow">Appointment proposal</p>
+              <Modal.Title>Propose appointment times</Modal.Title>
+            </div>
           </Modal.Header>
 
-          <Modal.Body>
-            <p className="text-muted mb-3">
+          <Modal.Body className="cp-proposalModalBody">
+            <p className="cp-proposalHelper">
               Suggest one or more date/time options for{" "}
               <strong>{otherUser?.name || "the tenant"}</strong>.
             </p>
@@ -838,19 +843,20 @@ export default function Chat() {
             )}
 
             {slotInputs.map((slot, index) => (
-              <InputGroup className="mb-2" key={`slot-${index}`}>
+              <InputGroup className="cp-proposalSlotRow" key={`slot-${index}`}>
                 <Form.Control
                   type="datetime-local"
                   value={slot}
                   onChange={(e) =>
                     handleProposalSlotChange(index, e.target.value)
                   }
+                  className="cp-proposalInput"
                   required
                 />
                 {slotInputs.length > 1 && (
                   <button
                     type="button"
-                    className="btn btn-outline-danger"
+                    className="btn cp-proposalRemoveBtn"
                     onClick={() => handleRemoveSlot(index)}
                   >
                     Remove
@@ -861,17 +867,17 @@ export default function Chat() {
 
             <button
               type="button"
-              className="btn btn-outline-primary"
+              className="btn cp-proposalAddBtn"
               onClick={handleAddSlot}
             >
               Add another option
             </button>
           </Modal.Body>
 
-          <Modal.Footer>
+          <Modal.Footer className="cp-proposalModalFooter">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn cp-proposalCancelBtn"
               onClick={() => setShowProposalModal(false)}
               disabled={submittingProposal}
             >
@@ -879,7 +885,7 @@ export default function Chat() {
             </button>
             <button
               type="submit"
-              className="btn btn-success"
+              className="btn cp-proposalSubmitBtn"
               disabled={submittingProposal}
             >
               {submittingProposal ? "Sending…" : "Send proposal"}
