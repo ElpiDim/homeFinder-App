@@ -4,7 +4,6 @@
   padding: 24px 0 48px;
 }
 
-
 .af-wrap{
   max-width: 1200px;
   margin: 0 auto;
@@ -431,10 +430,12 @@
   .af-apptGrid{ grid-template-columns: 1fr; }
   .af-dateRail{ align-items:flex-start; }
 }
+
 /* Space between NEXT UP pill and the time (only for the next appointment) */
 .af-item.next .af-timeTag{
   margin-left: 84px;
 }
+
 .af-calWrap{
   background: rgba(255,255,255,.92);
   border: 1px solid rgba(0,0,0,.06);
@@ -623,8 +624,10 @@
   font-weight: 700;
 }
 
+/* ✅ FIXED: keeps Add button inside the white area, aligned with input */
 .af-notesAdd{
   display:flex;
+  align-items:stretch;
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -637,6 +640,7 @@
   padding: 10px 12px;
   font-weight: 600;
   outline: none;
+  min-height: 44px;
 }
 
 .af-notesBtn{
@@ -644,9 +648,14 @@
   background: rgba(109,40,217,.14);
   color: #6d28d9;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 0 14px;
+  min-height: 44px;
   font-weight: 900;
   cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space: nowrap;
 }
 
 .af-notesEmpty{
@@ -972,6 +981,8 @@
 
   .af-notesBtn{
     width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
   }
 
   .af-calGrid{
@@ -1098,4 +1109,20 @@
   .af-calListTime{
     min-width: 0;
   }
+}
+/* ✅ FIX Notes Add overflow (place at very end of file) */
+.af-notesAdd{
+  width: 100%;
+  max-width: 100%;
+}
+
+.af-notesInput{
+  min-width: 0;            /* critical: allow shrink in flex */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.af-notesBtn{
+  flex: 0 0 auto;          /* don't stretch weirdly */
+  box-sizing: border-box;
 }

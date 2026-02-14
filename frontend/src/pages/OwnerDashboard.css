@@ -298,3 +298,65 @@
   text-transform: none;   /* ΣΒΗΝΕΙ τα κεφαλαία */
   letter-spacing: normal;
 }
+/* ===== Owner calendar day styling ===== */
+.od-calDay {
+  aspect-ratio: 1 / 1;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+
+  cursor: default;
+  position: relative;
+  text-align: left;
+}
+
+.od-calDay:disabled {
+  opacity: 1;
+}
+
+.od-calNum {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+/* ✅ days with appointments: colored square */
+.od-calDay.has-appt {
+  background: rgba(127, 19, 236, 0.12);
+  border-color: rgba(127, 19, 236, 0.35);
+  cursor: pointer;
+}
+
+.od-calDay.has-appt:hover {
+  background: rgba(127, 19, 236, 0.18);
+  border-color: rgba(127, 19, 236, 0.55);
+}
+
+/* ✅ today: outline only (no fill) */
+.od-calDay.is-today {
+  background: #f9fafb;              /* stays neutral */
+  border: 2px solid #7f13ec;        /* outline */
+}
+
+/* if today also has appt: keep the appt fill but still show strong outline */
+.od-calDay.is-today.has-appt {
+  border: 2px solid #7f13ec;
+}
+
+/* optional small counter bubble (top-right) */
+.od-calCount {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7f13ec;
+  background: rgba(127, 19, 236, 0.10);
+  border: 1px solid rgba(127, 19, 236, 0.25);
+  border-radius: 999px;
+  padding: 2px 7px;
+  line-height: 1.2;
+}

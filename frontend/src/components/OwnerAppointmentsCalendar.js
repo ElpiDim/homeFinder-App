@@ -1,3 +1,4 @@
+// src/components/OwnerAppointmentsCalendar.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import AppointmentModal from "./AppointmentModal";
 
@@ -15,7 +16,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  // ✅ now we open details via modal when clicking a day dot
+  // open details via modal when clicking a day
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
   const confirmedAppointments = useMemo(() => {
@@ -32,10 +33,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
   }, [appointments]);
 
   const pendingCount = useMemo(
-    () =>
-      appointments.filter(
-        (appt) => (appt.status || "").toLowerCase() !== "confirmed"
-      ).length,
+    () => appointments.filter((appt) => (appt.status || "").toLowerCase() !== "confirmed").length,
     [appointments]
   );
 
@@ -48,8 +46,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
 
     const appointmentsByDay = {};
     confirmedAppointments.forEach((appt) => {
-      if (appt.date.getFullYear() !== year || appt.date.getMonth() !== month)
-        return;
+      if (appt.date.getFullYear() !== year || appt.date.getMonth() !== month) return;
       const day = appt.date.getDate();
       if (!appointmentsByDay[day]) appointmentsByDay[day] = [];
       appointmentsByDay[day].push(appt);
@@ -116,13 +113,11 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
     );
   };
 
-  // ✅ click day: open details (if multiple on same day, open the first; you can later add list modal)
   const handleDayClick = (dayAppointments) => {
     if (!dayAppointments || dayAppointments.length === 0) return;
     setSelectedAppointmentId(dayAppointments[0]._id);
   };
 
-  // if selected appointment disappears, clear
   useEffect(() => {
     if (!selectedAppointmentId) return;
     const exists = confirmedAppointments.some((appt) => appt._id === selectedAppointmentId);
@@ -130,6 +125,18 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
   }, [confirmedAppointments, selectedAppointmentId]);
 
   const closeModal = () => setSelectedAppointmentId(null);
+
+  // ====== STYLE TOKENS (premium + consistent) ======
+  const baseBg = "#ffffff";
+  const baseBorder = "#e5e7eb";
+  const mutedText = "#6b7280";
+
+  const apptBg = "rgba(127, 19, 236, 0.10)";
+  const apptBorder = "rgba(127, 19, 236, 0.28)";
+
+  // mov–fouks (πιο έντονο από primary)
+  const todayBorder = "#d100ff"; // fuchsia-violet
+  const todayRing = "0 0 0 3px rgba(209, 0, 255, 0.12)";
 
   return (
     <div
@@ -144,7 +151,7 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
         >
           ‹
         </button>
-        <div className="fw-semibold text-capitalize">{monthFormatter.format(currentMonth)}</div>
+        <div className="fw-semibold">{monthFormatter.format(currentMonth)}</div>
         <button
           type="button"
           className="btn btn-sm btn-outline-secondary rounded-pill px-3"
@@ -158,15 +165,15 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
         className="d-grid"
         style={{
           gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: "6px",
+          gap: "8px",
           fontSize: "0.8rem",
         }}
       >
         {WEEKDAYS.map((weekday) => (
           <div
             key={weekday}
-            className="text-center fw-semibold text-muted text-uppercase"
-            style={{ fontSize: "0.75rem" }}
+            className="text-center fw-semibold text-uppercase"
+            style={{ fontSize: "0.72rem", color: mutedText, letterSpacing: "0.06em" }}
           >
             {weekday}
           </div>
@@ -179,102 +186,111 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
           const hasAppointments = dayAppointments.length > 0;
           const isToday = today.getDate() === day && isCurrentMonth(today);
 
+          const bg = hasAppointments ? apptBg : baseBg;
+          const borderColor = isToday ? todayBorder : hasAppointments ? apptBorder : baseBorder;
+          const boxShadow = isToday ? todayRing : "none";
+
           return (
             <button
               type="button"
               key={`day-${day}`}
-              className="rounded-3 border position-relative text-start"
+              className="rounded-3 border text-start"
               onClick={() => handleDayClick(dayAppointments)}
               style={{
                 aspectRatio: "1 / 1",
-                padding: "8px",
-                background: hasAppointments ? "rgba(127,19,236,0.10)" : "#f9fafb",
-                borderColor: isToday ? "#7f13ec" : "#e5e7eb",
+                padding: "10px",
+                background: bg,
+                borderWidth: 2,
+                borderColor,
+                boxShadow,
                 cursor: hasAppointments ? "pointer" : "default",
+                transition: "transform 130ms ease, border-color 130ms ease, box-shadow 130ms ease",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+              }}
+              onMouseEnter={(e) => {
+                if (!hasAppointments) return;
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.borderColor = "rgba(127, 19, 236, 0.55)";
+                e.currentTarget.style.boxShadow = isToday
+                  ? todayRing
+                  : "0 8px 18px rgba(17, 24, 39, 0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.borderColor = borderColor;
+                e.currentTarget.style.boxShadow = boxShadow;
               }}
               aria-label={hasAppointments ? `Open appointments for day ${day}` : `Day ${day}`}
             >
-              <div className="d-flex justify-content-between align-items-start">
-                <span className="fw-semibold" style={{ fontSize: "0.85rem" }}>
-                  {day}
-                </span>
-                {isToday && (
-                  <span
-                    className="badge"
-                    style={{
-                      fontSize: "0.6rem",
-                      background: "#7f13ec",
-                      color: "#fff",
-                    }}
-                  >
-                    Today
-                  </span>
-                )}
-              </div>
-
-              {/* ✅ DOT ONLY */}
-              {hasAppointments && (
-                <div
-                  className="position-absolute"
-                  style={{
-                    left: "50%",
-                    bottom: 10,
-                    transform: "translateX(-50%)",
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: "#7f13ec",
-                  }}
-                  aria-hidden="true"
-                />
-              )}
+              <span
+                className="fw-semibold"
+                style={{
+                  fontSize: "0.9rem",
+                  color: isToday ? "#111827" : "#111827",
+                }}
+              >
+                {day}
+              </span>
             </button>
           );
         })}
       </div>
 
       <div className="mt-3">
-  <h6 className="fw-semibold mb-2" style={{ fontSize: "0.9rem" }}>
-    Upcoming appointments
-  </h6>
+        <h6 className="fw-semibold mb-2" style={{ fontSize: "0.9rem" }}>
+          Upcoming appointments
+        </h6>
 
-  {upcoming.length === 0 ? (
-    <p className="text-muted mb-0" style={{ fontSize: "0.85rem" }}>
-      No confirmed appointments on the calendar yet.
-    </p>
-  ) : (
-    <div className="d-flex flex-column gap-2">
-      {upcoming.map((appt) => {
-        const title = appt.propertyId?.title || "Property viewing";
-        const tenant = appt.tenantId?.name || "Tenant";
-        const when = timeFormatter.format(appt.date);
+        {upcoming.length === 0 ? (
+          <p className="mb-0" style={{ fontSize: "0.85rem", color: mutedText }}>
+            No confirmed appointments on the calendar yet.
+          </p>
+        ) : (
+          <div className="d-flex flex-column gap-2">
+            {upcoming.map((appt) => {
+              const title = appt.propertyId?.title || "Property viewing";
+              const tenant = appt.tenantId?.name || "Tenant";
+              const when = timeFormatter.format(appt.date);
 
-        return (
-          <button
-            key={`upcoming-${appt._id}`}
-            type="button"
-            className="w-100 text-start border rounded-3 p-2"
-            style={{
-              background: "#fff",
-              borderColor: "#e5e7eb",
-              fontSize: "0.85rem",
-            }}
-            onClick={() => setSelectedAppointmentId(appt._id)} // opens details
-          >
-            <div className="d-flex justify-content-between align-items-start">
-              <div className="fw-semibold">{title}</div>
-              <span style={{ color: "#7f13ec", fontWeight: 600 }}>View</span>
-            </div>
+              return (
+                <button
+                  key={`upcoming-${appt._id}`}
+                  type="button"
+                  className="w-100 text-start border rounded-3 p-2"
+                  style={{
+                    background: "#fff",
+                    borderColor: "#e5e7eb",
+                    fontSize: "0.85rem",
+                    transition: "transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.borderColor = "rgba(127, 19, 236, 0.35)";
+                    e.currentTarget.style.boxShadow = "0 8px 18px rgba(17, 24, 39, 0.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                  onClick={() => setSelectedAppointmentId(appt._id)}
+                >
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="fw-semibold">{title}</div>
+                    <span style={{ color: "#7f13ec", fontWeight: 600 }}>View</span>
+                  </div>
 
-            <div className="text-muted" style={{ fontSize: "0.82rem" }}>
-              {when} • {tenant}
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  )}
-</div>
+                  <div style={{ fontSize: "0.82rem", color: mutedText }}>
+                    {when} • {tenant}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {pendingCount > 0 && (
         <div
@@ -290,12 +306,8 @@ function OwnerAppointmentsCalendar({ appointments = [] }) {
         </div>
       )}
 
-      {/* ✅ Details modal */}
       {selectedAppointmentId && (
-        <AppointmentModal
-          appointmentId={selectedAppointmentId}
-          onClose={() => closeModal()}
-        />
+        <AppointmentModal appointmentId={selectedAppointmentId} onClose={closeModal} />
       )}
     </div>
   );
