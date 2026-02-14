@@ -1,0 +1,96 @@
+.appointment-modal-dialog {
+  max-width: 620px;
+}
+
+.appointment-modal-content {
+  border: 1px solid rgba(127, 19, 236, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 24px 48px rgba(31, 9, 56, 0.2);
+  overflow: hidden;
+}
+
+.appointment-modal-header {
+  border-bottom: 1px solid #efe8f7;
+  background: linear-gradient(135deg, rgba(127, 19, 236, 0.07), rgba(224, 176, 255, 0.18));
+}
+
+.appointment-modal-eyebrow {
+  margin: 0 0 4px;
+  color: #7f13ec;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.appointment-modal-body {
+  background: #fff;
+  padding: 1.25rem 1.5rem;
+}
+
+.appointment-modal-helper {
+  color: #756189;
+  margin-bottom: 0.9rem;
+}
+
+.appointment-slot-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0;
+}
+
+.appointment-slot-item {
+  width: 100%;
+  border: 1px solid #e7dff0;
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  background: #fbf9ff;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.appointment-slot-item:hover {
+  border-color: rgba(127, 19, 236, 0.4);
+  box-shadow: 0 8px 14px rgba(127, 19, 236, 0.09);
+}
+
+.appointment-slot-item:has(.appointment-slot-radio:checked) {
+  border-color: #7f13ec;
+  background: rgba(127, 19, 236, 0.09);
+  box-shadow: 0 8px 18px rgba(127, 19, 236, 0.12);
+}
+
+.appointment-slot-radio {
+  accent-color: #7f13ec;
+  margin: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.appointment-modal-confirmed {
+  color: #198754;
+  border: 1px solid rgba(25, 135, 84, 0.2);
+  background: rgba(25, 135, 84, 0.08);
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+}
+
+.appointment-modal-footer {
+  border-top: 1px solid #efe8f7;
+  padding: 1rem 1.5rem 1.2rem;
+}
+
+.appointment-modal-footer .btn-primary {
+  background: linear-gradient(135deg, #4b0082, #7f13ec 65%, #a855f7);
+  border: none;
+  box-shadow: 0 10px 20px rgba(91, 33, 182, 0.24);
+}
+
+.appointment-modal-footer .btn-primary:hover,
+.appointment-modal-footer .btn-primary:focus {
+  filter: brightness(0.98);
+}

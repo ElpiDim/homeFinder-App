@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import api from '../api';
 import { Modal, Button } from "react-bootstrap";
+import api from "../api";
+import "./AppointmentModal.css";
 
 function AppointmentModal({ appointmentId, onClose }) {
   const [appointment, setAppointment] = useState(null);
@@ -14,7 +15,7 @@ function AppointmentModal({ appointmentId, onClose }) {
     ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
     : { "Content-Type": "application/json" };
 
-  const isConfirmed = appointment?.status === 'confirmed' || Boolean(appointment?.selectedSlot);
+  const isConfirmed = appointment?.status === "confirmed" || Boolean(appointment?.selectedSlot);
 
   useEffect(() => {
     let alive = true;
@@ -35,17 +36,16 @@ function AppointmentModal({ appointmentId, onClose }) {
     };
     if (appointmentId) fetchAppointment();
     return () => { alive = false; };
-  }, [appointmentId, token]); // ok για re-fetch όταν αλλάξει token
+  }, [appointmentId, token]);
 
   const handleConfirm = async () => {
     if (!selectedSlot) return;
     setLoading(true);
     setError("");
     try {
-      // ✅ σωστό path + method σύμφωνα με το backend
       await api.put(
         `/appointments/confirm/${appointmentId}`,
-        { selectedSlot },     // ✅ στέλνουμε το original string
+        { selectedSlot },
         { headers }
       );
       onClose?.(true);
@@ -58,14 +58,23 @@ function AppointmentModal({ appointmentId, onClose }) {
   };
 
   return (
-    <Modal show onHide={() => onClose?.()} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>
-          {isConfirmed ? "Appointment Confirmed" : "Choose Appointment Slot"}
-        </Modal.Title>
+    <Modal
+      show
+      onHide={() => onClose?.()}
+      centered
+      dialogClassName="appointment-modal-dialog"
+      contentClassName="appointment-modal-content"
+    >
+      <Modal.Header closeButton className="appointment-modal-header">
+        <div>
+          <p className="appointment-modal-eyebrow">Appointments</p>
+          <Modal.Title>
+            {isConfirmed ? "Appointment Confirmed" : "Choose Appointment Slot"}
+          </Modal.Title>
+        </div>
       </Modal.Header>
 
-      <Modal.Body>
+      <Modal.Body className="appointment-modal-body">
         {fetching ? (
           <p className="text-muted mb-0">Loading…</p>
         ) : error ? (
@@ -73,29 +82,29 @@ function AppointmentModal({ appointmentId, onClose }) {
         ) : !appointment ? (
           <p className="text-muted mb-0">Not found.</p>
         ) : appointment.status === "confirmed" ? (
-          <p className="text-success">
+          <p className="appointment-modal-confirmed mb-0">
             ✅ Already confirmed for{" "}
             <strong>{new Date(appointment.selectedSlot).toLocaleString()}</strong>
           </p>
         ) : (
           <>
-            <p>Select one of the proposed times:</p>
+            <p className="appointment-modal-helper">Select one of the proposed times:</p>
             {!appointment.availableSlots?.length ? (
               <p className="text-muted mb-0">No proposed times yet.</p>
             ) : (
-              <ul className="list-unstyled">
+              <ul className="appointment-slot-list list-unstyled">
                 {appointment.availableSlots.map((slot, idx) => (
-                  <li key={idx} className="mb-2">
-                    <label>
+                  <li key={idx}>
+                    <label className="appointment-slot-item">
                       <input
                         type="radio"
                         name="slot"
-                        value={slot}                 // ✅ original value
+                        value={slot}
                         checked={selectedSlot === slot}
                         onChange={(e) => setSelectedSlot(e.target.value)}
-                        className="me-2"
+                        className="appointment-slot-radio"
                       />
-                      {new Date(slot).toLocaleString()} {/* μόνο για εμφάνιση */}
+                      <span>{new Date(slot).toLocaleString()}</span>
                     </label>
                   </li>
                 ))}
@@ -105,13 +114,14 @@ function AppointmentModal({ appointmentId, onClose }) {
         )}
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="secondary rounded-pill px-4" onClick={() => onClose?.()}>
+      <Modal.Footer className="appointment-modal-footer">
+        <Button variant="outline-secondary" className="rounded-pill px-4" onClick={() => onClose?.()}>
           Cancel
         </Button>
         {appointment && appointment.status !== "confirmed" && (
           <Button
             variant="primary"
+            className="rounded-pill px-4"
             onClick={handleConfirm}
             disabled={!selectedSlot || loading}
           >
