@@ -1,303 +1,126 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
 
-/** helpers */
-const iconForType = (t) => {
-  switch ((t || "").toLowerCase()) {
-    case "appointment":
-      return "📅";
-    case "favorite":
-      return "⭐";
-    case "property_removed":
-      return "🏠❌";
-    case "message":
-      return "💬";
-    default:
-      return "🔔";
-  }
+const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const toDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const titleForNote = (n) => {
-  if (n?.message) return n.message;
-  switch ((n?.type || "").toLowerCase()) {
-    case "favorite":
-      return `${n?.senderId?.name || "Someone"} added your property to favorites.`;
-    case "property_removed":
-      return "A property you interacted with was removed.";
-    case "message":
-      return "New message received.";
-    default:
-      return "Notification";
-  }
-};
+const collectAppointmentDates = (appointment) => {
+  const dates = [];
 
-const timeAgo = (iso) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (diff < 60) return "just now";
-  const m = Math.floor(diff / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const days = Math.floor(h / 24);
-  return `${days}d ago`;
-};
+  const selected = toDate(appointment?.selectedSlot);
+  if (selected) dates.push(selected);
 
-export default function NotificationDropdown({
-  token,
-  onOpenAppointment, // ✅ (appointmentId) => void
-  className = "",
-}) {
-  const navigate = useNavigate();
-  const rootRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !(n.readAt || n.read)).length,
-    [notifications]
-  );
-
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const res = await api.get("/notifications", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      const list = Array.isArray(res.data) ? res.data : [];
-      setNotifications(list);
-    } catch (e) {
-      console.error("fetchNotifications failed", e);
-      setNotifications([]);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    fetchNotifications();
-    const id = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(id);
-  }, [fetchNotifications]);
-
-  useEffect(() => {
-    const onDown = (e) => {
-      if (!open) return;
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
-
-  const toggle = async () => {
-    const next = !open;
-    setOpen(next);
-
-    if (next) {
-      const unread = notifications.filter((n) => !(n.readAt || n.read));
-      if (unread.length) {
-        const now = new Date().toISOString();
-        setNotifications((prev) =>
-          prev.map((n) =>
-            unread.some((u) => u._id === n._id)
-              ? { ...n, read: true, readAt: now }
-              : n
-          )
-        );
-
-        try {
-          await Promise.all(
-            unread.map((n) =>
-              api.patch(
-                `/notifications/${n._id}/read`,
-                {},
-                {
-                  headers: token
-                    ? { Authorization: `Bearer ${token}` }
-                    : undefined,
-                }
-              )
-            )
-          );
-        } catch (e) {
-          console.error("mark unread read failed", e);
-          fetchNotifications();
-        }
-      }
-    }
-  };
-
-  const markAllRead = async () => {
-    const unread = notifications.filter((n) => !(n.readAt || n.read));
-    if (!unread.length) return;
-
-    const now = new Date().toISOString();
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, read: true, readAt: now }))
-    );
-
-    try {
-      await Promise.all(
-        unread.map((n) =>
-          api.patch(
-            `/notifications/${n._id}/read`,
-            {},
-            {
-              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-            }
-          )
-        )
-      );
-    } catch (e) {
-      console.error("markAllRead failed", e);
-      fetchNotifications();
-    }
-  };
-
-  const deduped = useMemo(() => {
-    const seen = new Set();
-    return notifications.filter((n) => {
-      const id = n._id || `${n.type}-${n.referenceId}-${n.createdAt || ""}`;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
+  if (!selected && Array.isArray(appointment?.availableSlots)) {
+    appointment.availableSlots.forEach((slot) => {
+      const parsed = toDate(slot);
+      if (parsed) dates.push(parsed);
     });
-  }, [notifications]);
+  }
 
-  const onClickNote = async (note) => {
-    if (!note) return;
+  if (!dates.length) {
+    const created = toDate(appointment?.createdAt);
+    if (created) dates.push(created);
+  }
 
-    // optimistic mark single read
-    const wasUnread = !(note.readAt || note.read);
-    if (wasUnread) {
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n._id === note._id
-            ? { ...n, read: true, readAt: new Date().toISOString() }
-            : n
-        )
-      );
-      try {
-        await api.patch(
-          `/notifications/${note._id}/read`,
-          {},
-          { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-        );
-      } catch {
-        fetchNotifications();
-      }
-    }
+  return dates;
+};
 
-    setOpen(false);
+export default function OwnerAppointmentsCalendar({ appointments = [] }) {
+  const navigate = useNavigate();
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
 
-    // ✅ HERE: open appointment modal if possible
-    if ((note.type || "").toLowerCase() === "appointment") {
-      if (note.referenceId && typeof onOpenAppointment === "function") {
-        onOpenAppointment(note.referenceId);
-        return;
-      }
-      // fallback
-      navigate("/appointments");
-      return;
-    }
+  const appointmentsByDay = useMemo(() => {
+    const map = new Map();
 
-    if (note.referenceId) {
-      navigate(`/property/${note.referenceId}`);
-    }
+    appointments.forEach((appointment) => {
+      collectAppointmentDates(appointment).forEach((date) => {
+        const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(appointment);
+      });
+    });
+
+    return map;
+  }, [appointments]);
+
+  const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+  const firstGridDate = new Date(monthStart);
+  firstGridDate.setDate(monthStart.getDate() - monthStart.getDay());
+
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(firstGridDate);
+    date.setDate(firstGridDate.getDate() + index);
+    return date;
+  });
+
+  const today = new Date();
+  const currentMonthLabel = currentMonth.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const goPrevMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const goNextMonth = () => {
+    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   return (
-    <div ref={rootRef} className={`nd-root ${className}`}>
-      <button
-        type="button"
-        className="nd-bellBtn"
-        onClick={toggle}
-        aria-label="Notifications"
-      >
-        <span className="material-symbols-outlined">notifications</span>
-        {unreadCount > 0 && <span className="nd-badge">{unreadCount}</span>}
-      </button>
+    <div>
+      <div className="d-flex align-items-center justify-content-between mb-3">
+        <button type="button" className="btn btn-sm btn-light" onClick={goPrevMonth}>
+          ←
+        </button>
+        <div className="fw-semibold">{currentMonthLabel}</div>
+        <button type="button" className="btn btn-sm btn-light" onClick={goNextMonth}>
+          →
+        </button>
+      </div>
 
-      {open && (
-        <div className="nd-pop">
-          <div className="nd-card">
-            <div className="nd-head">
-              <div className="nd-headTitle">Notifications</div>
-
-              <div className="nd-actions">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    className="nd-ghostBtn"
-                    onClick={markAllRead}
-                  >
-                    Mark all read
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="nd-xBtn"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close"
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="nd-list">
-              {deduped.length === 0 ? (
-                <div className="nd-empty">No notifications</div>
-              ) : (
-                deduped.map((note) => {
-                  const isUnread = !(note.readAt || note.read);
-                  return (
-                    <button
-                      key={note._id || `${note.type}-${note.referenceId}-${note.createdAt}`}
-                      type="button"
-                      className={`nd-item ${isUnread ? "unread" : ""}`}
-                      onClick={() => onClickNote(note)}
-                    >
-                      <div className="nd-ic">{iconForType(note.type)}</div>
-
-                      <div className="nd-body">
-                        <div className="nd-row">
-                          <div className="nd-text">{titleForNote(note)}</div>
-                          {isUnread && (
-                            <span className="nd-dot" aria-label="unread" />
-                          )}
-                        </div>
-                        <div className="nd-time">{timeAgo(note.createdAt)}</div>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="nd-foot">
-              <button
-                type="button"
-                className="nd-linkBtn"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/notifications");
-                }}
-              >
-                View all
-              </button>
-            </div>
+      <div className="d-grid" style={{ gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8 }}>
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+          <div key={day} className="small text-muted text-center fw-semibold">
+            {day}
           </div>
-        </div>
-      )}
+        ))}
+
+        {days.map((date) => {
+          const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+          const dayAppointments = appointmentsByDay.get(key) || [];
+          const isCurrentMonth = monthKey(date) === monthKey(currentMonth);
+          const isToday =
+            date.getFullYear() === today.getFullYear() &&
+            date.getMonth() === today.getMonth() &&
+            date.getDate() === today.getDate();
+          const hasAppointments = dayAppointments.length > 0;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`od-calDay ${hasAppointments ? "has-appt" : ""} ${isToday ? "is-today" : ""}`}
+              style={{ opacity: isCurrentMonth ? 1 : 0.45 }}
+              disabled={!hasAppointments}
+              onClick={() => navigate("/appointments")}
+              title={
+                hasAppointments
+                  ? `${dayAppointments.length} appointment${dayAppointments.length > 1 ? "s" : ""}`
+                  : "No appointments"
+              }
+            >
+              <span className="od-calNum">{date.getDate()}</span>
+              {hasAppointments && <span className="od-calCount">{dayAppointments.length}</span>}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
