@@ -1,6 +1,6 @@
 // src/pages/Chat.jsx
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import { useSocket } from "../context/SocketContext";
@@ -53,6 +53,7 @@ export default function Chat() {
   const { propertyId, userId: receiverId } = useParams();
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ added
   const socket = useSocket();
 
   const hasActiveConversation =
@@ -90,6 +91,9 @@ export default function Chat() {
   const [mobileView, setMobileView] = useState(
     hasActiveConversation ? "chat" : "list"
   );
+
+  // ✅ one-time auto-send guard for initialMessage
+  const initialSendDoneRef = useRef(false);
 
   const profileImg = user?.profilePicture
     ? user.profilePicture.startsWith("http")
@@ -254,6 +258,47 @@ export default function Chat() {
       alert("Failed to send message.");
     }
   };
+
+  // ✅ Auto-send initial message passed from PropertyDetails (one time)
+  useEffect(() => {
+    if (!hasActiveConversation) return;
+    if (!token || !user?.id) return;
+    if (initialSendDoneRef.current) return;
+
+    const initialMessage = String(location?.state?.initialMessage || "").trim();
+    if (!initialMessage) return;
+
+    initialSendDoneRef.current = true;
+
+    // optional: show it in input briefly (keeps UX consistent)
+    setNewMessage(initialMessage);
+
+    (async () => {
+      try {
+        const saved = await sendMessage(receiverId, propertyId, initialMessage);
+        setMessages((prev) => {
+          if (saved?._id && prev.some((x) => x._id === saved._id)) return prev;
+          return [...prev, saved];
+        });
+        setNewMessage("");
+      } catch (err) {
+        console.error("Failed to auto-send initial message", err);
+        // keep it in input so user can resend manually
+      } finally {
+        // clear route state so refresh/back won't re-send
+        navigate(location.pathname, { replace: true, state: null });
+      }
+    })();
+  }, [
+    hasActiveConversation,
+    token,
+    user?.id,
+    receiverId,
+    propertyId,
+    location?.state,
+    location.pathname,
+    navigate,
+  ]);
 
   const filteredConversations = useMemo(() => {
     const q = query.trim().toLowerCase();

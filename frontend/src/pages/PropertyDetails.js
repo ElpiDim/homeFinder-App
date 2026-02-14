@@ -57,7 +57,7 @@ export default function PropertyDetails() {
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
-  // Contact form (UI-only, optional)
+  // Contact form
   const [contactName, setContactName] = useState(user?.name || "");
   const [contactEmail, setContactEmail] = useState(user?.email || "");
   const [contactMsg, setContactMsg] = useState("");
@@ -211,20 +211,26 @@ export default function PropertyDetails() {
     ? getImageUrl(property.ownerId.profilePicture)
     : "/default-avatar.jpg";
 
+  // ✅ CHANGE: open chat AND pass initial message (if any)
   const handleContactOwner = () => {
     if (!ownerId) return;
-    navigate(`/chat/${propertyId}/${ownerId}`);
+
+    const text = (contactMsg || "").trim();
+
+    navigate(`/chat/${propertyId}/${ownerId}`, {
+      state: text ? { initialMessage: text } : undefined,
+    });
+
+    setContactMsg("");
   };
 
   const handleScheduleTour = () => {
-    // ίδιο με contact, απλά CTA
     handleContactOwner();
   };
 
   const amenities = useMemo(() => {
     const list = [];
 
-    // από features string/array
     const featuresList = Array.isArray(property?.features)
       ? property.features
       : property?.features
@@ -236,7 +242,6 @@ export default function PropertyDetails() {
 
     featuresList.forEach((f) => list.push(f));
 
-    // από booleans/fields (soft mapping)
     if (property?.hasElevator) list.push("Elevator");
     if (property?.hasStorage) list.push("Storage");
     if (property?.hasParking || property?.parkingSpaces > 0) list.push("Parking");
@@ -244,7 +249,6 @@ export default function PropertyDetails() {
     if (property?.furnished) list.push("Furnished");
     if (property?.ac) list.push("A/C");
 
-    // unique
     return Array.from(new Set(list)).slice(0, 12);
   }, [property]);
 
@@ -264,7 +268,11 @@ export default function PropertyDetails() {
   const yearBuilt = property.yearBuilt ?? "—";
 
   const typeLabel =
-    property.type === "rent" ? "For Rent" : property.type === "sale" ? "For Sale" : humanize(property.type);
+    property.type === "rent"
+      ? "For Rent"
+      : property.type === "sale"
+      ? "For Sale"
+      : humanize(property.type);
 
   const statusLabel = property.status ? humanize(property.status) : "";
 
@@ -356,10 +364,14 @@ export default function PropertyDetails() {
                 <div className="pd-badges">
                   <span className="pd-badge type">{typeLabel}</span>
                   {property.condition && (
-                    <span className="pd-badge soft">{formatEnumValue(property.condition, CONDITION_LABELS)}</span>
+                    <span className="pd-badge soft">
+                      {formatEnumValue(property.condition, CONDITION_LABELS)}
+                    </span>
                   )}
                   {statusLabel && <span className="pd-badge soft">{statusLabel}</span>}
-                  {pricePerSqm != null && <span className="pd-badge soft">€{money(pricePerSqm)}/m²</span>}
+                  {pricePerSqm != null && (
+                    <span className="pd-badge soft">€{money(pricePerSqm)}/m²</span>
+                  )}
                 </div>
               </div>
 
@@ -388,7 +400,11 @@ export default function PropertyDetails() {
                     </button>
                   </div>
                 ) : (
-                  <button type="button" className="pd-btn pd-btn-primary" onClick={handleContactOwner}>
+                  <button
+                    type="button"
+                    className="pd-btn pd-btn-primary"
+                    onClick={handleContactOwner}
+                  >
                     Contact Owner
                   </button>
                 )}
@@ -448,7 +464,9 @@ export default function PropertyDetails() {
                   </div>
                   <div className="pd-fact">
                     <div className="pd-factLbl">Orientation</div>
-                    <div className="pd-factVal">{formatEnumValue(property.orientation, ORIENTATION_LABELS)}</div>
+                    <div className="pd-factVal">
+                      {formatEnumValue(property.orientation, ORIENTATION_LABELS)}
+                    </div>
                   </div>
                   <div className="pd-fact">
                     <div className="pd-factLbl">View</div>
@@ -497,8 +515,6 @@ export default function PropertyDetails() {
                 {!hasCoords && <div className="pd-muted mt-2">No saved pin for this property.</div>}
               </div>
             </section>
-
-         
           </div>
 
           {/* RIGHT: sticky contact card */}
@@ -538,11 +554,7 @@ export default function PropertyDetails() {
                     placeholder={`I'm interested in ${title}...`}
                     rows={3}
                   />
-                  <button
-                    type="button"
-                    className="pd-cta pd-cta-primary"
-                    onClick={handleContactOwner}
-                  >
+                  <button type="button" className="pd-cta pd-cta-primary" onClick={handleContactOwner}>
                     Send Message
                   </button>
                   <div className="pd-muted" style={{ fontSize: 12 }}>
