@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import { useSidebar } from "../context/SidebarContext";
 import "../pages/clientDashboard.css";
+import AppointmentModal from "../components/AppointmentModal";
 
 const API_ORIGIN =
   (process.env.REACT_APP_API_URL
@@ -28,6 +29,10 @@ export default function AppLayout() {
     typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false
   );
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+
+  // ✅ appointment modal from bell dropdown
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -169,7 +174,6 @@ export default function AppLayout() {
     );
   }, [location.pathname, isChatRoute]);
 
-
   return (
     <div className="cd-shell">
       {isMobile && isMobileDrawerOpen && (
@@ -247,29 +251,34 @@ export default function AppLayout() {
         <main className="cd-main">
           {showTopbar && (
             <header className={`cd-topbar ${isChatRoute ? "cd-topbar--compact" : ""}`}>
-            <div className="cd-topbarLeft">
-              <button
-                type="button"
-                className="cd-toggle cd-toggle--mobile"
-                onClick={handleMenuToggle}
-                aria-label={isMobileDrawerOpen ? "Close menu" : "Open menu"}
-              >
-                ☰
-              </button>
+              <div className="cd-topbarLeft">
+                <button
+                  type="button"
+                  className="cd-toggle cd-toggle--mobile"
+                  onClick={handleMenuToggle}
+                  aria-label={isMobileDrawerOpen ? "Close menu" : "Open menu"}
+                >
+                  ☰
+                </button>
 
-              {!isChatRoute && (
-                <div>
-                  {topbar.title && <div className="cd-title">{topbar.title}</div>}
-                  {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
-                </div>
-              )}
-            </div>
+                {!isChatRoute && (
+                  <div>
+                    {topbar.title && <div className="cd-title">{topbar.title}</div>}
+                    {topbar.subtitle && <div className="cd-subtitle">{topbar.subtitle}</div>}
+                  </div>
+                )}
+              </div>
 
-            <div className="d-flex align-items-center gap-2">
-              {token && <NotificationDropdown token={token} className="cd-iconWrap" />}
-            </div>
-          </header>
-
+              <div className="d-flex align-items-center gap-2">
+                {token && (
+                  <NotificationDropdown
+                    token={token}
+                    className="cd-iconWrap"
+                    onOpenAppointment={(appointmentId) => setSelectedAppointmentId(appointmentId)}
+                  />
+                )}
+              </div>
+            </header>
           )}
 
           <div className={`cd-content ${isChatLikeRoute ? "cd-content--flush" : ""}`}>
@@ -277,6 +286,13 @@ export default function AppLayout() {
           </div>
         </main>
       </div>
+
+      {selectedAppointmentId && (
+        <AppointmentModal
+          appointmentId={selectedAppointmentId}
+          onClose={() => setSelectedAppointmentId(null)}
+        />
+      )}
     </div>
   );
 }
