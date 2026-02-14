@@ -592,15 +592,18 @@ function AppointmentNotes({ appointmentId }) {
       </div>
 
       <div className="af-notesAdd">
-        <input
-          className="af-notesInput"
+        <textarea
+          className="af-notesInput af-notesTextarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Add a note…"
+          rows={4}
           onKeyDown={(e) => {
-            if (e.key === "Enter") add();
+            // Enter = νέα γραμμή, Ctrl/Cmd+Enter = Add
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") add();
           }}
         />
+
         <button className="af-notesBtn" type="button" onClick={add}>
           Add
         </button>
