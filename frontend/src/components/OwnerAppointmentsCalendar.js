@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -31,8 +30,8 @@ const collectAppointmentDates = (appointment) => {
 };
 
 export default function OwnerAppointmentsCalendar({ appointments = [] }) {
-  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [selectedDayKey, setSelectedDayKey] = useState(null);
 
   const appointmentsByDay = useMemo(() => {
     const map = new Map();
@@ -58,6 +57,30 @@ export default function OwnerAppointmentsCalendar({ appointments = [] }) {
     return date;
   });
 
+  const selectedDayAppointments = selectedDayKey ? appointmentsByDay.get(selectedDayKey) || [] : [];
+
+  const formatAppointmentTime = (appointment) => {
+    const selected = toDate(appointment?.selectedSlot);
+    if (selected) {
+      return selected.toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+    }
+
+    if (Array.isArray(appointment?.availableSlots) && appointment.availableSlots.length) {
+      const firstSlot = toDate(appointment.availableSlots[0]);
+      if (firstSlot) {
+        return `${firstSlot.toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })} (proposed)`;
+      }
+    }
+
+    return "Time not set";
+  };
+
   const today = new Date();
   const currentMonthLabel = currentMonth.toLocaleDateString("en-US", {
     month: "long",
@@ -66,10 +89,12 @@ export default function OwnerAppointmentsCalendar({ appointments = [] }) {
 
   const goPrevMonth = () => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedDayKey(null);
   };
 
   const goNextMonth = () => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedDayKey(null);
   };
 
   return (
@@ -101,14 +126,17 @@ export default function OwnerAppointmentsCalendar({ appointments = [] }) {
             date.getDate() === today.getDate();
           const hasAppointments = dayAppointments.length > 0;
 
+          if (!isCurrentMonth) {
+            return <div key={key} aria-hidden className="od-calSpacer" />;
+          }
+
           return (
             <button
               key={key}
               type="button"
               className={`od-calDay ${hasAppointments ? "has-appt" : ""} ${isToday ? "is-today" : ""}`}
-              style={{ opacity: isCurrentMonth ? 1 : 0.45 }}
               disabled={!hasAppointments}
-              onClick={() => navigate("/appointments")}
+              onClick={() => setSelectedDayKey(key)}
               title={
                 hasAppointments
                   ? `${dayAppointments.length} appointment${dayAppointments.length > 1 ? "s" : ""}`
@@ -121,6 +149,21 @@ export default function OwnerAppointmentsCalendar({ appointments = [] }) {
           );
         })}
       </div>
+
+      {selectedDayAppointments.length > 0 && (
+        <div className="od-calDetails mt-3">
+          <div className="fw-semibold mb-2">Appointments for selected day</div>
+          <div className="d-flex flex-column gap-2">
+            {selectedDayAppointments.map((appointment) => (
+              <div key={appointment._id} className="od-calDetailsItem">
+                <div className="fw-semibold">{appointment?.propertyId?.title || "Property"}</div>
+                <div className="small text-muted">With: {appointment?.tenantId?.name || "Client"}</div>
+                <div className="small text-muted">{formatAppointmentTime(appointment)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

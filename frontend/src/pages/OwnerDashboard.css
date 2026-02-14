@@ -360,3 +360,19 @@
   padding: 2px 7px;
   line-height: 1.2;
 }
+
+.od-calSpacer {
+  aspect-ratio: 1 / 1;
+}
+
+.od-calDetails {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.od-calDetailsItem {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
