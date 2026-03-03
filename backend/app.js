@@ -5,10 +5,27 @@ const path = require("path");
 
 const app = express();
 
-/* ---------- Middleware ---------- */
-app.use(cors());
-app.use(express.json());
+/*---- Allowed Origins---- */ 
+ const allowedOrigins = [
+  process.env.FRONTEND_URL,          // production
+  //process.env.FRONTEND_URL_STAGE,    // staging (optional)
+  "http://localhost:3000",           // local dev
+].filter(Boolean);
 
+/* ---------- Middleware ---------- */
+/* ---------- Middleware ---------- */
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // allow server-to-server/no origin
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: false, // keep false (Authorization header)
+  })
+);
+
+app.use(express.json());
 /* ---------- Health check ---------- */
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
