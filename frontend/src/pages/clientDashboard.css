@@ -116,9 +116,14 @@
 
 .cd-aside.is-collapsed .cd-navText,
 .cd-aside.is-collapsed .cd-profileMeta,
-.cd-aside.is-collapsed .cd-profile button,
 .cd-aside.is-collapsed .cd-logo-container{
   display:none;
+}
+.cd-aside.is-collapsed .cd-logout-btn{
+  display:flex;
+  justify-content:center;
+  padding:10px;
+  font-size:0;
 }
 
 .cd-aside.is-collapsed .cd-navlink .badge{
@@ -441,8 +446,4 @@ body.cd-mobile-drawer-open{
 
 .cd-logout-btn .material-symbols-outlined{
   font-size:18px;
-}
-
-.cd-aside.is-collapsed .cd-logout-btn{
-  display:none;
 }
