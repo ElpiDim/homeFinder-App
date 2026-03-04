@@ -18,9 +18,16 @@ const server = http.createServer(app);
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
   process.env.FRONTEND_URL,
   process.env.FRONTEND_URL_STAGE,
 ].filter(Boolean);
+
+// normalize helper (removes trailing slash)
+const cleanOrigin = (o) => String(o || "").replace(/\/$/, "");
+
+const allowedOriginsClean = allowedOrigins.map(cleanOrigin);
 
 const io = new Server(server, {
   cors: {
@@ -28,9 +35,13 @@ const io = new Server(server, {
       // allow non-browser clients / same-origin / server-to-server (no Origin header)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      const incoming = cleanOrigin(origin);
 
-      return callback(new Error(`Socket.IO CORS blocked for origin: ${origin}`));
+      if (allowedOriginsClean.includes(incoming)) return callback(null, true);
+
+      return callback(
+        new Error(`Socket.IO CORS blocked for origin: ${origin}`)
+      );
     },
     methods: ["GET", "POST"],
     credentials: false, // keep false since you're using Authorization Bearer token (not cookies)
@@ -67,7 +78,7 @@ async function start() {
 
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server listening on port ${PORT}`);
-      console.log("Socket.IO allowed origins:", allowedOrigins);
+      console.log("Socket.IO allowed origins:", allowedOriginsClean);
     });
   } catch (err) {
     console.error("Failed to start server:", err);

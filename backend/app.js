@@ -2,30 +2,48 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-
+const helmet = require("helmet");
 const app = express();
+const rateLimit = require("express-rate-limit");
 
 /*---- Allowed Origins---- */ 
- const allowedOrigins = [
-  process.env.FRONTEND_URL,          // production
-  //process.env.FRONTEND_URL_STAGE,    // staging (optional)
-  "http://localhost:3000",           // local dev
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
 ].filter(Boolean);
 
+app.set("trust proxy", 1);
 /* ---------- Middleware ---------- */
 /* ---------- Middleware ---------- */
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // allow server-to-server/no origin
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (!origin) return cb(null, true);
+
+      const cleanOrigin = String(origin).replace(/\/$/, ""); // remove trailing /
+      const ok = allowedOrigins.map((o) => String(o).replace(/\/$/, "")).includes(cleanOrigin);
+
+      if (ok) return cb(null, true);
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
-    credentials: false, // keep false (Authorization header)
+    credentials: false,
   })
 );
+app.use(helmet());
 
 app.use(express.json());
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 requests
+  message: {
+    message: "Too many login attempts. Try again later."
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 /* ---------- Health check ---------- */
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
@@ -41,7 +59,7 @@ const messageRoutes = require("./routes/messages");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/properties", propertyRoutes);
