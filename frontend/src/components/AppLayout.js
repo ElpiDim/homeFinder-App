@@ -231,16 +231,6 @@ export default function AppLayout() {
               <span className="cd-navText">Settings</span>
             </Link>
 
-            <Link to="/profile" className="text-decoration-none" onClick={handleMenuItemClick}>
-              <div className="cd-profileRow">
-                <img className="cd-avatar" src={profileImg} alt="profile" />
-                <div className="cd-profileMeta">
-                  <div className="cd-name">{user?.name || "User"}</div>
-                  <div className="cd-role">{user?.role === "owner" ? "Owner" : "Client"}</div>
-                </div>
-              </div>
-            </Link>
-
             <button type="button" className="cd-logout-btn w-100 mt-3" onClick={handleLogout}>
               <span className="material-symbols-outlined fill" aria-hidden="true">logout</span>
               Logout
@@ -277,6 +267,9 @@ export default function AppLayout() {
                     onOpenAppointment={(appointmentId) => setSelectedAppointmentId(appointmentId)}
                   />
                 )}
+                  <Link to="/profile" className="text-decoration-none" onClick={handleMenuItemClick}>
+                  <img className="cd-avatar" src={profileImg} alt="profile" />
+                </Link>
               </div>
             </header>
           )}
