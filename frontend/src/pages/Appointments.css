@@ -702,9 +702,13 @@
 
 .af-noteText{
   flex:1;
+   min-width: 0;
   font-weight: 650;
   font-size: 13px;
   color: rgba(0,0,0,.78);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .af-noteX{
