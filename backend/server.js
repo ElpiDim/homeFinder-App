@@ -1,5 +1,8 @@
 // backend/server.js
 require("dotenv").config();
+const validateEnv = require("./config/env");
+validateEnv();
+
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");

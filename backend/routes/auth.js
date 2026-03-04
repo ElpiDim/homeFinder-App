@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const router = express.Router();
 const User = require("../models/user");
@@ -36,8 +36,8 @@ const loginAccountLimiter = rateLimit({
   message: { message: "Too many login attempts for this account. Try again later." },
   keyGenerator: (req) => {
     const email = (req.body?.email || "").toString().trim().toLowerCase();
-    const ip = req.ip;
-    return email ? `${email}|${ip}` : ip;
+    const ip = ipKeyGenerator(req); // ✅ IPv6-safe key
+    return email ? `login:${email}|${ip}` : `login:${ip}`;
   },
 });
 
