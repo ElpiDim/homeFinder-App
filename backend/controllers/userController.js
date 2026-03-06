@@ -26,6 +26,7 @@ const buildUserResponse = (userDoc) => {
     email: user.email,
     role: user.role,
     phone: user.phone || null,
+    showPhoneToClients: user.showPhoneToClients ?? false,
 
     // δημογραφικά / lifestyle
     age: user.age ?? null,
@@ -121,13 +122,14 @@ exports.getUserProfile = async (req, res) => {
 // PATCH /api/users/profile (με multipart για φωτο, αν υπάρχει middleware)
 exports.updateUserProfile = async (req, res) => {
   const userId = req.user.userId;
-  const { name, phone, occupation, salary } = req.body;
+  const { name, phone, occupation, salary, showPhoneToClients } = req.body;
 
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (phone !== undefined) updateData.phone = phone;
   if (occupation !== undefined) updateData.occupation = occupation;
   if (salary !== undefined) updateData.salary = salary;
+  if (showPhoneToClients !== undefined) updateData.showPhoneToClients = showPhoneToClients;
 
   if (req.file) {
     updateData.profilePicture = `/uploads/${req.file.filename}`;
@@ -176,6 +178,7 @@ exports.updateCurrentUser = async (req, res) => {
     "occupation",
     "salary",
     "isWillingToHaveRoommate",
+    "showPhoneToClients",
   ];
 
   const updateData = {};
@@ -219,6 +222,7 @@ exports.updateMe = async (req, res) => {
       "isWillingToHaveRoommate",
       "onboardingCompleted",
       "profilePicture",
+      "showPhoneToClients",
     ];
     for (const k of allowedTop) {
       if (req.body[k] !== undefined) doc[k] = req.body[k];
