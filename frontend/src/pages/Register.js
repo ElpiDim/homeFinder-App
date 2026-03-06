@@ -127,6 +127,15 @@ function Register() {
             <button type="submit" className="btn-register" disabled={loading}>
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
+
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
+
+            <button type="button" className="btn-google" aria-label="Continue with Google">
+              <span className="google-icon" aria-hidden="true">G</span>
+              Continue with Google
+            </button>
           </form>
 
           {/* Footer Link */}
