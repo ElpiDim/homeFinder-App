@@ -5,6 +5,7 @@ const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const router = express.Router();
 const User = require("../models/user");
+const { buildUserResponse } = require("../controllers/userController");
 require("dotenv").config();
 
 /* ----------------------- Rate Limiters ----------------------- */
@@ -89,12 +90,7 @@ router.post("/register", registerLimiter, async (req, res) => {
     res.status(201).json({
       token,
       message: "User registered successfully",
-      user: {
-        id: newUser._id,
-        email: newUser.email,
-        role: newUser.role,
-        onboardingCompleted: newUser.onboardingCompleted,
-      },
+      user: buildUserResponse(newUser),
     });
   } catch (err) {
     console.error(err);
@@ -135,23 +131,7 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        onboardingCompleted: user.onboardingCompleted,
-        age: user.age,
-        householdSize: user.householdSize,
-        hasFamily: user.hasFamily,
-        hasPets: user.hasPets,
-        smoker: user.smoker,
-        occupation: user.occupation,
-        salary: user.salary,
-        isWillingToHaveRoommate: user.isWillingToHaveRoommate,
-        profilePicture: user.profilePicture,
-        preferences: user.preferences,
-      },
+      user: buildUserResponse(user),
     });
   } catch (err) {
     console.error(err);

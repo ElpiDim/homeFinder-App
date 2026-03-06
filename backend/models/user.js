@@ -106,6 +106,7 @@ const userSchema = new mongoose.Schema(
     // Προσωπικά στοιχεία
     name: { type: String, trim: true },
     phone: { type: String, trim: true }, // για τη φόρμα onboarding
+    showPhoneToClients: { type: Boolean, default: false },
 
     password: {
       type: String,

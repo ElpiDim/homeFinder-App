@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
 import api from "../api";
@@ -39,7 +39,7 @@ const Section = ({
 };
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   const [openKey, setOpenKey] = useState("security");
 
@@ -50,6 +50,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
 
+  const [showPhoneToClients, setShowPhoneToClients] = useState(!!user?.showPhoneToClients);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+
+  useEffect(() => {
+    setShowPhoneToClients(!!user?.showPhoneToClients);
+  }, [user?.showPhoneToClients]);
+
   const lastUpdatedText = useMemo(() => {
     // Αν έχεις πεδίο updatedAt στο user, το χρησιμοποιείς εδώ.
     // Αλλιώς κρατάμε ένα safe placeholder.
@@ -57,6 +64,35 @@ export default function Settings() {
   }, []);
 
   const toggle = (k) => setOpenKey((prev) => (prev === k ? "" : k));
+
+
+  const onToggleShowPhone = async (e) => {
+    const nextValue = e.target.checked;
+    setShowPhoneToClients(nextValue);
+
+    try {
+      setSavingVisibility(true);
+      const res = await api.patch('/users/me', { showPhoneToClients: nextValue });
+      const updatedUser = res?.data?.user || res?.data || null;
+
+      if (updatedUser) {
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } else if (user) {
+        const fallback = { ...user, showPhoneToClients: nextValue };
+        setUser(fallback);
+        localStorage.setItem('user', JSON.stringify(fallback));
+      }
+    } catch (err) {
+      setShowPhoneToClients((prev) => !prev);
+      setMsg({
+        type: 'error',
+        text: err?.response?.data?.message || 'Failed to update visibility setting.',
+      });
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
 
   const onUpdatePassword = async (e) => {
     e.preventDefault();
@@ -268,7 +304,12 @@ export default function Settings() {
                 <div className="st-switchSub">If enabled, clients can see your contact phone.</div>
               </div>
               <label className="st-switch">
-                <input type="checkbox" defaultChecked={false} />
+                <input
+                  type="checkbox"
+                  checked={showPhoneToClients}
+                  onChange={onToggleShowPhone}
+                  disabled={savingVisibility}
+                />
                 <span className="st-slider" />
               </label>
             </div>

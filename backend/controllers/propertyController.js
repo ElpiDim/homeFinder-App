@@ -436,7 +436,7 @@ exports.getPropertyById = async (req, res) => {
 
     // 1. Populate 'seenBy' (χρήσιμο για το count αργότερα)
     const property = await Property.findById(propertyId)
-      .populate("ownerId", "name email phone profilePicture")
+      .populate("ownerId", "name email phone profilePicture showPhoneToClients")
       .populate("seenBy", "name"); // Αν θες να βλέπεις και ονόματα μελλοντικά
 
     if (!property) {

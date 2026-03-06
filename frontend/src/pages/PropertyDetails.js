@@ -210,6 +210,8 @@ export default function PropertyDetails() {
   const ownerAvatar = property?.ownerId?.profilePicture
     ? getImageUrl(property.ownerId.profilePicture)
     : "/default-avatar.jpg";
+  const ownerPhone = property?.ownerId?.phone || "";
+  const canShowOwnerPhone = !isOwner && user?.role === "client" && !!property?.ownerId?.showPhoneToClients && !!ownerPhone;
 
   // ✅ CHANGE: open chat AND pass initial message (if any)
   const handleContactOwner = () => {
@@ -535,6 +537,12 @@ export default function PropertyDetails() {
               <button type="button" className="pd-cta pd-cta-secondary" onClick={handleContactOwner}>
                 Request Info
               </button>
+
+              {canShowOwnerPhone && (
+                <div className="pd-muted" style={{ marginTop: 10, fontSize: 14 }}>
+                  Contact phone: <strong>{ownerPhone}</strong>
+                </div>
+              )}
 
               {!isOwner && (
                 <div className="pd-form">
