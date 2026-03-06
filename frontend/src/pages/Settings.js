@@ -295,13 +295,13 @@ export default function Settings() {
           <div className="st-mutedBox">
             <div className="st-mutedTitle">Privacy</div>
             <div className="st-mutedText">
-              Control what is visible to clients and what stays private.
+              Control what is visible to people and what stays private.
             </div>
 
             <div className="st-switchRow">
               <div>
-                <div className="st-switchTitle">Show phone number to clients</div>
-                <div className="st-switchSub">If enabled, clients can see your contact phone.</div>
+                <div className="st-switchTitle">Show phone number </div>
+                <div className="st-switchSub">If enabled, users can see your contact phone.</div>
               </div>
               <label className="st-switch">
                 <input
