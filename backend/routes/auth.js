@@ -6,6 +6,7 @@ const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const router = express.Router();
 const User = require("../models/user");
 const { buildUserResponse } = require("../controllers/userController");
+const verifyToken = require("../middlewares/authMiddleware");
 require("dotenv").config();
 
 /* ----------------------- Rate Limiters ----------------------- */
@@ -39,6 +40,19 @@ const loginAccountLimiter = rateLimit({
     const email = (req.body?.email || "").toString().trim().toLowerCase();
     const ip = ipKeyGenerator(req); // ✅ IPv6-safe key
     return email ? `login:${email}|${ip}` : `login:${ip}`;
+  },
+});
+
+const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many password change attempts. Try again later." },
+  keyGenerator: (req) => {
+    const userId = req.user?.userId || "anonymous";
+    const ip = ipKeyGenerator(req);
+    return `change-password:${userId}|${ip}`;
   },
 });
 
@@ -136,6 +150,45 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/auth/change-password
+// @desc    Change authenticated user's password
+// @access  Private
+router.post("/change-password", verifyToken, changePasswordLimiter, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ message: "Current password and new password are required." });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: "New password must be at least 8 characters." });
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ message: "New password must be different from current password." });
+  }
+
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    console.error("change-password error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

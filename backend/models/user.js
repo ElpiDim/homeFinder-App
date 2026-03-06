@@ -104,6 +104,14 @@ const requirementsSchema = new mongoose.Schema(requirementFields, {
 const userSchema = new mongoose.Schema(
   {
     // Προσωπικά στοιχεία
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
     name: { type: String, trim: true },
     phone: { type: String, trim: true }, // για τη φόρμα onboarding
     showPhoneToClients: { type: Boolean, default: false },
@@ -141,7 +149,5 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Μοναδικός δείκτης email
-userSchema.index({ email: 1 }, { unique: true });
 
 module.exports = mongoose.model("User", userSchema);

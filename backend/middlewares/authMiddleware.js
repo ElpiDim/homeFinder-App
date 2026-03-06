@@ -2,24 +2,27 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
 const verifyToken = async (req, res, next) => {
-  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  if (!token) {
+    return res.status(401).json({ message: "Authentication token is required" });
+  }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('JWT decoded:', decoded); // 👈 δες userId/role
-    console.log('DB name:', require('mongoose').connection.name); // 👈 δες σε ποια DB είσαι
 
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId).select("-password");
     if (!user) {
-      console.log('No user for id:', decoded.userId);
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: "User not found" });
     }
+
     req.user = { userId: user._id.toString(), role: user.role };
     req.currentUser = user;
     next();
   } catch (e) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
-
 
 module.exports = verifyToken;

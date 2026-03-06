@@ -106,12 +106,18 @@ export default function Settings() {
       setMsg({ type: "error", text: "New password and confirmation do not match." });
       return;
     }
+    if (newPassword.length < 8) {
+      setMsg({ type: "error", text: "New password must be at least 8 characters." });
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setMsg({ type: "error", text: "New password must be different from current password." });
+      return;
+    }
 
     try {
       setSaving(true);
 
-      // 🔧 Προσαρμόζεις endpoint ανάλογα με backend σου
-      // πχ: /auth/change-password ή /users/change-password
       await api.post(
         "/auth/change-password",
         {
