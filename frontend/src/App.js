@@ -19,6 +19,9 @@ import Onboarding from './pages/Onboarding';
 import DashboardRouter from './pages/DashboardRouter';
 import AppLayout from './components/AppLayout';
 import Settings from './pages/Settings';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
 
 
 import './App.css';
@@ -56,6 +59,8 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       {/* CHANGE: Το path "/" πλέον κάνει redirect στο login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       
