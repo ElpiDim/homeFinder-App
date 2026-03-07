@@ -125,7 +125,7 @@ export default function OwnerDashboard() {
                 <button
                   type="button"
                   className="od-viewAll"
-                  onClick={() => navigate("/properties")}
+                  onClick={() => navigate("/my-properties")}
                 >
                   View All <span aria-hidden>→</span>
                 </button>
