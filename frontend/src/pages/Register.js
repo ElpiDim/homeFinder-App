@@ -19,6 +19,7 @@ function Register() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const navigate = useNavigate();
+  const googleClientIdConfigured = Boolean(process.env.REACT_APP_GOOGLE_CLIENT_ID);
   const { setToken, setUser } = useAuth();
 
   const handleChange = (e) => {
@@ -163,19 +164,27 @@ function Register() {
               <span>or</span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                text="signup_with"
-                shape="pill"
-                width="320"
-              />
-            </div>
+            {googleClientIdConfigured ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    text="signup_with"
+                    shape="pill"
+                    width="320"
+                  />
+                </div>
 
-            {googleLoading && (
-              <div className="text-center mt-2" style={{ fontSize: '0.9rem', color: '#666' }}>
-                Signing up with Google...
+                {googleLoading && (
+                  <div className="text-center mt-2" style={{ fontSize: '0.9rem', color: '#666' }}>
+                    Signing up with Google...
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="alert alert-warning py-2 text-center" style={{ fontSize: '0.9rem' }}>
+                Google registration is unavailable: missing REACT_APP_GOOGLE_CLIENT_ID configuration.
               </div>
             )}
           </form>

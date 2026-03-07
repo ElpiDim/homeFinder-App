@@ -174,6 +174,10 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
 router.post("/google", googleAuthLimiter, async (req, res) => {
   const { credential, role } = req.body;
 
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ message: "Google OAuth is not configured on the server." });
+  }
+
   if (!credential) {
     return res.status(400).json({ message: "Google credential is required." });
   }

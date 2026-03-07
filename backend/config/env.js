@@ -1,5 +1,5 @@
 function validateEnv() {
-  const required = ["JWT_SECRET", "MONGO_URI"];
+  const required = ["JWT_SECRET", "MONGO_URI", "GOOGLE_CLIENT_ID"];
 
   const missing = required.filter((key) => !process.env[key]);
 
