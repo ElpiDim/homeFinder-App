@@ -1,26 +1,43 @@
-// src/pages/Register.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { registerUser } from '../services/authService';
+import api from '../api';
 import Logo from '../components/Logo';
-import './Register.css'; // Σύνδεση με το νέο CSS
+import './Register.css';
 
 function Register() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: '', // Default κενό για να αναγκάσουμε επιλογή
+    role: '',
   });
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const [googleLoading, setGoogleLoading] = useState(false);
+
   const navigate = useNavigate();
   const { setToken, setUser } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const finishAuth = (token, user) => {
+    setToken(token);
+    setUser(user);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    const isClient = user?.role === 'client';
+    setMessage(`Success! Redirecting to ${isClient ? 'onboarding' : 'dashboard'}...`);
+
+    setTimeout(() => {
+      const target = isClient ? '/onboarding' : '/dashboard';
+      navigate(target);
+    }, 1500);
   };
 
   const handleRegister = async (e) => {
@@ -30,22 +47,7 @@ function Register() {
 
     try {
       const { token, user } = await registerUser(formData);
-      
-      // Update context & storage
-      setToken(token);
-      setUser(user);
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      const isClient = user?.role === 'client';
-      setMessage(`Success! Redirecting to ${isClient ? 'onboarding' : 'dashboard'}...`);
-
-      // Καθυστέρηση για να δει το μήνυμα επιτυχίας
-      setTimeout(() => {
-        const target = isClient ? '/onboarding' : '/dashboard';
-        navigate(target);
-      }, 1500);
-
+      finishAuth(token, user);
     } catch (err) {
       setMessage(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -53,10 +55,41 @@ function Register() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (!formData.role) {
+      setMessage('Please select whether you are a Client or Owner first.');
+      return;
+    }
+
+    if (!credentialResponse?.credential) {
+      setMessage('Google registration failed. Missing credential.');
+      return;
+    }
+
+    setMessage('');
+    setGoogleLoading(true);
+
+    try {
+      const res = await api.post('/auth/google', {
+        credential: credentialResponse.credential,
+        role: formData.role,
+      });
+
+      const { token, user } = res.data;
+      finishAuth(token, user);
+    } catch (err) {
+      setMessage(err.response?.data?.message || 'Google registration failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setMessage('Google registration failed. Please try again.');
+  };
+
   return (
     <div className="register-page">
-      
-      {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ (HERO) */}
       <div className="register-hero">
         <div className="register-logo-container">
           <Logo />
@@ -66,7 +99,6 @@ function Register() {
         </h1>
       </div>
 
-      {/* ΔΕΞΙΑ ΠΛΕΥΡΑ (ΦΟΡΜΑ) */}
       <div className="register-form-container">
         <div className="register-content">
           <div className="register-header">
@@ -75,46 +107,46 @@ function Register() {
           </div>
 
           {message && (
-            <div className={`alert py-2 ${message.includes('Success') ? 'alert-success' : 'alert-danger'}`} style={{ fontSize: '0.9rem' }}>
+            <div
+              className={`alert py-2 ${message.includes('Success') ? 'alert-success' : 'alert-danger'}`}
+              style={{ fontSize: '0.9rem' }}
+            >
               {message}
             </div>
           )}
 
           <form onSubmit={handleRegister}>
-            {/* Email Input */}
             <div className="form-group">
               <label className="form-label">Email Address</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 name="email"
-                className="form-control-custom" 
+                className="form-control-custom"
                 placeholder="you@example.com"
-                required 
-                onChange={handleChange} 
+                required
+                onChange={handleChange}
               />
             </div>
 
-            {/* Password Input */}
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input 
-                type="password" 
+              <input
+                type="password"
                 name="password"
-                className="form-control-custom" 
+                className="form-control-custom"
                 placeholder="Create a strong password"
-                required 
-                onChange={handleChange} 
+                required
+                onChange={handleChange}
               />
             </div>
 
-            {/* Role Select */}
             <div className="form-group">
               <label className="form-label">I am a...</label>
-              <select 
-                className="form-control-custom form-select-custom" 
+              <select
+                className="form-control-custom form-select-custom"
                 name="role"
-                value={formData.role} 
-                onChange={handleChange} 
+                value={formData.role}
+                onChange={handleChange}
                 required
               >
                 <option value="" disabled>Select your role</option>
@@ -123,8 +155,7 @@ function Register() {
               </select>
             </div>
 
-            {/* Submit Button */}
-            <button type="submit" className="btn-register" disabled={loading}>
+            <button type="submit" className="btn-register" disabled={loading || googleLoading}>
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
 
@@ -132,15 +163,25 @@ function Register() {
               <span>or</span>
             </div>
 
-            <button type="button" className="btn-google" aria-label="Continue with Google">
-              <span className="google-icon" aria-hidden="true">G</span>
-              Continue with Google
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                text="signup_with"
+                shape="pill"
+                width="320"
+              />
+            </div>
+
+            {googleLoading && (
+              <div className="text-center mt-2" style={{ fontSize: '0.9rem', color: '#666' }}>
+                Signing up with Google...
+              </div>
+            )}
           </form>
 
-          {/* Footer Link */}
           <div className="login-text">
-            Already have an account? 
+            Already have an account?
             <Link to="/login" className="login-link">Log In</Link>
           </div>
         </div>

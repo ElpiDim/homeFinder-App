@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const router = express.Router();
@@ -8,6 +9,8 @@ const User = require("../models/user");
 const { buildUserResponse } = require("../controllers/userController");
 const verifyToken = require("../middlewares/authMiddleware");
 require("dotenv").config();
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /* ----------------------- Rate Limiters ----------------------- */
 
@@ -38,7 +41,7 @@ const loginAccountLimiter = rateLimit({
   message: { message: "Too many login attempts for this account. Try again later." },
   keyGenerator: (req) => {
     const email = (req.body?.email || "").toString().trim().toLowerCase();
-    const ip = ipKeyGenerator(req); // ✅ IPv6-safe key
+    const ip = ipKeyGenerator(req);
     return email ? `login:${email}|${ip}` : `login:${ip}`;
   },
 });
@@ -55,6 +58,30 @@ const changePasswordLimiter = rateLimit({
     return `change-password:${userId}|${ip}`;
   },
 });
+
+const googleAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many Google auth attempts. Try again later." },
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req);
+    return `google-auth:${ip}`;
+  },
+});
+
+/* ----------------------- Helpers ----------------------- */
+
+const signAppToken = (user) =>
+  jwt.sign(
+    {
+      userId: user._id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
 /* ----------------------- Routes ----------------------- */
 
@@ -78,7 +105,9 @@ router.post("/register", registerLimiter, async (req, res) => {
   }
 
   try {
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
     }
@@ -86,20 +115,13 @@ router.post("/register", registerLimiter, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       role,
       onboardingCompleted: role === "owner",
     });
 
-    const payload = {
-      userId: newUser._id,
-      role: newUser.role,
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = signAppToken(newUser);
 
     res.status(201).json({
       token,
@@ -119,7 +141,7 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email: (email || "").toLowerCase() });
+    const user = await User.findOne({ email: (email || "").toLowerCase().trim() });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
@@ -134,14 +156,7 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
       await user.save();
     }
 
-    const payload = {
-      userId: user._id,
-      role: user.role,
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = signAppToken(user);
 
     res.json({
       token,
@@ -150,6 +165,102 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/auth/google
+// @desc    Register/Login with Google
+// @access  Public
+router.post("/google", googleAuthLimiter, async (req, res) => {
+  const { credential, role } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ message: "Google credential is required." });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    const googleId = payload?.sub;
+    const email = payload?.email?.toLowerCase().trim();
+    const emailVerified = payload?.email_verified;
+    const name = payload?.name || "";
+    const picture = payload?.picture || "";
+
+    if (!googleId || !email) {
+      return res.status(400).json({ message: "Invalid Google account data." });
+    }
+
+    if (!emailVerified) {
+      return res.status(400).json({ message: "Google email is not verified." });
+    }
+
+    let user = await User.findOne({
+      $or: [{ googleId }, { email }],
+    });
+
+    // Existing user → login
+    if (user) {
+      let didChange = false;
+
+      if (!user.googleId) {
+        user.googleId = googleId;
+        didChange = true;
+      }
+
+      if (!user.name && name) {
+        user.name = name;
+        didChange = true;
+      }
+
+      if (!user.profilePicture && picture) {
+        user.profilePicture = picture;
+        didChange = true;
+      }
+
+      if (didChange) {
+        await user.save();
+      }
+
+      const token = signAppToken(user);
+
+      return res.json({
+        token,
+        user: buildUserResponse(user),
+      });
+    }
+
+    // New user → requires role from register page
+    if (!role || !["client", "owner"].includes(role)) {
+      return res.status(400).json({
+        message: "Please select whether you are a Client or Owner first.",
+      });
+    }
+
+    user = await User.create({
+      email,
+      name,
+      profilePicture: picture,
+      googleId,
+      role,
+      password: await bcrypt.hash(googleId + process.env.JWT_SECRET, 10),
+      onboardingCompleted: role === "owner",
+    });
+
+    const token = signAppToken(user);
+
+    return res.status(201).json({
+      token,
+      user: buildUserResponse(user),
+    });
+  } catch (err) {
+    console.error("google auth error:", err);
+    return res.status(500).json({ message: "Google authentication failed." });
   }
 });
 
