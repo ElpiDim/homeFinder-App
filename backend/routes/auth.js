@@ -18,11 +18,14 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const mailHost = process.env.MAIL_HOST || process.env.SMTP_HOST;
 const mailPort = Number(process.env.MAIL_PORT || process.env.SMTP_PORT || 587);
-const mailUser = process.env.MAIL_USER || process.env.SMTP_USER || process.env.SMTP_USERNAME;
-const mailPass = process.env.MAIL_PASS || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+const mailUser =
+  process.env.MAIL_USER || process.env.SMTP_USER || process.env.SMTP_USERNAME;
+const mailPass =
+  process.env.MAIL_PASS || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 const mailFrom = process.env.MAIL_FROM || process.env.SMTP_FROM || mailUser;
 
-const mailerConfigured = mailHost && Number.isFinite(mailPort) && mailUser && mailPass;
+const mailerConfigured =
+  mailHost && Number.isFinite(mailPort) && mailUser && mailPass;
 
 const transporter = mailerConfigured
   ? nodemailer.createTransport({
@@ -50,6 +53,7 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many registrations from this IP. Try again later." },
+  keyGenerator: (req) => `register:${ipKeyGenerator(req)}`,
 });
 
 const loginIpLimiter = rateLimit({
@@ -58,6 +62,7 @@ const loginIpLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many login attempts. Try again later." },
+  keyGenerator: (req) => `login-ip:${ipKeyGenerator(req)}`,
 });
 
 const loginAccountLimiter = rateLimit({
@@ -69,7 +74,7 @@ const loginAccountLimiter = rateLimit({
   keyGenerator: (req) => {
     const email = (req.body?.email || "").toString().trim().toLowerCase();
     const ip = ipKeyGenerator(req);
-    return email ? `login:${email}|${ip}` : `login:${ip}`;
+    return email ? `login-account:${email}|${ip}` : `login-account:${ip}`;
   },
 });
 
@@ -92,10 +97,7 @@ const googleAuthLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many Google auth attempts. Try again later." },
-  keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req);
-    return `google-auth:${ip}`;
-  },
+  keyGenerator: (req) => `google-auth:${ipKeyGenerator(req)}`,
 });
 
 const forgotPasswordLimiter = rateLimit({
@@ -104,11 +106,7 @@ const forgotPasswordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many password reset requests. Try again later." },
-  keyGenerator: (req) => {
-    const email = (req.body?.email || "").toString().trim().toLowerCase();
-    const ip = ipKeyGenerator(req);
-    return email ? `forgot:${email}|${ip}` : `forgot:${ip}`;
-  },
+  keyGenerator: (req) => `forgot-password:${ipKeyGenerator(req)}`,
 });
 
 const resetPasswordLimiter = rateLimit({
@@ -117,10 +115,7 @@ const resetPasswordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many reset attempts. Try again later." },
-  keyGenerator: (req) => {
-    const ip = ipKeyGenerator(req);
-    return `reset-password:${ip}`;
-  },
+  keyGenerator: (req) => `reset-password:${ipKeyGenerator(req)}`,
 });
 
 /* ----------------------- Helpers ----------------------- */
@@ -135,6 +130,10 @@ const signAppToken = (user) =>
     { expiresIn: "7d" }
   );
 
+const GENERIC_FORGOT_PASSWORD_RESPONSE = {
+  message: "If an account with that email exists, a reset link has been sent.",
+};
+
 /* ----------------------- Routes ----------------------- */
 
 router.post("/register", registerLimiter, async (req, res) => {
@@ -142,15 +141,17 @@ router.post("/register", registerLimiter, async (req, res) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!email || !password) {
-    return res.status(400).json({ message: "please fill all required fields" });
+    return res.status(400).json({ message: "Please fill all required fields." });
   }
 
   if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: "Invalid email format" });
+    return res.status(400).json({ message: "Invalid email format." });
   }
 
   if (password.length < 8) {
-    return res.status(400).json({ message: "Password must be at least 8 characters" });
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 8 characters." });
   }
 
   try {
@@ -158,7 +159,7 @@ router.post("/register", registerLimiter, async (req, res) => {
 
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already in use" });
+      return res.status(400).json({ message: "Email already in use." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -172,14 +173,14 @@ router.post("/register", registerLimiter, async (req, res) => {
 
     const token = signAppToken(newUser);
 
-    res.status(201).json({
+    return res.status(201).json({
       token,
-      message: "User registered successfully",
+      message: "User registered successfully.",
       user: buildUserResponse(newUser),
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("register error:", err);
+    return res.status(500).json({ message: "Server error." });
   }
 });
 
@@ -187,14 +188,16 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email: (email || "").toLowerCase().trim() });
+    const normalizedEmail = (email || "").toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid email or password." });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid email or password." });
     }
 
     if (user.role === "owner" && user.onboardingCompleted === false) {
@@ -204,13 +207,13 @@ router.post("/login", loginIpLimiter, loginAccountLimiter, async (req, res) => {
 
     const token = signAppToken(user);
 
-    res.json({
+    return res.json({
       token,
       user: buildUserResponse(user),
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("login error:", err);
+    return res.status(500).json({ message: "Server error." });
   }
 });
 
@@ -218,7 +221,9 @@ router.post("/google", googleAuthLimiter, async (req, res) => {
   const { credential, role } = req.body;
 
   if (!process.env.GOOGLE_CLIENT_ID) {
-    return res.status(500).json({ message: "Google OAuth is not configured on the server." });
+    return res
+      .status(500)
+      .json({ message: "Google OAuth is not configured on the server." });
   }
 
   if (!credential) {
@@ -312,27 +317,31 @@ router.post("/google", googleAuthLimiter, async (req, res) => {
 /* ----------------------- Forgot / Reset Password ----------------------- */
 
 router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
-  const email = (req.body?.email || "").toLowerCase().trim();
+  const email = (req.body?.email || "").toString().toLowerCase().trim();
 
   if (!email) {
-    return res.status(400).json({ message: "Email is required." });
+    return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
   }
 
   try {
     const user = await User.findOne({ email });
 
-    // Always return same response for privacy
-    const genericResponse = {
-      message: "If an account with that email exists, a reset link has been sent.",
-    };
-
     if (!user) {
-      return res.status(200).json(genericResponse);
+      return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
+    }
+
+    const cooldownMs = 5 * 60 * 1000;
+
+    if (
+      user.passwordResetRequestedAt &&
+      Date.now() - new Date(user.passwordResetRequestedAt).getTime() < cooldownMs
+    ) {
+      return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
     }
 
     if (!transporter) {
       console.error("Forgot password attempted but mailer is not configured.");
-      return res.status(500).json({ message: "Email service is not configured." });
+      return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -340,6 +349,8 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
 
     user.passwordResetToken = hashedToken;
     user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    user.passwordResetRequestedAt = new Date();
+
     await user.save();
 
     const frontendBase =
@@ -369,10 +380,10 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
       `,
     });
 
-    return res.status(200).json(genericResponse);
+    return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
   } catch (err) {
     console.error("forgot-password error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(200).json(GENERIC_FORGOT_PASSWORD_RESPONSE);
   }
 });
 
@@ -380,11 +391,15 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
   const { token, password } = req.body;
 
   if (!token || !password) {
-    return res.status(400).json({ message: "Token and new password are required." });
+    return res
+      .status(400)
+      .json({ message: "Token and new password are required." });
   }
 
   if (password.length < 8) {
-    return res.status(400).json({ message: "Password must be at least 8 characters." });
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 8 characters." });
   }
 
   try {
@@ -396,55 +411,76 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Reset link is invalid or has expired." });
+      return res
+        .status(400)
+        .json({ message: "Reset link is invalid or has expired." });
     }
 
     user.password = await bcrypt.hash(password, 10);
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
+    user.passwordResetRequestedAt = null;
+    user.passwordChangedAt = new Date();
+
     await user.save();
 
     return res.status(200).json({ message: "Password reset successfully." });
   } catch (err) {
     console.error("reset-password error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error." });
   }
 });
 
-router.post("/change-password", verifyToken, changePasswordLimiter, async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+router.post(
+  "/change-password",
+  verifyToken,
+  changePasswordLimiter,
+  async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
 
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ message: "Current password and new password are required." });
-  }
-
-  if (newPassword.length < 8) {
-    return res.status(400).json({ message: "New password must be at least 8 characters." });
-  }
-
-  if (currentPassword === newPassword) {
-    return res.status(400).json({ message: "New password must be different from current password." });
-  }
-
-  try {
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required.",
+      });
     }
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Current password is incorrect." });
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        message: "New password must be at least 8 characters.",
+      });
     }
 
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        message: "New password must be different from current password.",
+      });
+    }
 
-    return res.status(200).json({ message: "Password updated successfully." });
-  } catch (err) {
-    console.error("change-password error:", err);
-    return res.status(500).json({ message: "Server error" });
+    try {
+      const user = await User.findById(req.user.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password is incorrect." });
+      }
+
+      user.password = await bcrypt.hash(newPassword, 10);
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      user.passwordResetRequestedAt = null;
+      user.passwordChangedAt = new Date();
+
+      await user.save();
+
+      return res.status(200).json({ message: "Password updated successfully." });
+    } catch (err) {
+      console.error("change-password error:", err);
+      return res.status(500).json({ message: "Server error." });
+    }
   }
-});
+);
 
 module.exports = router;

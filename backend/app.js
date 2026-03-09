@@ -1,12 +1,11 @@
-// backend/app.js
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
-const app = express();
-const rateLimit = require("express-rate-limit");
 
-/*---- Allowed Origins---- */ 
+const app = express();
+
+/* ---------- Allowed Origins ---------- */
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:3000",
@@ -16,36 +15,35 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.set("trust proxy", 1);
-/* ---------- Middleware ---------- */
+
 /* ---------- Middleware ---------- */
 app.use(
   cors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
 
-      const cleanOrigin = String(origin).replace(/\/$/, ""); // remove trailing /
-      const ok = allowedOrigins.map((o) => String(o).replace(/\/$/, "")).includes(cleanOrigin);
+      const cleanOrigin = String(origin).replace(/\/$/, "");
+      const normalizedAllowed = allowedOrigins.map((o) =>
+        String(o).replace(/\/$/, "")
+      );
 
-      if (ok) return cb(null, true);
+      if (normalizedAllowed.includes(cleanOrigin)) {
+        return cb(null, true);
+      }
+
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: false,
   })
 );
-app.use(helmet());
 
+app.use(helmet());
 app.use(express.json());
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // max 10 requests
-  message: {
-    message: "Too many login attempts. Try again later."
-  },
-  standardHeaders: true,
-  legacyHeaders: false
-});
+
 /* ---------- Health check ---------- */
-app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
 
 /* ---------- Static uploads ---------- */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -59,7 +57,13 @@ const messageRoutes = require("./routes/messages");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
 
-app.use("/api/auth", authLimiter, authRoutes);
+/*
+  IMPORTANT:
+  Δεν βάζουμε γενικό authLimiter εδώ σε όλο το /api/auth,
+  γιατί θέλουμε route-specific limiters μέσα στο routes/auth.js
+  π.χ. άλλο limiter για /login και άλλο για /forgot-password
+*/
+app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/properties", propertyRoutes);
@@ -71,8 +75,8 @@ app.use("/api/notifications", notificationRoutes);
 /* ---------- Serve React build ---------- */
 app.use(express.static(path.join(__dirname, "build")));
 
-// SPA fallback (everything except /api)
-app.get(/^(?!\/api).*/, (req, res) => {
+/* ---------- SPA fallback (everything except /api) ---------- */
+app.get(/^(?!\/api).*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
@@ -84,8 +88,12 @@ app.use("/api", (_req, res) => {
 /* ---------- Error handler ---------- */
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
+
   if (res.headersSent) return;
-  res.status(err.status || 500).json({ message: err.message || "Server error" });
+
+  res.status(err.status || 500).json({
+    message: err.message || "Server error",
+  });
 });
 
 module.exports = app;

@@ -114,17 +114,18 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String, trim: true, sparse: true },
 
     name: { type: String, trim: true },
-    phone: { type: String, trim: true }, // για τη φόρμα onboarding
+    phone: { type: String, trim: true },
     showPhoneToClients: { type: Boolean, default: false },
 
     password: {
       type: String,
       required: true,
     },
-    
+
     passwordResetToken: { type: String, default: null },
     passwordResetExpires: { type: Date, default: null },
-
+    passwordResetRequestedAt: { type: Date, default: null },
+    passwordChangedAt: { type: Date, default: null },
 
     role: {
       type: String,
@@ -153,6 +154,5 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 module.exports = mongoose.model("User", userSchema);
