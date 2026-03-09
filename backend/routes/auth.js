@@ -16,23 +16,31 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /* ----------------------- Mailer ----------------------- */
 
-const mailerConfigured =
-  process.env.MAIL_HOST &&
-  process.env.MAIL_PORT &&
-  process.env.MAIL_USER &&
-  process.env.MAIL_PASS;
+const mailHost = process.env.MAIL_HOST || process.env.SMTP_HOST;
+const mailPort = Number(process.env.MAIL_PORT || process.env.SMTP_PORT || 587);
+const mailUser = process.env.MAIL_USER || process.env.SMTP_USER || process.env.SMTP_USERNAME;
+const mailPass = process.env.MAIL_PASS || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+const mailFrom = process.env.MAIL_FROM || process.env.SMTP_FROM || mailUser;
+
+const mailerConfigured = mailHost && Number.isFinite(mailPort) && mailUser && mailPass;
 
 const transporter = mailerConfigured
   ? nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: Number(process.env.MAIL_PORT),
-      secure: Number(process.env.MAIL_PORT) === 465,
+      host: mailHost,
+      port: mailPort,
+      secure: mailPort === 465,
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: mailUser,
+        pass: mailPass,
       },
     })
   : null;
+
+if (!transporter) {
+  console.warn(
+    "Mailer is not configured. Set MAIL_* (or SMTP_*) env vars to enable forgot-password emails."
+  );
+}
 
 /* ----------------------- Rate Limiters ----------------------- */
 
@@ -342,7 +350,7 @@ router.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
     const resetUrl = `${frontendBase.replace(/\/+$/, "")}/reset-password/${rawToken}`;
 
     await transporter.sendMail({
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
+      from: mailFrom,
       to: user.email,
       subject: "Reset your password",
       html: `
