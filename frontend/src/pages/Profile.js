@@ -21,6 +21,15 @@ const yesNo = (v) =>
 const money = (v) =>
   v || v === 0 ? `€ ${Number(v).toLocaleString()}` : "Not Specified";
 
+const formatValue = (v) => (v ? v : "Not Specified");
+
+const titleCase = (value) => {
+  if (!value) return "Not Specified";
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 export default function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -155,11 +164,29 @@ export default function Profile() {
 
               <Field label="Bedrooms" value={p.bedrooms} />
               <Field label="Bathrooms" value={p.bathrooms} />
+              <Field label="Property Type" value={titleCase(p.propertyType)} />
+              <Field label="Orientation" value={titleCase(p.orientation)} />
+              <Field label="View" value={titleCase(p.view)} />
+              <Field label="Energy Class" value={formatValue(p.energyClass)} />
+              <Field label="Parking" value={yesNo(p.parking)} />
               <Field label="Furnished" value={yesNo(p.furnished)} />
+              <Field label="Storage" value={yesNo(p.hasStorage)} />
+              <Field label="Elevator" value={yesNo(p.elevator)} />
               <Field label="Pets Allowed" value={yesNo(p.petsAllowed)} />
               <Field label="Smoking Allowed" value={yesNo(p.smokingAllowed)} />
+              <Field
+                label="Lease Duration"
+                value={
+                  p.leaseDuration === "short"
+                    ? "Short stay (< 12 months)"
+                    : p.leaseDuration === "long"
+                    ? "Long term (≥ 12 months)"
+                    : "Not Specified"
+                }
+              />
+              <Field label="Minimum Floor" value={p.floorMin} />
               <Field label="Year Built (Min)" value={p.yearBuiltMin} />
-              <Field label="Heating Type" value={p.heatingType} />
+              <Field label="Heating Type" value={titleCase(p.heatingType)} />
             </div>
           </div>
         </div>
