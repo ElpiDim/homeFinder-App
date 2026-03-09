@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.3",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.5",
+    "nodemailer": "^7.0.13",
     "path-to-regexp": "^8.2.0",
     "react-circular-progressbar": "^2.2.0",
     "socket.io": "^4.8.1"
