@@ -41,7 +41,7 @@ export default function Onboarding() {
   // Redirect if not client or already onboarded
   useEffect(() => {
     if (!isClient) navigate("/dashboard", { replace: true });
-    if (user?.onboarded) navigate("/dashboard", { replace: true });
+    if (user?.onboardingCompleted) navigate("/dashboard", { replace: true });
   }, [isClient, user, navigate]);
 
   /** -------- INITIAL VALUES -------- **/
@@ -73,13 +73,18 @@ export default function Onboarding() {
       sqmMax: user?.preferences?.sqmMax ?? "",
       bedrooms: user?.preferences?.bedrooms ?? "",
       bathrooms: user?.preferences?.bathrooms ?? "",
+      propertyType: user?.preferences?.propertyType || "",
+      orientation: user?.preferences?.orientation || "",
+      view: user?.preferences?.view || "",
+      energyClass: user?.preferences?.energyClass || "",
       parking: user?.preferences?.parking ?? null,
       petsAllowed: user?.preferences?.petsAllowed ?? null,
       smokingAllowed: user?.preferences?.smokingAllowed ?? null,
       furnished: user?.preferences?.furnished ?? null,
-      heating: user?.preferences?.heating || '',
-      leaseDuration: user?.preferences?.leaseDuration || '', // short-term / long-term
-      floor: user?.preferences?.floor ?? '',
+      hasStorage: user?.preferences?.hasStorage ?? null,
+      heatingType: user?.preferences?.heatingType || '',
+      leaseDuration: user?.preferences?.leaseDuration || '',
+      floorMin: user?.preferences?.floorMin ?? '',
       elevator: user?.preferences?.elevator ?? null,
     }),
     [user]
@@ -186,13 +191,18 @@ export default function Onboarding() {
         sqmMax: sqm.max,
         bedrooms: prefs.bedrooms ? Number(prefs.bedrooms) : undefined,
         bathrooms: prefs.bathrooms ? Number(prefs.bathrooms) : undefined,
+        propertyType: prefs.propertyType || undefined,
+        orientation: prefs.orientation || undefined,
+        view: prefs.view || undefined,
+        energyClass: prefs.energyClass || undefined,
         parking: prefs.parking,
         furnished: prefs.furnished,
+        hasStorage: prefs.hasStorage,
         petsAllowed: prefs.petsAllowed,
         smokingAllowed: prefs.smokingAllowed,
-        heating: prefs.heating || undefined,
+        heatingType: prefs.heatingType || undefined,
         leaseDuration: prefs.leaseDuration || undefined,
-        floor: prefs.floor ? Number(prefs.floor) : undefined,
+        floorMin: prefs.floorMin ? Number(prefs.floorMin) : undefined,
         elevator: prefs.elevator,
       });
 

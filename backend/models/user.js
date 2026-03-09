@@ -31,6 +31,10 @@ const preferencesSchema = new mongoose.Schema(
     sqmMax: { type: Number, min: 0 },
     bedrooms: { type: Number, min: 0 },
     bathrooms: { type: Number, min: 0 },
+    propertyType: { type: String, trim: true },
+    orientation: { type: String, trim: true },
+    view: { type: String, trim: true },
+    energyClass: { type: String, trim: true },
 
     // Όροφος (range)
     floorMin: { type: Number },
@@ -40,6 +44,7 @@ const preferencesSchema = new mongoose.Schema(
     furnished: { type: Boolean, default: undefined },
     elevator: { type: Boolean, default: undefined },
     parking: { type: Boolean, default: undefined },
+    hasStorage: { type: Boolean, default: undefined },
 
     yearBuiltMin: { type: Number, min: 0 },
 

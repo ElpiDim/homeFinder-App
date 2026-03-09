@@ -9,29 +9,58 @@ const normalizeValue = (value) => {
   return String(value);
 };
 
-const toggleOptions = [
-  { value: 'any', label: 'Any' },
-  { value: 'true', label: 'Yes' },
-  { value: 'false', label: 'No' },
-];
-
 const amenityFields = [
   { name: 'parking', label: 'Parking', helper: 'Reserved spot or garage access' },
   { name: 'furnished', label: 'Furnished', helper: 'Move-in ready with furniture' },
+  { name: 'hasStorage', label: 'Storage', helper: 'Extra storage room or basement space' },
   { name: 'petsAllowed', label: 'Pet friendly', helper: 'Welcomes cats, dogs & more' },
   { name: 'smokingAllowed', label: 'Smoking policy', helper: 'Clarify if smoking is allowed' },
   { name: 'elevator', label: 'Elevator', helper: 'Easy access to upper floors' },
-  { name: 'balcony', label: 'Balcony', helper: 'Outdoor private space' },
-  { name: 'airConditioning', label: 'Air Conditioning', helper: 'Cooling and comfort' },
-  { name: 'garden', label: 'Garden', helper: 'Private or shared green area' },
-  { name: 'storage', label: 'Storage Room', helper: 'Extra space for belongings' },
-  { name: 'fireplace', label: 'Fireplace', helper: 'Cozy atmosphere and warmth' },
-  { name: 'swimmingPool', label: 'Swimming Pool', helper: 'Private or shared pool access' },
-  { name: 'securityDoor', label: 'Security Door', helper: 'Enhanced safety' },
-  { name: 'solarWaterHeater', label: 'Solar Water Heater', helper: 'Energy-efficient water heating' },
-  { name: 'doubleGlazing', label: 'Double Glazing', helper: 'Better insulation and quiet' },
-  { name: 'renovated', label: 'Recently Renovated', helper: 'Modern and updated condition' },
-  { name: 'energyEfficient', label: 'Energy-efficient', helper: 'Low energy consumption' },
+];
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: '', label: 'Any type' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'studio_flat', label: 'Studio Flat' },
+  { value: 'maisonette', label: 'Maisonette' },
+  { value: 'detached_house', label: 'Detached House' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'loft', label: 'Loft' },
+  { value: 'bungalow', label: 'Bungalow' },
+];
+
+const ORIENTATION_OPTIONS = [
+  { value: '', label: 'Any orientation' },
+  { value: 'north', label: 'North' },
+  { value: 'north-east', label: 'North-East' },
+  { value: 'east', label: 'East' },
+  { value: 'south-east', label: 'South-East' },
+  { value: 'south', label: 'South' },
+  { value: 'south-west', label: 'South-West' },
+  { value: 'west', label: 'West' },
+  { value: 'north-west', label: 'North-West' },
+];
+
+const VIEW_OPTIONS = [
+  { value: '', label: 'Any view' },
+  { value: 'sea', label: 'Sea' },
+  { value: 'mountain', label: 'Mountain' },
+  { value: 'park', label: 'Park' },
+  { value: 'city', label: 'City' },
+  { value: 'none', label: 'No specific view' },
+];
+
+const ENERGY_CLASS_OPTIONS = [
+  { value: '', label: 'Any class' },
+  { value: 'A+', label: 'A+' },
+  { value: 'A', label: 'A' },
+  { value: 'B+', label: 'B+' },
+  { value: 'B', label: 'B' },
+  { value: 'C', label: 'C' },
+  { value: 'D', label: 'D' },
+  { value: 'E', label: 'E' },
+  { value: 'F', label: 'F' },
+  { value: 'G', label: 'G' },
 ];
 
 
@@ -70,39 +99,6 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
             placeholder="e.g. Athens"
           />
           <Form.Control.Feedback type="invalid">{errors.location}</Form.Control.Feedback>
-        </Form.Group>
-
-        {/* 🏘 Neighborhood Preferences */}
-        <Form.Group className="mb-3">
-          <Form.Label className="field-label">Preferred neighborhoods</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={2}
-            name="neighborhoods"
-            value={prefs.neighborhoods || ''}
-            onChange={onChange}
-            placeholder="List neighborhoods you’d love to live in (comma or line separated)"
-          />
-          <Form.Text className="text-muted">
-            Example: Kifisia, Kolonaki, Glyfada
-          </Form.Text>
-        </Form.Group>
-
-        {/* 🏠 Property Type */}
-        <Form.Group className="mt-2">
-          <Form.Label className="field-label">Preferred property type</Form.Label>
-          <Form.Select
-            name="propertyType"
-            value={prefs.propertyType || ''}
-            onChange={onChange}
-          >
-            <option value="">Any</option>
-            <option value="apartment">Apartment</option>
-            <option value="studio">Studio</option>
-            <option value="house">House</option>
-            <option value="loft">Loft</option>
-            <option value="duplex">Duplex</option>
-          </Form.Select>
         </Form.Group>
 
         {/* Deal type toggle */}
@@ -291,11 +287,23 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
         <Row className="g-3 mt-1">
           <Col xs={12} sm={6}>
             <Form.Group>
-              <Form.Label className="field-label">Preferred floor</Form.Label>
+              <Form.Label className="field-label">Property type</Form.Label>
+              <Form.Select name="propertyType" value={prefs.propertyType} onChange={onChange}>
+                {PROPERTY_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Minimum floor</Form.Label>
               <Form.Control
                 type="number"
-                name="floor"
-                value={prefs.floor}
+                name="floorMin"
+                value={prefs.floorMin}
                 onChange={onChange}
                 placeholder="Any"
                 inputMode="numeric"
@@ -304,14 +312,60 @@ export default function RequirementsStep({ prefs, onChange, errors }) {
           </Col>
           <Col xs={12} sm={6}>
             <Form.Group>
-              <Form.Label className="field-label">Heating</Form.Label>
-              <Form.Control
-                type="text"
-                name="heating"
-                value={prefs.heating}
+              <Form.Label className="field-label">Heating type</Form.Label>
+              <Form.Select
+                name="heatingType"
+                value={prefs.heatingType}
                 onChange={onChange}
-                placeholder="e.g. Central, AC, Radiators"
-              />
+              >
+                <option value="">Any</option>
+                <option value="autonomous">Autonomous</option>
+                <option value="central">Central</option>
+                <option value="ac">AC</option>
+                <option value="none">No heating</option>
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <Row className="g-3 mt-1">
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Orientation</Form.Label>
+              <Form.Select name="orientation" value={prefs.orientation} onChange={onChange}>
+                {ORIENTATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">View</Form.Label>
+              <Form.Select name="view" value={prefs.view} onChange={onChange}>
+                {VIEW_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
+        </Row>
+
+        <Row className="g-3 mt-1">
+          <Col xs={12} sm={6}>
+            <Form.Group>
+              <Form.Label className="field-label">Energy class</Form.Label>
+              <Form.Select name="energyClass" value={prefs.energyClass} onChange={onChange}>
+                {ENERGY_CLASS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </Col>
         </Row>

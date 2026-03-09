@@ -205,11 +205,23 @@ function buildPropertyQueryFromPrefs(prefs = {}) {
 
   // aliases χωρίς virtuals:
   if (typeof p.elevator === 'boolean') f.hasElevator = p.elevator;
+  if (typeof p.hasStorage === 'boolean') f.hasStorage = p.hasStorage;
   if (typeof p.parking === 'boolean') {
     // boolean parking -> parkingSpaces >= 1
     f.$expr = { $gte: [ { $ifNull: ["$parkingSpaces", 0] }, p.parking ? 1 : 0 ] };
   }
   if (p.heatingType) f.heating = p.heatingType;
+  if (p.orientation) f.orientation = p.orientation;
+  if (p.view) f.view = p.view;
+  if (p.energyClass) f.energyClass = p.energyClass;
+  if (p.floorMin != null) {
+    f.floor = f.floor || {};
+    f.floor.$gte = p.floorMin;
+  }
+  if (p.floorMax != null) {
+    f.floor = f.floor || {};
+    f.floor.$lte = p.floorMax;
+  }
   if (p.yearBuiltMin != null) f.yearBuilt = { $gte: p.yearBuiltMin };
 
   // location: απλό regex (ιδανικά στο μέλλον κάνε normalisation/geo)
