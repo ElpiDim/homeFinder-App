@@ -55,6 +55,12 @@ const preferencesSchema = new mongoose.Schema(
       default: undefined,
     },
 
+    leaseDuration: {
+      type: String,
+      enum: ["short", "long"],
+      default: undefined,
+    },
+
     // Τιμές ανά τύπο συναλλαγής
     rentMin: { type: Number, min: 0 },
     rentMax: { type: Number, min: 0 },

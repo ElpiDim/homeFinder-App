@@ -90,10 +90,19 @@ export default function EditProfile() {
     sqmMax: user?.preferences?.sqmMax ?? "",
     bedrooms: user?.preferences?.bedrooms ?? "",
     bathrooms: user?.preferences?.bathrooms ?? "",
+    propertyType: user?.preferences?.propertyType || "",
+    orientation: user?.preferences?.orientation || "",
+    view: user?.preferences?.view || "",
+    energyClass: user?.preferences?.energyClass || "",
     furnished: user?.preferences?.furnished ?? null,
+    parking: user?.preferences?.parking ?? null,
+    hasStorage: user?.preferences?.hasStorage ?? null,
+    elevator: user?.preferences?.elevator ?? null,
     petsAllowed: user?.preferences?.petsAllowed ?? null,
     smokingAllowed: user?.preferences?.smokingAllowed ?? null,
     heatingType: user?.preferences?.heatingType || "",
+    leaseDuration: user?.preferences?.leaseDuration || "",
+    floorMin: user?.preferences?.floorMin ?? "",
     yearBuiltMin: user?.preferences?.yearBuiltMin ?? "",
   });
 
@@ -163,11 +172,20 @@ export default function EditProfile() {
           sqmMax: sqm.max,
           bedrooms: toNumOrUndef(prefs.bedrooms),
           bathrooms: toNumOrUndef(prefs.bathrooms),
+          propertyType: prefs.propertyType || undefined,
+          orientation: prefs.orientation || undefined,
+          view: prefs.view || undefined,
+          energyClass: prefs.energyClass || undefined,
           furnished: prefs.furnished === null ? undefined : !!prefs.furnished,
+          parking: prefs.parking === null ? undefined : !!prefs.parking,
+          hasStorage: prefs.hasStorage === null ? undefined : !!prefs.hasStorage,
+          elevator: prefs.elevator === null ? undefined : !!prefs.elevator,
           petsAllowed: prefs.petsAllowed === null ? undefined : !!prefs.petsAllowed,
           smokingAllowed:
             prefs.smokingAllowed === null ? undefined : !!prefs.smokingAllowed,
           heatingType: prefs.heatingType || undefined,
+          leaseDuration: prefs.leaseDuration || undefined,
+          floorMin: toNumOrUndef(prefs.floorMin),
           yearBuiltMin: toNumOrUndef(prefs.yearBuiltMin),
         });
 
@@ -482,12 +500,127 @@ export default function EditProfile() {
                     />
                   </div>
 
+                  <div className="col-md-4">
+                    <Label>Property Type</Label>
+                    <select
+                      className="form-select"
+                      name="propertyType"
+                      value={prefs.propertyType}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Any type</option>
+                      <option value="apartment">Apartment</option>
+                      <option value="studio_flat">Studio Flat</option>
+                      <option value="maisonette">Maisonette</option>
+                      <option value="detached_house">Detached House</option>
+                      <option value="villa">Villa</option>
+                      <option value="loft">Loft</option>
+                      <option value="bungalow">Bungalow</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-4">
+                    <Label>Minimum Floor</Label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      name="floorMin"
+                      value={prefs.floorMin}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <Label>Orientation</Label>
+                    <select
+                      className="form-select"
+                      name="orientation"
+                      value={prefs.orientation}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Any orientation</option>
+                      <option value="north">North</option>
+                      <option value="north-east">North-East</option>
+                      <option value="east">East</option>
+                      <option value="south-east">South-East</option>
+                      <option value="south">South</option>
+                      <option value="south-west">South-West</option>
+                      <option value="west">West</option>
+                      <option value="north-west">North-West</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-4">
+                    <Label>View</Label>
+                    <select
+                      className="form-select"
+                      name="view"
+                      value={prefs.view}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Any view</option>
+                      <option value="sea">Sea</option>
+                      <option value="mountain">Mountain</option>
+                      <option value="park">Park</option>
+                      <option value="city">City</option>
+                      <option value="none">No specific view</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-4">
+                    <Label>Energy Class</Label>
+                    <select
+                      className="form-select"
+                      name="energyClass"
+                      value={prefs.energyClass}
+                      onChange={onChange(setPrefs)}
+                    >
+                      <option value="">Any class</option>
+                      <option value="A+">A+</option>
+                      <option value="A">A</option>
+                      <option value="B+">B+</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="D">D</option>
+                      <option value="E">E</option>
+                      <option value="F">F</option>
+                      <option value="G">G</option>
+                    </select>
+                  </div>
+
                   {/* Tri-state dropdowns (as in screenshot "Not Specified") */}
                   <div className="col-md-4">
                     <TriStateSelect
                       label="Furnished"
                       name="furnished"
                       value={prefs.furnished}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Parking"
+                      name="parking"
+                      value={prefs.parking}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Storage"
+                      name="hasStorage"
+                      value={prefs.hasStorage}
+                      onChange={onChange(setPrefs)}
+                    />
+                  </div>
+
+                  <div className="col-md-4">
+                    <TriStateSelect
+                      label="Elevator"
+                      name="elevator"
+                      value={prefs.elevator}
                       onChange={onChange(setPrefs)}
                     />
                   </div>
@@ -536,6 +669,22 @@ export default function EditProfile() {
                       <option value="none">None</option>
                     </select>
                   </div>
+
+                  {isRent && (
+                    <div className="col-md-4">
+                      <Label>Lease Duration</Label>
+                      <select
+                        className="form-select"
+                        name="leaseDuration"
+                        value={prefs.leaseDuration}
+                        onChange={onChange(setPrefs)}
+                      >
+                        <option value="">Not Specified</option>
+                        <option value="short">Short stay (&lt; 12 months)</option>
+                        <option value="long">Long term (≥ 12 months)</option>
+                      </select>
+                    </div>
+                  )}
 
                   {/* Deal Type hidden UI but preserved logic */}
                   <div className="col-md-4">

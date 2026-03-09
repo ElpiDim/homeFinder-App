@@ -21,6 +21,19 @@ const yesNo = (v) =>
 const money = (v) =>
   v || v === 0 ? `€ ${Number(v).toLocaleString()}` : "Not Specified";
 
+const formatDealType = (dealType, intent) => {
+  if (dealType === "sale" || intent === "buy") return "Buy";
+  if (dealType === "rent" || intent === "rent") return "Rent";
+  return "Not Specified";
+};
+
+const formatRange = (min, max, unit = "") => {
+  if (min === undefined && max === undefined) return "Not Specified";
+  const minValue = min ?? 0;
+  const maxValue = max ?? "∞";
+  return `${minValue}${unit} - ${maxValue}${unit}`;
+};
+
 export default function Profile() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -125,8 +138,8 @@ export default function Profile() {
                   <Field
                     label="Rent Range"
                     value={
-                      p.rentMin || p.rentMax
-                        ? `€${p.rentMin || 0} - €${p.rentMax || "∞"}`
+                      p.rentMin !== undefined || p.rentMax !== undefined
+                        ? `€${p.rentMin ?? 0} - €${p.rentMax ?? "∞"}`
                         : "Not Specified"
                     }
                   />
@@ -136,30 +149,36 @@ export default function Profile() {
                   <Field
                     label="Price Range"
                     value={
-                      p.priceMin || p.priceMax
-                        ? `€${p.priceMin || 0} - €${p.priceMax || "∞"}`
+                      p.priceMin !== undefined || p.priceMax !== undefined
+                        ? `€${p.priceMin ?? 0} - €${p.priceMax ?? "∞"}`
                         : "Not Specified"
                     }
                   />
                 </>
               )}
 
+              <Field label="Deal Type" value={formatDealType(p.dealType, p.intent)} />
               <Field
                 label="Surface Area (sqm)"
-                value={
-                  p.sqmMin || p.sqmMax
-                    ? `${p.sqmMin || 0} - ${p.sqmMax || "∞"}`
-                    : "Not Specified"
-                }
+                value={formatRange(p.sqmMin, p.sqmMax)}
               />
 
               <Field label="Bedrooms" value={p.bedrooms} />
               <Field label="Bathrooms" value={p.bathrooms} />
+              <Field label="Property Type" value={p.propertyType} />
+              <Field label="Orientation" value={p.orientation} />
+              <Field label="View" value={p.view} />
+              <Field label="Energy Class" value={p.energyClass} />
               <Field label="Furnished" value={yesNo(p.furnished)} />
+              <Field label="Parking" value={yesNo(p.parking)} />
+              <Field label="Storage" value={yesNo(p.hasStorage)} />
+              <Field label="Elevator" value={yesNo(p.elevator)} />
               <Field label="Pets Allowed" value={yesNo(p.petsAllowed)} />
               <Field label="Smoking Allowed" value={yesNo(p.smokingAllowed)} />
               <Field label="Year Built (Min)" value={p.yearBuiltMin} />
               <Field label="Heating Type" value={p.heatingType} />
+              <Field label="Minimum Floor" value={p.floorMin} />
+              <Field label="Lease Duration" value={p.leaseDuration} />
             </div>
           </div>
         </div>
