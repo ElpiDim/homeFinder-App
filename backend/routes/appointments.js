@@ -18,6 +18,12 @@ router.get("/tenant", verifyToken, appointmentController.getAppointmentsByTenant
 // Update appointment status (cancel/reject)
 router.patch("/:appointmentId", verifyToken, appointmentController.updateAppointmentStatus);
 
+// OWNER or TENANT can change an appointment time
+router.patch("/:appointmentId/reschedule", verifyToken, appointmentController.rescheduleAppointment);
+
+// OWNER or TENANT can delete appointment
+router.delete("/:appointmentId", verifyToken, appointmentController.deleteAppointment);
+
 // Fetch single appointment by ID (for modal)
 router.get("/:appointmentId", verifyToken, appointmentController.getAppointmentById);
 
