@@ -12,6 +12,7 @@ import { SocketProvider } from "./context/SocketContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { MessageProvider } from "./context/MessageContext";
 import { SidebarProvider } from "./context/SidebarContext";
+import { GoogleMapsProvider } from "./context/GoogleMapsContext";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -31,7 +32,9 @@ root.render(
             <NotificationProvider>
               <MessageProvider>
                 <SidebarProvider>
-                  <App />
+                  <GoogleMapsProvider>
+                    <App />
+                  </GoogleMapsProvider>
                 </SidebarProvider>
               </MessageProvider>
             </NotificationProvider>

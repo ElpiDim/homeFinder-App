@@ -6,13 +6,11 @@ import api from '../api';
 import {
   GoogleMap,
   Marker,
-  useJsApiLoader,
   StandaloneSearchBox,
 } from '@react-google-maps/api';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
 
 const containerStyle = { width: '100%', height: '320px' };
-const LIBRARIES = ['places'];
-const LOADER_ID = 'gmap';
 
 // ✅ CRA-friendly: παίρνουμε το key από REACT_APP_*
 function getMapsApiKey() {
@@ -120,10 +118,7 @@ function EditProperty() {
 
   // ---- Google Maps ----
   const apiKey = getMapsApiKey();
-  const { isLoaded } = useJsApiLoader(
-    apiKey ? { id: LOADER_ID, googleMapsApiKey: apiKey, libraries: LIBRARIES }
-           : { id: LOADER_ID }
-  );
+  const { isLoaded } = useGoogleMaps();
   const [map, setMap] = useState(null);
   const [latLng, setLatLng] = useState(null);
   const [center, setCenter] = useState({ lat: 37.9838, lng: 23.7275 }); // Athens

@@ -5,10 +5,10 @@ import {
   GoogleMap,
   Marker,
   StandaloneSearchBox,
-  useJsApiLoader,
 } from '@react-google-maps/api';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useGoogleMaps } from '../context/GoogleMapsContext';
 import Logo from '../components/Logo';
 import './AddProperty.css';
 
@@ -130,8 +130,6 @@ const FAMILY_STATUS_OPTIONS = [
   { value: 'couple', label: 'Couple' },
   { value: 'family', label: 'Family' },
 ];
-const GOOGLE_LIBRARIES = ['places'];
-const MAP_LOADER_ID = 'add-property-map';
 const MAP_CONTAINER_STYLE = { width: '100%', height: '320px' };
 const DEFAULT_CENTER = { lat: 37.9838, lng: 23.7275 };
 
@@ -216,11 +214,7 @@ export default function AddProperty() {
     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     '';
 
-  const loaderConfig = apiKey
-    ? { id: MAP_LOADER_ID, googleMapsApiKey: apiKey, libraries: GOOGLE_LIBRARIES }
-    : { id: MAP_LOADER_ID, libraries: GOOGLE_LIBRARIES };
-
-  const { isLoaded: mapLoaded } = useJsApiLoader(loaderConfig);
+  const { isLoaded: mapLoaded } = useGoogleMaps();
 
   const combinedFeatureTags = useMemo(() => {
     const featureSet = new Set(featureTags);

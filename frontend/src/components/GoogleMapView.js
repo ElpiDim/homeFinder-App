@@ -4,15 +4,13 @@ import {
   GoogleMap,
   Marker,
   InfoWindow,
-  useJsApiLoader,
   StandaloneSearchBox,
 } from "@react-google-maps/api";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { useNavigate } from "react-router-dom";
+import { useGoogleMaps } from "../context/GoogleMapsContext";
 
 const containerStyle = { width: "100%", height: "100%" };
-const LIBRARIES = ["places"];
-const LOADER_ID = "gmap";
 const PLACEHOLDER = "https://via.placeholder.com/120x80?text=No+Image";
 
 /** CRA: παίρνουμε ΜΟΝΟ από REACT_APP_* */
@@ -43,11 +41,10 @@ export default function GoogleMapView(props) {
       </div>
     );
   }
-  return <GoogleMapViewInner {...props} apiKey={apiKey} />;
+  return <GoogleMapViewInner {...props} />;
 }
 
 function GoogleMapViewInner({
-  apiKey,
   properties = [],
   height = "500px",
   zoom = 11,
@@ -56,11 +53,7 @@ function GoogleMapViewInner({
   mapId,
   showSearch = true,
 }) {
-  const { isLoaded } = useJsApiLoader({
-    id: LOADER_ID,
-    googleMapsApiKey: apiKey,
-    libraries: LIBRARIES,
-  });
+  const { isLoaded } = useGoogleMaps();
 
   const [map, setMap] = useState(null);
   const [active, setActive] = useState(null); // { id, title, text, img, position }
