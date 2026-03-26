@@ -67,11 +67,11 @@ exports.proposeAppointmentSlots = async (req, res) => {
   }
 };
 
-// TENANT confirms one slot
-exports.confirmAppointmentSlot = async (req, res) => {
+// Reschedule an appointment (Tenant or Owner)
+exports.rescheduleAppointment = async (req, res) => {
   const { appointmentId } = req.params;
-  const { selectedSlot } = req.body;
-  const tenantId = req.user.userId;
+  const { availableSlots } = req.body;
+  const userId = req.user.userId;
 
   try {
     const appointment = await Appointment.findById(appointmentId);
@@ -80,7 +80,73 @@ exports.confirmAppointmentSlot = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (appointment.tenantId.toString() !== tenantId) {
+    const isOwner = appointment.ownerId.toString() === userId;
+    const isTenant = appointment.tenantId.toString() === userId;
+
+    if (!isOwner && !isTenant) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (!Array.isArray(availableSlots) || availableSlots.length === 0) {
+      return res.status(400).json({
+        message: "Please provide at least one appointment time.",
+      });
+    }
+
+    const now = new Date();
+    const normalizedSlots = availableSlots
+      .map((slot) => new Date(slot))
+      .filter((d) => !Number.isNaN(d.getTime()));
+
+    const futureSlots = normalizedSlots.filter(
+      (d) => d.getTime() >= now.getTime()
+    );
+
+    if (!futureSlots.length) {
+      return res.status(400).json({
+        message: "You cannot propose appointment times in the past.",
+      });
+    }
+
+    appointment.availableSlots = futureSlots;
+    appointment.selectedSlot = undefined;
+    appointment.status = "pending";
+    await appointment.save();
+
+    const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
+
+    await Notification.create({
+      userId: recipientId,
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: userId,
+      message: `The appointment has been rescheduled. New options are available.`,
+    });
+
+    res.json({ message: "Appointment rescheduled", appointment });
+  } catch (err) {
+    console.error("❌ Error rescheduling appointment:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// TENANT confirms one slot
+exports.confirmAppointmentSlot = async (req, res) => {
+  const { appointmentId } = req.params;
+  const { selectedSlot } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const isOwner = appointment.ownerId.toString() === userId;
+    const isTenant = appointment.tenantId.toString() === userId;
+
+    if (!isOwner && !isTenant) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
@@ -110,18 +176,20 @@ exports.confirmAppointmentSlot = async (req, res) => {
       timeStyle:"short",
     });
 
+    const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
+
     await Notification.create({
-      userId: appointment.ownerId,
+      userId: recipientId,
       type: "appointment",
       referenceId: appointment._id,
-      senderId: tenantId,
+      senderId: userId,
       message: `Appointment confirmed for ${humanReadable}.`,
     });
     res.json({ message: "Appointment confirmed", appointment });
 
     await Message.create({
-      senderId: tenantId,
-      receiverId: appointment.ownerId,
+      senderId: userId,
+      receiverId: recipientId,
       propertyId: appointment.propertyId,
       content: `Appointment confirmed for ${humanReadable}.`,
     });

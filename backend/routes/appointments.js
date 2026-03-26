@@ -15,6 +15,9 @@ router.get("/owner", verifyToken, appointmentController.getAppointmentsByOwner);
 // TENANT views their appointments
 router.get("/tenant", verifyToken, appointmentController.getAppointmentsByTenant);
 
+// Reschedule an appointment
+router.put("/reschedule/:appointmentId", verifyToken, appointmentController.rescheduleAppointment);
+
 // Update appointment status (cancel/reject)
 router.patch("/:appointmentId", verifyToken, appointmentController.updateAppointmentStatus);
 

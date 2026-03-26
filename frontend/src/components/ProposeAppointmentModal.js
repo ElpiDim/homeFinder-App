@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import api from "../api";
 
-function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
+function ProposeAppointmentModal({ show, onClose, tenantId, propertyId, rescheduleAppointmentId }) {
   const [slots, setSlots] = useState([""]); // ξεκινάμε με 1 πεδίο
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -39,7 +39,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     setError("");
 
     // basic guards
-    if (!tenantId || !propertyId) {
+    if (!rescheduleAppointmentId && (!tenantId || !propertyId)) {
       setSubmitting(false);
       setError("missing tenantId or propertyId.");
       return;
@@ -63,17 +63,25 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
     }
 
     try {
-      await api.post(
-        "/appointments/propose",
-        { tenantId, propertyId, availableSlots: cleaned },
-        { headers }
-      );
+      if (rescheduleAppointmentId) {
+        await api.put(
+          `/appointments/reschedule/${rescheduleAppointmentId}`,
+          { availableSlots: cleaned },
+          { headers }
+        );
+      } else {
+        await api.post(
+          "/appointments/propose",
+          { tenantId, propertyId, availableSlots: cleaned },
+          { headers }
+        );
+      }
 
       // Κλείσε το modal και ενημέρωσε τον parent ότι υποβλήθηκε επιτυχώς
       onClose?.(true);
       return; // σημαντικό: σταματά εδώ για να μην τρέξει το finally και ξανα-ανοίξει κάτι στον parent
     } catch (err) {
-      console.error("Failed to propose appointment:", err);
+      console.error("Failed to propose/reschedule appointment:", err);
       setError(err?.response?.data?.message || "Error sending proposal.");
     } finally {
       setSubmitting(false);
@@ -83,7 +91,7 @@ function ProposeAppointmentModal({ show, onClose, tenantId, propertyId }) {
   return (
     <Modal show={show} onHide={() => onClose?.(false)} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Propose Appointment Slots</Modal.Title>
+        <Modal.Title>{rescheduleAppointmentId ? "Reschedule Appointment" : "Propose Appointment Slots"}</Modal.Title>
       </Modal.Header>
 
       <Form onSubmit={handleSubmit}>

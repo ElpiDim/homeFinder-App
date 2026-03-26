@@ -5,6 +5,7 @@ import api from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import AppointmentModal from "../components/AppointmentModal";
+import ProposeAppointmentModal from "../components/ProposeAppointmentModal";
 import Logo from "../components/Logo";
 import "./Notifications.css";
 
@@ -104,6 +105,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("all"); // all | unread | appointments | matches
   const [loading, setLoading] = useState(true);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+  const [rescheduleAppointmentId, setRescheduleAppointmentId] = useState(null);
 
   const profileImg = user?.profilePicture
     ? (user.profilePicture.startsWith("http")
@@ -360,7 +362,11 @@ export default function NotificationsPage() {
               className="np-btn np-btn-ghost"
               onClick={(e) => {
                 e.stopPropagation();
-                handleOpenNotification(note);
+                if ((note.type || "").toLowerCase() === "appointment" && secondaryActionLabel === "Reschedule") {
+                  setRescheduleAppointmentId(note.referenceId);
+                } else {
+                  handleOpenNotification(note);
+                }
               }}
             >
               {secondaryActionLabel}
@@ -472,6 +478,14 @@ export default function NotificationsPage() {
       <AppointmentModal
         appointmentId={selectedAppointmentId}
         onClose={() => setSelectedAppointmentId(null)}
+      />
+    )}
+
+    {rescheduleAppointmentId && (
+      <ProposeAppointmentModal
+        show={true}
+        onClose={() => setRescheduleAppointmentId(null)}
+        rescheduleAppointmentId={rescheduleAppointmentId}
       />
     )}
   </div>
