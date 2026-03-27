@@ -465,13 +465,6 @@ export default function Chat() {
             >
               Unread
             </button>
-            <button
-              className={`cp-tab ${tab === "clients" ? "active" : ""}`}
-              onClick={() => setTab("clients")}
-              type="button"
-            >
-              Clients
-            </button>
           </div>
 
           <div className="cp-list">
