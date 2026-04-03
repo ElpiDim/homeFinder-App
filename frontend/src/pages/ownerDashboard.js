@@ -65,7 +65,7 @@ export default function OwnerDashboard() {
     if (!price && price !== 0) return "";
     const n = typeof price === "number" ? price : Number(price);
     if (Number.isNaN(n)) return String(price);
-    const base = `$${n.toLocaleString()}`;
+    const base = `€${n.toLocaleString()}`;
     // best-effort /mo for rent
     const t = String(p?.type || "").toLowerCase();
     if (t === "rent") return `${base}/mo`;
