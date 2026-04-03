@@ -719,7 +719,7 @@ export default function Chat() {
                     <div className="cp-propPrice">
                       {propPrice ? (
                         <>
-                          <span className="cp-propPriceMain">${propPrice}</span>
+                          <span className="cp-propPriceMain">€{propPrice}</span>
                           {property?.type === "rent" && (
                             <span className="cp-propPriceSub">/mo</span>
                           )}

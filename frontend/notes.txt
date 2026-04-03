@@ -1,0 +1,2 @@
+aometimes when page opens needs reload to work
+change dollar sign to euro 
