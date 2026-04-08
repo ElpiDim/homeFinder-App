@@ -8,34 +8,41 @@ const app = express();
 /* ---------- Allowed Origins ---------- */
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_STAGE,
+  "https://homefinder-app-fe.onrender.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:5000",
   "http://127.0.0.1:5000",
 ].filter(Boolean);
 
+const cleanOrigin = (origin) => String(origin || "").replace(/\/$/, "");
+
+const normalizedAllowedOrigins = allowedOrigins.map(cleanOrigin);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    // allow requests with no Origin header (Postman, server-to-server, health checks, etc.)
+    if (!origin) return cb(null, true);
+
+    const incomingOrigin = cleanOrigin(origin);
+
+    if (normalizedAllowedOrigins.includes(incomingOrigin)) {
+      return cb(null, true);
+    }
+
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false, // false because you're using Bearer token, not cookies
+};
+
 app.set("trust proxy", 1);
 
 /* ---------- Middleware ---------- */
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-
-      const cleanOrigin = String(origin).replace(/\/$/, "");
-      const normalizedAllowed = allowedOrigins.map((o) =>
-        String(o).replace(/\/$/, "")
-      );
-
-      if (normalizedAllowed.includes(cleanOrigin)) {
-        return cb(null, true);
-      }
-
-      return cb(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: false,
-  })
-);
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.use(helmet());
 app.use(express.json());
