@@ -17,12 +17,11 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const cleanOrigin = (origin) => String(origin || "").replace(/\/$/, "");
-
 const normalizedAllowedOrigins = allowedOrigins.map(cleanOrigin);
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // allow requests with no Origin header (Postman, server-to-server, health checks, etc.)
+    // allow Postman / server-to-server
     if (!origin) return cb(null, true);
 
     const incomingOrigin = cleanOrigin(origin);
@@ -35,7 +34,7 @@ const corsOptions = {
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false, // false because you're using Bearer token, not cookies
+  credentials: false,
 };
 
 app.set("trust proxy", 1);
@@ -52,7 +51,7 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
-/* ---------- Static uploads ---------- */
+/* ---------- Static uploads (legacy only - safe to keep) ---------- */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ---------- API Routes ---------- */
@@ -64,12 +63,6 @@ const messageRoutes = require("./routes/messages");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
 
-/*
-  IMPORTANT:
-  Δεν βάζουμε γενικό authLimiter εδώ σε όλο το /api/auth,
-  γιατί θέλουμε route-specific limiters μέσα στο routes/auth.js
-  π.χ. άλλο limiter για /login και άλλο για /forgot-password
-*/
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes);
@@ -79,14 +72,6 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-/* ---------- Serve React build ---------- */
-app.use(express.static(path.join(__dirname, "build")));
-
-/* ---------- SPA fallback (everything except /api) ---------- */
-app.get(/^(?!\/api).*/, (_req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
-});
-
 /* ---------- 404 μόνο για API ---------- */
 app.use("/api", (_req, res) => {
   res.status(404).json({ message: "Not found" });
@@ -94,7 +79,7 @@ app.use("/api", (_req, res) => {
 
 /* ---------- Error handler ---------- */
 app.use((err, _req, res, _next) => {
-  console.error("Unhandled error:", err);
+  console.error("❌ Unhandled error:", err);
 
   if (res.headersSent) return;
 
