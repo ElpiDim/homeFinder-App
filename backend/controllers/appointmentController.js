@@ -285,3 +285,109 @@ exports.updateAppointmentStatus = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// OWNER or TENANT can reschedule a confirmed/pending appointment
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { selectedSlot } = req.body;
+    if (!selectedSlot) {
+      return res.status(400).json({ message: "selectedSlot is required" });
+    }
+
+    const appointment = await Appointment.findById(req.params.appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const userId = req.user.userId;
+    const isOwner = appointment.ownerId.toString() === userId;
+    const isTenant = appointment.tenantId.toString() === userId;
+
+    if (!isOwner && !isTenant) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const nextSlot = new Date(selectedSlot);
+    if (Number.isNaN(nextSlot.getTime())) {
+      return res.status(400).json({ message: "Invalid selectedSlot" });
+    }
+
+    if (nextSlot.getTime() < Date.now()) {
+      return res.status(400).json({ message: "Cannot set appointment in the past" });
+    }
+
+    appointment.selectedSlot = nextSlot;
+    appointment.status = "confirmed";
+    await appointment.save();
+
+    const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
+    const actorLabel = isOwner ? "property owner" : "tenant";
+    const humanReadable = nextSlot.toLocaleString("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+    await Notification.create({
+      userId: recipientId,
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: userId,
+      message: `Your appointment was rescheduled by the ${actorLabel} to ${humanReadable}.`,
+    });
+
+    await Message.create({
+      senderId: userId,
+      receiverId: recipientId,
+      propertyId: appointment.propertyId,
+      content: `Appointment rescheduled to ${humanReadable}.`,
+    });
+
+    return res.json({ message: "Appointment updated", appointment });
+  } catch (err) {
+    console.error("❌ Error rescheduling appointment:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// OWNER or TENANT can remove an appointment
+exports.deleteAppointment = async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const userId = req.user.userId;
+    const isOwner = appointment.ownerId.toString() === userId;
+    const isTenant = appointment.tenantId.toString() === userId;
+
+    if (!isOwner && !isTenant) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const recipientId = isOwner ? appointment.tenantId : appointment.ownerId;
+    const actorLabel = isOwner ? "property owner" : "tenant";
+
+    await Appointment.deleteOne({ _id: appointment._id });
+
+    await Notification.create({
+      userId: recipientId,
+      type: "appointment",
+      referenceId: appointment._id,
+      senderId: userId,
+      message: `Appointment was deleted by the ${actorLabel}.`,
+    });
+
+    await Message.create({
+      senderId: userId,
+      receiverId: recipientId,
+      propertyId: appointment.propertyId,
+      content: "Appointment deleted.",
+    });
+
+    return res.json({ message: "Appointment deleted" });
+  } catch (err) {
+    console.error("❌ Error deleting appointment:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
