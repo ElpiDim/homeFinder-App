@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api'
+  baseURL: process.env.REACT_APP_API_URL + '/api'
 });
 
-// κάθε φορά που φεύγει request, βάζουμε φρέσκο token από localStorage
+// interceptor
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token && token !== 'null' && token !== 'undefined') {
