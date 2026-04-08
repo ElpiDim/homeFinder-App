@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import http from "../api/";
+import http from "../api";
+
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", tk);
     localStorage.setItem("user", JSON.stringify(usr));
     http.defaults.headers.common.Authorization = `Bearer ${tk}`;
-    return usr;
+    return { token: tk, user: usr };
   };
 
   const logout = () => {
