@@ -100,20 +100,21 @@ const extractImagesFromReq = (req) => {
   // array mode (images only)
   if (Array.isArray(req.files) && req.files.length) {
     return {
-      images: req.files.map((f) => `/uploads/${f.filename}`),
+      images: req.files.map((f) => f.path),
       floorPlanImage: undefined,
     };
   }
+
   // fields mode
   if (req.files && typeof req.files === "object") {
-    const images = (req.files.images || []).map(
-      (f) => `/uploads/${f.filename}`
-    );
+    const images = (req.files.images || []).map((f) => f.path);
     const floorPlanImage = req.files.floorPlanImage?.[0]
-      ? `/uploads/${req.files.floorPlanImage[0].filename}`
+      ? req.files.floorPlanImage[0].path
       : undefined;
+
     return { images, floorPlanImage };
   }
+
   return { images: [], floorPlanImage: undefined };
 };
 
