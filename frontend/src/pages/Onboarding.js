@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Form, Button } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "api";
 import ProfileStep from "../components/ProfileStep";
 import RequirementsStep from "../components/RequirementsStep";
 import Logo from "../components/Logo";

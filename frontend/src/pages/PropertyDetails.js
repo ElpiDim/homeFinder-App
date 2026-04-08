@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "api";
 import GoogleMapView from "../components/GoogleMapView";
 import "./PropertyDetails.css";
 

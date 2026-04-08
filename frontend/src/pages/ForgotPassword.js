@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../api";
+import api from "api";
 import Logo from "../components/Logo";
 import "./Login.css";
 

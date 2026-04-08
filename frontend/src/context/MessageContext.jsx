@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import api from '../api';
+import api from 'api';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
 

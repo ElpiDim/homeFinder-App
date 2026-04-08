@@ -6,7 +6,7 @@ import {
   Marker,
   StandaloneSearchBox,
 } from '@react-google-maps/api';
-import api from '../api';
+import api from 'api';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleMaps } from '../context/GoogleMapsContext';
 import Logo from '../components/Logo';

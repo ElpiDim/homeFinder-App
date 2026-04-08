@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "api";
 
 const Section = ({
   icon,

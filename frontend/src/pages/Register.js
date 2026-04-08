@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { registerUser } from '../services/authService';
-import api from '../api';
+import api from 'api';
 import Logo from '../components/Logo';
 import './Register.css';
 

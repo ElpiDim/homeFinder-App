@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button } from "react-bootstrap";
-import api from "../api";
+import api from "api";
 import "./AppointmentModal.css";
 
 function AppointmentModal({ appointmentId, onClose }) {

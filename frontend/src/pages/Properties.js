@@ -1,7 +1,7 @@
 // src/pages/Properties.js
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../api'; // axios instance (baseURL = /api + Authorization)
+import api from 'api'; // axios instance (baseURL = /api + Authorization)
 
 const Properties = () => {
   const { user } = useAuth();               //hook μέσα στο component

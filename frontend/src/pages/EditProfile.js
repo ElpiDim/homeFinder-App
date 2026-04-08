@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "api";
 import TriStateSelect from "../components/TristateSelect";
 
 const clean = (obj) =>

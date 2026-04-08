@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../api';
+import api from 'api';
 import { Button, Spinner, Row, Col, Card, Badge, Container } from 'react-bootstrap';
 
 export default function MyProperties() {

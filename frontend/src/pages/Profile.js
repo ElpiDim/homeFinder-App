@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../api";
+import api from "api";
 
 const Field = ({ label, value }) => (
   <div className="col-md-4">

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api';
+import api from 'api';
 import AppointmentModal from '../components/AppointmentModal';
 import OwnerAppointmentsCalendar from '../components/OwnerAppointmentsCalendar';
 import PropertyCard from '../components/propertyCard';

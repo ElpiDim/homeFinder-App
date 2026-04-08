@@ -1,7 +1,7 @@
 // src/pages/Notifications.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "api";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import AppointmentModal from "../components/AppointmentModal";

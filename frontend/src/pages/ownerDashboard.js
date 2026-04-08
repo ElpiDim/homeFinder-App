@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "api";
 import { useAuth } from "../context/AuthContext";
 import OwnerAppointmentsCalendar from "../components/OwnerAppointmentsCalendar";
 import "./OwnerDashboard.css";

@@ -1,4 +1,4 @@
-import api from '../api';
+import api from 'api';
 
 export const proposeAppointment = async ({ propertyId, tenantId, availableSlots }) => {
   const response = await api.post('/appointments/propose', {

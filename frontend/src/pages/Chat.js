@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMessages } from "../context/MessageContext";
 import { useSocket } from "../context/SocketContext";
-import api from "../api";
+import api from "api";
 import { getMessages, sendMessage } from "../services/messagesService";
 import { proposeAppointment } from "../services/appointmentsService";
 import { Modal, Form, InputGroup, Alert } from "react-bootstrap";

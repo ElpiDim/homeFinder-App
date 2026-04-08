@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "api";
 
 /** helpers (βάλε τα δικά σου αν τα έχεις ήδη global) */
 const iconForType = (t) => {

@@ -1,7 +1,7 @@
 // src/pages/clientDashboard.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../api";
+import api from "api";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import { Container, Row, Col, Badge } from "react-bootstrap";

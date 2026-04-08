@@ -1,6 +1,6 @@
 // src/pages/Appointments.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../api";
+import api from "api";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import "./Appointments.css";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
-import api from "../api";
+import api from "api";
 
 function ProposeAppointmentModal({ show, onClose, tenantId, propertyId, rescheduleAppointmentId }) {
   const [slots, setSlots] = useState([""]); // ξεκινάμε με 1 πεδίο

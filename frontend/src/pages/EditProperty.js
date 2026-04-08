@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Row, Col, Form, Button } from 'react-bootstrap';
-import api from '../api';
+import api from 'api';
 import {
   GoogleMap,
   Marker,
