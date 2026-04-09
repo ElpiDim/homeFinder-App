@@ -5,7 +5,7 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import api from "./api";
-import { BrowserRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
@@ -26,7 +26,7 @@ const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || "";
 root.render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>
-      <BrowserRouter>
+      <HashRouter>
         <AuthProvider>
           <SocketProvider>
             <NotificationProvider>
@@ -40,7 +40,7 @@ root.render(
             </NotificationProvider>
           </SocketProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </HashRouter>
     </GoogleOAuthProvider>
   </React.StrictMode>
 );
