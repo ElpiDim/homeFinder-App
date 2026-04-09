@@ -69,15 +69,22 @@ export default function PropertyDetails() {
 
   const normalizeUploadPath = (src) => {
     if (!src) return "";
-    if (src.startsWith("http")) return src;
-    const clean = src.replace(/^\/+/, "");
+    const val = String(src).trim();
+    if (/^(https?:)?\/\//i.test(val) || val.startsWith("data:") || val.startsWith("blob:")) {
+      return val;
+    }
+    const clean = val.replace(/^\/+/, "");
     return clean.startsWith("uploads/") ? `/${clean}` : `/uploads/${clean}`;
   };
 
-  const getImageUrl = (path) =>
-    path
-      ? `${API_ORIGIN}${normalizeUploadPath(path)}`
-      : "https://placehold.co/1200x800?text=No+Image";
+  const getImageUrl = (path) => {
+    if (!path) return "https://placehold.co/1200x800?text=No+Image";
+    const normalized = normalizeUploadPath(path);
+    if (!normalized) return "https://placehold.co/1200x800?text=No+Image";
+    return /^(https?:)?\/\//i.test(normalized) || normalized.startsWith("data:") || normalized.startsWith("blob:")
+      ? normalized
+      : `${API_ORIGIN}${normalized}`;
+  };
 
   const money = (value) => {
     const num = Number(value);
