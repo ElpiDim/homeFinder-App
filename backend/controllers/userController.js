@@ -3,6 +3,13 @@ const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const resolveUploadedFilePath = (file) => {
+  if (!file) return undefined;
+  if (file.path && /^https?:\/\//i.test(file.path)) return file.path;
+  if (file.filename) return `/uploads/${file.filename}`;
+  return undefined;
+};
+
 /* -------------------------- helpers -------------------------- */
 const buildBaseUrl = () => process.env.BASE_URL || "http://localhost:5000";
 
@@ -132,7 +139,7 @@ exports.updateUserProfile = async (req, res) => {
   if (showPhoneToClients !== undefined) updateData.showPhoneToClients = showPhoneToClients;
 
   if (req.file) {
-    updateData.profilePicture = `/uploads/${req.file.filename}`;
+    updateData.profilePicture = resolveUploadedFilePath(req.file);
   }
 
   try {
@@ -230,7 +237,7 @@ exports.updateMe = async (req, res) => {
 
     // file upload path
     if (req.file) {
-      doc.profilePicture = `/uploads/${req.file.filename}`;
+      doc.profilePicture = resolveUploadedFilePath(req.file);
     }
 
     // Preferences: set πάνω στο subdoc για να ενεργοποιηθούν οι virtual setters

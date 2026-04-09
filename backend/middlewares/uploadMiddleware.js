@@ -1,6 +1,8 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
 // ensure uploads folder exists
 const uploadDir = path.join(__dirname, "../uploads");
@@ -9,8 +11,13 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// storage config
-const storage = multer.diskStorage({
+const hasCloudinaryConfig =
+  Boolean(process.env.CLOUDINARY_CLOUD_NAME) &&
+  Boolean(process.env.CLOUDINARY_API_KEY) &&
+  Boolean(process.env.CLOUDINARY_API_SECRET);
+
+// local storage fallback
+const diskStorage = multer.diskStorage({
   destination: function (_req, _file, cb) {
     cb(null, uploadDir);
   },
@@ -19,6 +26,28 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + ext);
   },
 });
+
+// cloudinary storage (default when env vars are provided)
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (_req, file) => {
+    const isFloorPlan = file.fieldname === "floorPlanImage";
+    return {
+      folder: isFloorPlan ? "homefinder/floorplans" : "homefinder/properties",
+      resource_type: "image",
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      transformation: [{ quality: "auto:good" }],
+    };
+  },
+});
+
+const storage = hasCloudinaryConfig ? cloudinaryStorage : diskStorage;
+
+if (!hasCloudinaryConfig) {
+  console.warn(
+    "⚠️ Cloudinary env vars are missing. Falling back to local /uploads storage."
+  );
+}
 
 // only images
 const fileFilter = (_req, file, cb) => {
