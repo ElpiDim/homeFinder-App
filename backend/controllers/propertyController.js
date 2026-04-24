@@ -5,6 +5,8 @@ const Notification = require("../models/notification");
 const User = require("../models/user");
 const { computeMatchScore } = require("../utils/matching");
 const Appointment = require("../models/appointments");
+const { refreshCandidatesForProperty } = require("../services/matchCandidateService");
+const { notifyOwnersForPropertyCandidates } = require("./matchCandidateController");
 
 
 /* ----------------------------- helpers ----------------------------- */
@@ -251,6 +253,12 @@ if (!ownerId || !isOwnerRole(req.user?.role)) {
     });
 
     await prop.save();
+
+    if (String(prop.status || "available").toLowerCase() === "available") {
+      const candidatesToNotify = await refreshCandidatesForProperty(prop.toObject({ virtuals: true }));
+      await notifyOwnersForPropertyCandidates(req, candidatesToNotify);
+    }
+
     // toJSON έχει virtuals enabled στο model
     res.status(201).json({ message: "Property created", property: prop });
   } catch (err) {
@@ -634,6 +642,13 @@ exports.updateProperty = async (req, res) => {
     }
 
     await property.save();
+
+    if (String(property.status || "available").toLowerCase() === "available") {
+      const candidatesToNotify = await refreshCandidatesForProperty(
+        property.toObject({ virtuals: true })
+      );
+      await notifyOwnersForPropertyCandidates(req, candidatesToNotify);
+    }
 
     if (
       previousStatus !== property.status &&

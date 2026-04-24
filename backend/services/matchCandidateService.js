@@ -1,5 +1,6 @@
 const Property = require("../models/property");
 const MatchCandidate = require("../models/matchCandidate");
+const User = require("../models/user");
 const { computeMatchScore } = require("../utils/matching");
 
 const mapClientPrefs = (p = {}) => ({
@@ -79,4 +80,62 @@ async function refreshCandidatesForClient(clientDoc) {
 
 module.exports = {
   refreshCandidatesForClient,
+  refreshCandidatesForProperty,
 };
+
+async function refreshCandidatesForProperty(propertyDoc) {
+  if (!propertyDoc) return [];
+  if (String(propertyDoc.status || "available").toLowerCase() !== "available") return [];
+
+  const clients = await User.find({ role: "client" })
+    .select("_id role name email preferences salary age householdSize hasFamily hasPets smoker occupation isWillingToHaveRoommate")
+    .lean({ virtuals: true });
+
+  const toNotify = [];
+
+  for (const client of clients) {
+    const rawPrefs = client.preferences || {};
+    if (!Object.keys(rawPrefs).length) continue;
+    if (rawPrefs.dealType && propertyDoc.type && rawPrefs.dealType !== propertyDoc.type) {
+      continue;
+    }
+
+    const { score, hardFails, considered, matched } = computeMatchScore(
+      mapClientPrefs(rawPrefs),
+      propertyDoc.tenantRequirements || {},
+      propertyDoc,
+      client
+    );
+
+    if (hardFails?.length || score < MIN_SCORE) continue;
+
+    const existing = await MatchCandidate.findOne({
+      propertyId: propertyDoc._id,
+      clientId: client._id,
+    }).lean();
+
+    if (!existing) {
+      const created = await MatchCandidate.create({
+        propertyId: propertyDoc._id,
+        ownerId: propertyDoc.ownerId,
+        clientId: client._id,
+        status: "pending",
+        matchScore: score,
+        considered,
+        matched,
+      });
+      toNotify.push(created);
+      continue;
+    }
+
+    if (existing.status === "pending") {
+      if (!existing.ownerNotifiedAt) toNotify.push(existing);
+      await MatchCandidate.updateOne(
+        { _id: existing._id },
+        { $set: { matchScore: score, considered, matched } }
+      );
+    }
+  }
+
+  return toNotify;
+}

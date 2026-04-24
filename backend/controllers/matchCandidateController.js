@@ -2,6 +2,7 @@ const MatchCandidate = require("../models/matchCandidate");
 const Notification = require("../models/notification");
 const Message = require("../models/messages");
 const Property = require("../models/property");
+const User = require("../models/user");
 
 const isOwner = (req) => String(req.user?.role || "").toLowerCase() === "owner";
 
@@ -151,6 +152,42 @@ exports.notifyOwnersForNewCandidates = async (req, clientDoc, candidates) => {
       referenceId: candidate.propertyId,
       senderId: clientDoc._id,
       message: `${clientDoc.name || clientDoc.email} matches your requirements for ${prop?.title || "a property"}. Review this candidate.`,
+    };
+  });
+
+  const created = await Notification.insertMany(payloads);
+  created.forEach((note) => emitNotification(req, note.toObject()));
+
+  await MatchCandidate.updateMany(
+    { _id: { $in: candidates.map((c) => c._id).filter(Boolean) } },
+    { $set: { ownerNotifiedAt: new Date() } }
+  );
+};
+
+exports.notifyOwnersForPropertyCandidates = async (req, candidates) => {
+  if (!Array.isArray(candidates) || !candidates.length) return;
+
+  const [properties, clients] = await Promise.all([
+    Property.find({ _id: { $in: candidates.map((c) => c.propertyId) } })
+      .select("_id title")
+      .lean(),
+    User.find({ _id: { $in: candidates.map((c) => c.clientId) } })
+      .select("_id name email")
+      .lean(),
+  ]);
+
+  const propertyById = new Map(properties.map((p) => [String(p._id), p]));
+  const clientById = new Map(clients.map((u) => [String(u._id), u]));
+
+  const payloads = candidates.map((candidate) => {
+    const property = propertyById.get(String(candidate.propertyId));
+    const client = clientById.get(String(candidate.clientId));
+    return {
+      userId: candidate.ownerId,
+      type: "candidate_match",
+      referenceId: candidate.propertyId,
+      senderId: candidate.clientId,
+      message: `${client?.name || client?.email || "A client"} is a possible match for ${property?.title || "your property"}.`,
     };
   });
 
