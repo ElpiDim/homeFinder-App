@@ -9,6 +9,9 @@ const iconForType = (t) => {
     case "favorite": return "⭐";
     case "property_removed": return "🏠❌";
     case "message": return "💬";
+    case "candidate_match": return "🧑‍💼";
+    case "candidate_approved": return "✅";
+    case "candidate_rejected": return "ℹ️";
     default: return "🔔";
   }
 };

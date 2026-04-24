@@ -62,6 +62,7 @@ const favoritesRoutes = require("./routes/favorites");
 const messageRoutes = require("./routes/messages");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
+const matchCandidateRoutes = require("./routes/matchCandidates");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -71,6 +72,7 @@ app.use("/api/favorites", favoritesRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/match-candidates", matchCandidateRoutes);
 
 /* ---------- 404 μόνο για API ---------- */
 app.use("/api", (_req, res) => {

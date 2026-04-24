@@ -2,6 +2,8 @@
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { refreshCandidatesForClient } = require("../services/matchCandidateService");
+const { notifyOwnersForNewCandidates } = require("./matchCandidateController");
 
 const resolveUploadedFilePath = (file) => {
   if (!file) return undefined;
@@ -257,6 +259,13 @@ exports.updateMe = async (req, res) => {
     }
 
     await doc.save();
+
+    const touchedPreferences = !!(req.body.preferences && typeof req.body.preferences === "object");
+    if (doc.role === "client" && touchedPreferences) {
+      const newCandidates = await refreshCandidatesForClient(doc.toObject({ virtuals: true }));
+      await notifyOwnersForNewCandidates(req, doc, newCandidates);
+    }
+
     res.json(buildUserResponse(doc));
   } catch (err) {
     console.error("updateMe error:", err);
@@ -324,6 +333,12 @@ exports.saveOnboarding = async (req, res) => {
     doc.onboardingCompleted = true;
 
     await doc.save();
+
+    if (doc.role === "client") {
+      const newCandidates = await refreshCandidatesForClient(doc.toObject({ virtuals: true }));
+      await notifyOwnersForNewCandidates(req, doc, newCandidates);
+    }
+
     res.json({ message: "Onboarding saved", user: buildUserResponse(doc) });
   } catch (err) {
     console.error("saveOnboarding error:", err);
