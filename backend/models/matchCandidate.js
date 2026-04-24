@@ -40,6 +40,10 @@ const matchCandidateSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    ownerNotifiedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

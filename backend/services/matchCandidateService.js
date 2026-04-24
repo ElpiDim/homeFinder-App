@@ -32,7 +32,7 @@ async function refreshCandidatesForClient(clientDoc) {
     .lean();
 
   const prefs = mapClientPrefs(rawPrefs);
-  const created = [];
+  const toNotify = [];
 
   for (const prop of properties) {
     const { score, hardFails, considered, matched } = computeMatchScore(
@@ -59,11 +59,14 @@ async function refreshCandidatesForClient(clientDoc) {
         considered,
         matched,
       });
-      created.push(newCandidate);
+      toNotify.push(newCandidate);
       continue;
     }
 
     if (existing.status === "pending") {
+      if (!existing.ownerNotifiedAt) {
+        toNotify.push(existing);
+      }
       await MatchCandidate.updateOne(
         { _id: existing._id },
         { $set: { matchScore: score, considered, matched } }
@@ -71,7 +74,7 @@ async function refreshCandidatesForClient(clientDoc) {
     }
   }
 
-  return created;
+  return toNotify;
 }
 
 module.exports = {

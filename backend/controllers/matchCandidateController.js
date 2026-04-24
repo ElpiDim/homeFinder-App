@@ -156,4 +156,9 @@ exports.notifyOwnersForNewCandidates = async (req, clientDoc, candidates) => {
 
   const created = await Notification.insertMany(payloads);
   created.forEach((note) => emitNotification(req, note.toObject()));
+
+  await MatchCandidate.updateMany(
+    { _id: { $in: candidates.map((c) => c._id).filter(Boolean) } },
+    { $set: { ownerNotifiedAt: new Date() } }
+  );
 };
