@@ -5,8 +5,14 @@ const Notification = require("../models/notification");
 const User = require("../models/user");
 const { computeMatchScore } = require("../utils/matching");
 const Appointment = require("../models/appointments");
-const { refreshCandidatesForProperty } = require("../services/matchCandidateService");
-const { notifyOwnersForPropertyCandidates } = require("./matchCandidateController");
+const {
+  refreshCandidatesForProperty,
+  refreshCandidatesForClient,
+} = require("../services/matchCandidateService");
+const {
+  notifyOwnersForPropertyCandidates,
+  notifyOwnersForNewCandidates,
+} = require("./matchCandidateController");
 
 
 /* ----------------------------- helpers ----------------------------- */
@@ -390,6 +396,11 @@ exports.getAllProperties = async (req, res) => {
       const pageNum = Math.max(1, parseInt(page) || 1);
       const lim = Math.max(1, Math.min(100, parseInt(limit) || 24));
       const start = (pageNum - 1) * lim;
+
+      const candidatesToNotify = await refreshCandidatesForClient(
+        currentUser?.toObject ? currentUser.toObject({ virtuals: true }) : currentUser
+      );
+      await notifyOwnersForNewCandidates(req, currentUser, candidatesToNotify);
 
       return res.json(filtered.slice(start, start + lim));
     }
