@@ -3,8 +3,17 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const User = require("../models/user");
+const MatchCandidate = require("../models/matchCandidate");
 const { computeMatchScore } = require("../utils/matching");
 const Appointment = require("../models/appointments");
+const {
+  refreshCandidatesForProperty,
+  refreshCandidatesForClient,
+} = require("../services/matchCandidateService");
+const {
+  notifyOwnersForPropertyCandidates,
+  notifyOwnersForNewCandidates,
+} = require("./matchCandidateController");
 
 
 /* ----------------------------- helpers ----------------------------- */
@@ -251,6 +260,12 @@ if (!ownerId || !isOwnerRole(req.user?.role)) {
     });
 
     await prop.save();
+
+    if (String(prop.status || "available").toLowerCase() === "available") {
+      const candidatesToNotify = await refreshCandidatesForProperty(prop.toObject({ virtuals: true }));
+      await notifyOwnersForPropertyCandidates(req, candidatesToNotify);
+    }
+
     // toJSON έχει virtuals enabled στο model
     res.status(201).json({ message: "Property created", property: prop });
   } catch (err) {
@@ -360,6 +375,11 @@ exports.getAllProperties = async (req, res) => {
       const rawPrefs = currentUser.preferences || {};
       const prefs = mapClientPrefs(rawPrefs);
 
+      const candidatesToNotify = await refreshCandidatesForClient(
+        currentUser?.toObject ? currentUser.toObject({ virtuals: true }) : currentUser
+      );
+      await notifyOwnersForNewCandidates(req, currentUser, candidatesToNotify);
+
       if (rawPrefs.dealType) {
         properties = properties.filter((p) => p.type === rawPrefs.dealType);
       }
@@ -383,7 +403,23 @@ exports.getAllProperties = async (req, res) => {
       const lim = Math.max(1, Math.min(100, parseInt(limit) || 24));
       const start = (pageNum - 1) * lim;
 
-      return res.json(filtered.slice(start, start + lim));
+      const filteredIds = filtered.map((p) => p._id);
+      const approvedCandidates = await MatchCandidate.find({
+        clientId: currentUser._id,
+        status: "approved",
+        propertyId: { $in: filteredIds },
+      })
+        .select("propertyId")
+        .lean();
+
+      const approvedPropertyIds = new Set(
+        approvedCandidates.map((c) => String(c.propertyId))
+      );
+      const visibleToClient = filtered.filter((p) =>
+        approvedPropertyIds.has(String(p._id))
+      );
+
+      return res.json(visibleToClient.slice(start, start + lim));
     }
 
     // public/owner flows
@@ -634,6 +670,13 @@ exports.updateProperty = async (req, res) => {
     }
 
     await property.save();
+
+    if (String(property.status || "available").toLowerCase() === "available") {
+      const candidatesToNotify = await refreshCandidatesForProperty(
+        property.toObject({ virtuals: true })
+      );
+      await notifyOwnersForPropertyCandidates(req, candidatesToNotify);
+    }
 
     if (
       previousStatus !== property.status &&
