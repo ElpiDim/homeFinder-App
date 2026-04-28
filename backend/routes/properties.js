@@ -11,6 +11,11 @@ const { uploadFields } = require("../middlewares/uploadMiddleware");
 const propertyController = require("../controllers/propertyController");
 
 // ------------------------------------------------------------------
+const matchController = require("../controllers/matchController");
+
+// Match Clients
+router.get("/match/clients", verifyToken, matchController.findMatchingClients);
+
 // Public listing (optional auth: αν υπάρχει token, γεμίζει req.currentUser
 // ώστε να δουλέψει το client matching στον controller)
 router.get("/", optionalAuth, propertyController.getAllProperties);

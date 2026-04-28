@@ -10,7 +10,7 @@ function MatchClients() {
     const fetchClients = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await api.get('/match/clients', {
+        const res = await api.get('/properties/match/clients', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = Array.isArray(res.data) ? res.data : [];
@@ -48,7 +48,7 @@ function MatchClients() {
                 </div>
                 <button
                   className="mt-auto btn btn-primary"
-                  onClick={() => navigate('/messages')}
+                  onClick={() => navigate(`/chat/${c.matchedPropertyId}/${c._id}`)}
                 >
                   Message
                 </button>

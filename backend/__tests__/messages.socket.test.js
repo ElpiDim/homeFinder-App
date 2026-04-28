@@ -70,8 +70,9 @@ const property = await Property.create({
 
     // 3) Token για τον sender
     // ⚠️ Πρόσεξε: το payload πρέπει να ταιριάζει με το auth middleware σου
-    const senderToken = jwt.sign(
-      { userId: senderId, role: sender.role }, // ή userId αν έτσι το περιμένεις
+    // Owner is sender here because of the new rules. Owner has to send first msg
+    const ownerToken = jwt.sign(
+      { userId: receiverId, role: receiver.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -97,9 +98,9 @@ const property = await Property.create({
 
     const res = await request(app)
       .post("/api/messages")
-      .set("Authorization", `Bearer ${senderToken}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
       .send({
-        receiverId,
+        receiverId: senderId, // sending to client
         propertyId,
         content,
       })
@@ -111,8 +112,8 @@ const property = await Property.create({
 
     // 6) Ελέγχουμε την HTTP απόκριση
     expect(body.content).toBe(content);
-    expect(getId(body.sender || body.senderId)).toBe(senderId);
-    expect(getId(body.receiver || body.receiverId)).toBe(receiverId);
+    expect(getId(body.sender || body.senderId)).toBe(receiverId); // receiver is now the owner
+    expect(getId(body.receiver || body.receiverId)).toBe(senderId); // sender is now the client
     expect(getId(body.property || body.propertyId)).toBe(propertyId);
 
     // 7) Ελέγχουμε ότι αποθηκεύτηκε στη βάση
@@ -120,29 +121,30 @@ const property = await Property.create({
     expect(allMessages.length).toBe(1);
     expect(allMessages[0].content).toBe(content);
     expect(String(allMessages[0].sender || allMessages[0].senderId)).toBe(
-      senderId
+      receiverId
     );
     expect(String(allMessages[0].receiver || allMessages[0].receiverId)).toBe(
-      receiverId
+      senderId
     );
     expect(String(allMessages[0].property || allMessages[0].propertyId)).toBe(
       propertyId
     );
 
     // 8) Ελέγχουμε ότι έκανε emit σε ΔΥΟ rooms: receiverId & senderId
-    expect(emitted.length).toBe(2);
+    const messageEmits = emitted.filter((e) => e.event === "newMessage");
+    expect(messageEmits.length).toBe(2);
 
-    const rooms = emitted.map((e) => e.roomId);
+    const rooms = messageEmits.map((e) => e.roomId);
     expect(rooms).toContain(receiverId);
     expect(rooms).toContain(senderId);
 
-    emitted.forEach((e) => {
+    messageEmits.forEach((e) => {
       expect(e.event).toBe("newMessage");
       expect(e.payload.content).toBe(content);
 
       const p = e.payload;
-      expect(getId(p.sender || p.senderId)).toBe(senderId);
-      expect(getId(p.receiver || p.receiverId)).toBe(receiverId);
+      expect(getId(p.sender || p.senderId)).toBe(receiverId);
+      expect(getId(p.receiver || p.receiverId)).toBe(senderId);
       expect(getId(p.property || p.propertyId)).toBe(propertyId);
     });
   });

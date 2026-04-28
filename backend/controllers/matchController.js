@@ -219,6 +219,9 @@ const scoreRequirementsVsTenant = (tenantReq = {}, user = {}) => {
   return { score, checks, fails };
 };
 
+exports.scorePrefsVsProperty = scorePrefsVsProperty;
+exports.scoreRequirementsVsTenant = scoreRequirementsVsTenant;
+
 /* ------------------------ controller ------------------------- */
 exports.findMatchingProperties = async (req, res) => {
   try {
@@ -302,6 +305,85 @@ exports.findMatchingProperties = async (req, res) => {
     res.json(results);
   } catch (error) {
     console.error("Error finding matching properties:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.findMatchingClients = async (req, res) => {
+  try {
+    const ownerId = req.user.userId;
+    const user = await User.findById(ownerId).select("-password").lean();
+
+    if (!user || user.role !== "owner") {
+      return res.status(403).json({ message: "Only owners can view matched clients" });
+    }
+
+    // Find properties of the owner
+    const ownerProperties = await Property.find({ ownerId }).lean({ virtuals: true });
+
+    if (!ownerProperties.length) {
+      return res.json([]);
+    }
+
+    // Find all active clients
+    const clients = await User.find({ role: "client", onboardingCompleted: true }).select("-password").lean();
+
+    const matchedClientsMap = new Map();
+
+    for (const client of clients) {
+      const preferences = client.preferences || {};
+
+      for (const prop of ownerProperties) {
+        const propertyData = {
+          _id: prop._id,
+          type: prop.type,
+          location: prop.location,
+          price: prop.price ?? prop.rent,
+          squareMeters: prop.squareMeters ?? prop.sqm,
+          bedrooms: prop.bedrooms,
+          bathrooms: prop.bathrooms,
+          floor: prop.floor,
+          yearBuilt: prop.yearBuilt,
+          furnished: prop.furnished,
+          hasElevator: prop.hasElevator ?? prop.elevator,
+          parkingSpaces: prop.parkingSpaces ?? (prop.parking ? 1 : 0),
+          petsAllowed: prop.petsAllowed,
+          smokingAllowed: prop.smokingAllowed,
+          heating: prop.heating ?? prop.heatingType,
+        };
+
+        const prefScore = scorePrefsVsProperty(preferences, propertyData);
+        const tenantReqs = prop.tenantRequirements || {};
+        const tenantScore = scoreRequirementsVsTenant(tenantReqs, client);
+
+        if (prefScore.score >= MIN_MATCH_COUNT && tenantScore.score >= MIN_MATCH_COUNT) {
+          const combined = prefScore.score + tenantScore.score;
+
+          if (!matchedClientsMap.has(client._id)) {
+            matchedClientsMap.set(client._id, {
+              ...client,
+              matchedPropertyId: prop._id,
+              combinedScore: combined
+            });
+          } else {
+             // If they match multiple properties, keep the highest score
+             if (combined > matchedClientsMap.get(client._id).combinedScore) {
+               matchedClientsMap.set(client._id, {
+                 ...client,
+                 matchedPropertyId: prop._id,
+                 combinedScore: combined
+               });
+             }
+          }
+        }
+      }
+    }
+
+    const results = Array.from(matchedClientsMap.values()).sort((a, b) => b.combinedScore - a.combinedScore);
+
+    res.json(results);
+  } catch (error) {
+    console.error("Error finding matching clients:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
