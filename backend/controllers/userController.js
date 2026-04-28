@@ -324,6 +324,88 @@ exports.saveOnboarding = async (req, res) => {
     doc.onboardingCompleted = true;
 
     await doc.save();
+
+    // Check for matches with owner properties and create notifications
+    if (doc.role === "client") {
+      try {
+        const Property = require("../models/property");
+        const Notification = require("../models/notification");
+        const matchController = require("./matchController");
+
+        // Optimization: Find active properties that potentially match, then properly evaluate
+        // Using same mapping as matchController
+        const dbMatch = { status: "available" };
+        if (doc.preferences?.dealType) dbMatch.type = doc.preferences.dealType;
+        if (doc.preferences?.location) dbMatch.location = { $regex: doc.preferences.location, $options: "i" };
+
+        const maxBudget =
+          doc.preferences?.dealType === "rent"
+            ? doc.preferences.rentMax
+            : (doc.preferences?.priceMax ?? doc.preferences?.saleMax);
+
+        if (maxBudget !== undefined) {
+          dbMatch.$or = [
+            { price: { $lte: Number(maxBudget) } },
+            { rent: { $lte: Number(maxBudget) } }
+          ];
+        }
+
+        const properties = await Property.find(dbMatch).lean({ virtuals: true });
+
+        const ownerMatches = new Set();
+
+        for (const prop of properties) {
+          const propertyData = {
+            _id: prop._id,
+            type: prop.type,
+            location: prop.location,
+            price: prop.price ?? prop.rent,
+            squareMeters: prop.squareMeters ?? prop.sqm,
+            bedrooms: prop.bedrooms,
+            bathrooms: prop.bathrooms,
+            floor: prop.floor,
+            yearBuilt: prop.yearBuilt,
+            furnished: prop.furnished,
+            hasElevator: prop.hasElevator ?? prop.elevator,
+            parkingSpaces: prop.parkingSpaces ?? (prop.parking ? 1 : 0),
+            petsAllowed: prop.petsAllowed,
+            smokingAllowed: prop.smokingAllowed,
+            heating: prop.heating ?? prop.heatingType,
+          };
+
+          const tenantReqs = prop.tenantRequirements || {};
+          const tenantScore = matchController.scoreRequirementsVsTenant ? matchController.scoreRequirementsVsTenant(tenantReqs, doc) : { score: 0 };
+          const prefScore = matchController.scorePrefsVsProperty ? matchController.scorePrefsVsProperty(doc.preferences || {}, propertyData) : { score: 0 };
+
+          // MIN_MATCH_COUNT from matchController is 2
+          if (prefScore.score >= 2 && tenantScore.score >= 2) {
+            ownerMatches.add(String(prop.ownerId));
+          }
+        }
+
+        const notifications = Array.from(ownerMatches).map(ownerId => ({
+          userId: ownerId,
+          type: "match",
+          referenceId: doc._id,
+          senderId: doc._id,
+          message: `A new client matching your property requirements has registered.`
+        }));
+
+        if (notifications.length > 0) {
+           const created = await Notification.insertMany(notifications);
+           const io = req.app.get('io');
+           if (io) {
+             created.forEach(n => {
+               io.to(String(n.userId)).emit('notification', n);
+             });
+           }
+        }
+
+      } catch (matchErr) {
+        console.error("Error creating match notifications during onboarding:", matchErr);
+      }
+    }
+
     res.json({ message: "Onboarding saved", user: buildUserResponse(doc) });
   } catch (err) {
     console.error("saveOnboarding error:", err);

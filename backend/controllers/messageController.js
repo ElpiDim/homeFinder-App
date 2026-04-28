@@ -12,6 +12,19 @@ exports.sendMessage = async (req, res) => {
   }
 
   try {
+    // Check if it's the first message
+    const existingMessages = await Message.countDocuments({
+      propertyId,
+      $or: [
+        { senderId, receiverId },
+        { senderId: receiverId, receiverId: senderId }
+      ]
+    });
+
+    if (existingMessages === 0 && req.user.role !== "owner") {
+      return res.status(403).json({ message: "Only owners can send the first message to a client." });
+    }
+
     let newMessage = new Message({ senderId, receiverId, propertyId, content, readBy: [senderId] });
     await newMessage.save();
 
@@ -24,6 +37,36 @@ exports.sendMessage = async (req, res) => {
       io.to(receiverId).emit('newMessage', newMessage);
       // Emit to sender's room, for UI sync across multiple devices/tabs
       io.to(senderId).emit('newMessage', newMessage);
+    }
+
+    if (existingMessages === 0 && req.user.role === "owner") {
+      try {
+        const Notification = require("../models/notification");
+
+        // Property title might be needed
+        let propertyTitle = "Unknown Property";
+        if (newMessage.propertyId && newMessage.propertyId.title) {
+           propertyTitle = newMessage.propertyId.title;
+        } else {
+           const Property = require("../models/property");
+           const p = await Property.findById(propertyId).lean();
+           if (p && p.title) propertyTitle = p.title;
+        }
+
+        const notification = await Notification.create({
+          userId: receiverId,
+          type: "message",
+          referenceId: propertyId,
+          senderId: senderId,
+          message: `An owner has selected you and sent you a message for property "${propertyTitle}".`
+        });
+
+        if (io) {
+          io.to(String(receiverId)).emit("notification", notification);
+        }
+      } catch (notifErr) {
+        console.error("Error creating notification for first message:", notifErr);
+      }
     }
 
     res.status(201).json(newMessage);
