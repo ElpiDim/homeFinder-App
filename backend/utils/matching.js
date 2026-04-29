@@ -180,4 +180,21 @@ function computeMatchScore(
   return { score, considered, matched };
 }
 
-module.exports = { computeMatchScore, normalizeOwnerReqs };
+
+// Map user.preferences -> keys που περιμένει το matching util
+const mapClientPrefs = (p = {}) => ({
+  location: p.location ?? p.city ?? p.preferredCity,
+  minPrice: p.minPrice ?? p.rentMin ?? p.saleMin ?? p.priceMin ?? p.budgetMin,
+  maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax ?? p.priceMax,
+  minSqm: p.minSqm ?? p.sqmMin,
+  minBedrooms: p.minBedrooms ?? p.bedrooms,
+  minBathrooms: p.minBathrooms ?? p.bathrooms,
+  furnished: p.furnished,
+  parking: p.parking,
+  elevator: p.elevator ?? p.hasElevator,
+  pets: p.pets ?? p.petsAllowed,
+  heatingType: p.heatingType ?? p.heating,
+  familyStatus: p.familyStatus,
+});
+
+module.exports = { computeMatchScore, normalizeOwnerReqs, mapClientPrefs };

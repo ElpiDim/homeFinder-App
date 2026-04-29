@@ -14,6 +14,7 @@ const notificationSchema = new mongoose.Schema({
       "property_removed",
       "property_status",
       "favorite",
+      "match",
     ],
     required: true,
   },

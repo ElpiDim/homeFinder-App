@@ -1,3 +1,6 @@
+const Property = require("../models/property");
+const Notification = require("../models/notification");
+const { computeMatchScore, mapClientPrefs } = require("../utils/matching");
 // controllers/userController.js
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
@@ -257,6 +260,7 @@ exports.updateMe = async (req, res) => {
     }
 
     await doc.save();
+    await checkAndNotifyMatches(doc, req);
     res.json(buildUserResponse(doc));
   } catch (err) {
     console.error("updateMe error:", err);
@@ -267,6 +271,56 @@ exports.updateMe = async (req, res) => {
 /* --------------------- onboarding save ----------------------- */
 // POST /api/users/onboarding
 // Αποθηκεύει profile fields + preferences + requirements και θέτει onboardingCompleted=true
+
+async function checkAndNotifyMatches(user, req) {
+  if (user.role !== 'client') return;
+  const rawPrefs = user.preferences || {};
+  const prefs = mapClientPrefs(rawPrefs);
+
+  const dbMatch = { status: "available" };
+  if (rawPrefs.dealType) {
+    dbMatch.type = rawPrefs.dealType;
+  }
+
+  const properties = await Property.find(dbMatch).populate("ownerId").lean({ virtuals: true });
+
+  for (const p of properties) {
+    const ownerReqs = p.tenantRequirements || {};
+    const { score, hardFails } = computeMatchScore(
+      prefs,
+      ownerReqs,
+      p,
+      user
+    );
+    if (!hardFails?.length && score >= 0.5) {
+      if (p.ownerId && p.ownerId._id) {
+        const ownerId = p.ownerId._id.toString();
+        // create match notification for owner
+        const existing = await Notification.findOne({
+          userId: ownerId,
+          type: "match",
+          referenceId: p._id,
+          senderId: user._id
+        });
+        if (!existing) {
+          const senderName = user.name || "A client";
+          const notification = await Notification.create({
+            userId: ownerId,
+            type: "match",
+            referenceId: p._id,
+            senderId: user._id,
+            message: `${senderName} matches with your property "${p.title}".`
+          });
+          const io = req.app.get("io");
+          if (io) {
+            io.to(ownerId).emit("notification", notification);
+          }
+        }
+      }
+    }
+  }
+}
+
 exports.saveOnboarding = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -324,6 +378,7 @@ exports.saveOnboarding = async (req, res) => {
     doc.onboardingCompleted = true;
 
     await doc.save();
+    await checkAndNotifyMatches(doc, req);
     res.json({ message: "Onboarding saved", user: buildUserResponse(doc) });
   } catch (err) {
     console.error("saveOnboarding error:", err);
