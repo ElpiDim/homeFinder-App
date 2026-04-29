@@ -16,9 +16,12 @@ export const SocketProvider = ({ children }) => {
 
     const s = createSocket(token);
 
+    const userRoomId = user?._id || user?.id;
+
     s.on("connect", () => {
-      s.emit("join", user.id); // join personal room
-      console.log("🔌 Socket connected and joined room:", user.id);
+      if (!userRoomId) return;
+      s.emit("join", userRoomId); // join personal room
+      console.log("🔌 Socket connected and joined room:", userRoomId);
     });
 
     // 👉 REAL-TIME NOTIFICATIONS
@@ -44,7 +47,7 @@ export const SocketProvider = ({ children }) => {
       s.off("newMessage");
       s.disconnect();
     };
-  }, [user?.id, token]);
+  }, [user?._id, user?.id, token]);
 
   return (
     <SocketContext.Provider value={socket}>
