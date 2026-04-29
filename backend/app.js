@@ -21,7 +21,6 @@ const normalizedAllowedOrigins = allowedOrigins.map(cleanOrigin);
 
 const corsOptions = {
   origin: (origin, cb) => {
-    // allow Postman / server-to-server
     if (!origin) return cb(null, true);
 
     const incomingOrigin = cleanOrigin(origin);
@@ -51,7 +50,7 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
-/* ---------- Static uploads (legacy only - safe to keep) ---------- */
+/* ---------- Static uploads ---------- */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ---------- API Routes ---------- */
@@ -62,6 +61,7 @@ const favoritesRoutes = require("./routes/favorites");
 const messageRoutes = require("./routes/messages");
 const appointmentRoutes = require("./routes/appointments");
 const notificationRoutes = require("./routes/notifications");
+const matchRoutes = require("./routes/matches"); // 🔥 NEW
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -71,6 +71,7 @@ app.use("/api/favorites", favoritesRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/matches", matchRoutes); // 🔥 NEW
 
 /* ---------- 404 μόνο για API ---------- */
 app.use("/api", (_req, res) => {
