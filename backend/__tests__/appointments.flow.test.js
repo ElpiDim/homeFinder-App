@@ -157,6 +157,7 @@ describe("Appointments — scheduling flow", () => {
     // 6) Ο owner πρέπει να έχει notification για την επιβεβαίωση
     const ownerNotifs = await Notification.find({
       userId: owner._id,
+      type: "appointment"
     }).lean();
 
     expect(ownerNotifs.length).toBe(1);

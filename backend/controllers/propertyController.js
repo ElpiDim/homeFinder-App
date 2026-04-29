@@ -3,7 +3,7 @@ const Property = require("../models/property");
 const Favorites = require("../models/favorites");
 const Notification = require("../models/notification");
 const User = require("../models/user");
-const { computeMatchScore } = require("../utils/matching");
+const { computeMatchScore, mapClientPrefs } = require("../utils/matching");
 const Appointment = require("../models/appointments");
 
 
@@ -79,21 +79,6 @@ const emitNotifications = (req, notifications) => {
   });
 };
 
-// Map user.preferences -> keys που περιμένει το matching util
-const mapClientPrefs = (p = {}) => ({
-  location: p.location ?? p.city ?? p.preferredCity,
-  minPrice: p.minPrice ?? p.rentMin ?? p.saleMin ?? p.priceMin ?? p.budgetMin,
-  maxPrice: p.maxPrice ?? p.rentMax ?? p.saleMax ?? p.priceMax,
-  minSqm: p.minSqm ?? p.sqmMin,
-  minBedrooms: p.minBedrooms ?? p.bedrooms,
-  minBathrooms: p.minBathrooms ?? p.bathrooms,
-  furnished: p.furnished,
-  parking: p.parking,
-  elevator: p.elevator ?? p.hasElevator,
-  pets: p.pets ?? p.petsAllowed,
-  smoker: p.smoker ?? p.smokingAllowed,
-  familyStatus: p.familyStatus,
-});
 
 /** Διαβάζει αρχεία από upload.array('images') ή upload.fields([...]) */
 const extractImagesFromReq = (req) => {
@@ -119,6 +104,53 @@ const extractImagesFromReq = (req) => {
 };
 
 /* --------------------------- CREATE PROPERTY --------------------------- */
+
+async function notifyOwnerNewPropertyMatches(prop, req) {
+  // get all clients who might match
+  const users = await User.find({ role: 'client' });
+  for (const user of users) {
+    if (!user.preferences) continue;
+    const rawPrefs = user.preferences || {};
+    if (rawPrefs.dealType && rawPrefs.dealType !== prop.type) continue;
+
+    const prefs = mapClientPrefs(rawPrefs);
+    const ownerReqs = prop.tenantRequirements || {};
+
+    const { score, hardFails } = computeMatchScore(
+      prefs,
+      ownerReqs,
+      prop,
+      user
+    );
+
+    if (!hardFails?.length && score >= 0.5) {
+      if (prop.ownerId) {
+        const ownerId = prop.ownerId.toString();
+        const existing = await Notification.findOne({
+          userId: ownerId,
+          type: "match",
+          referenceId: prop._id,
+          senderId: user._id
+        });
+        if (!existing) {
+          const senderName = user.name || "A client";
+          const notification = await Notification.create({
+            userId: ownerId,
+            type: "match",
+            referenceId: prop._id,
+            senderId: user._id,
+            message: `${senderName} matches with your property "${prop.title}".`
+          });
+          const io = req.app.get("io");
+          if (io) {
+            io.to(ownerId).emit("notification", notification);
+          }
+        }
+      }
+    }
+  }
+}
+
 exports.createProperty = async (req, res) => {
   const ownerId = req.user?.userId;
 if (!ownerId || !isOwnerRole(req.user?.role)) {
@@ -252,6 +284,7 @@ if (!ownerId || !isOwnerRole(req.user?.role)) {
 
     await prop.save();
     // toJSON έχει virtuals enabled στο model
+    await notifyOwnerNewPropertyMatches(prop, req);
     res.status(201).json({ message: "Property created", property: prop });
   } catch (err) {
     console.error("❌ createProperty error:", err);
@@ -658,6 +691,7 @@ exports.updateProperty = async (req, res) => {
       }
     }
 
+    await notifyOwnerNewPropertyMatches(property, req);
     res.json({
       message: "Property updated",
       property: property.toObject({ virtuals: true }),
