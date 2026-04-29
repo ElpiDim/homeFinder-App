@@ -11,6 +11,7 @@ export default function OwnerDashboard() {
 
   const [allProperties, setAllProperties] = useState([]);
   const [ownerAppointments, setOwnerAppointments] = useState([]);
+  const [pendingMatches, setPendingMatches] = useState([]);
 
   const fetchMine = useCallback(async () => {
     const res = await api.get("/properties/mine", { params: { includeStats: 1 } });
@@ -23,11 +24,27 @@ export default function OwnerDashboard() {
     setOwnerAppointments(Array.isArray(res.data) ? res.data : []);
   }, []);
 
+
+  const fetchPendingMatches = useCallback(async () => {
+    try {
+      const res = await api.get("/matches/owner/pending");
+      setPendingMatches(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch pending matches", err);
+      setPendingMatches([]);
+    }
+  }, []);
+
+  const updateMatchStatus = useCallback(async (matchId, status) => {
+    await api.patch(`/matches/${matchId}/status`, { status });
+    fetchPendingMatches();
+  }, [fetchPendingMatches]);
   useEffect(() => {
     if (!user) return;
     fetchMine();
     fetchOwnerAppts();
-  }, [user, fetchMine, fetchOwnerAppts]);
+    fetchPendingMatches();
+  }, [user, fetchMine, fetchOwnerAppts, fetchPendingMatches]);
 
   /* ---------- stats ---------- */
   const totalListings = allProperties.length;
@@ -107,6 +124,32 @@ export default function OwnerDashboard() {
                 Total Likes Received
               </div>
               <div className="display-6 fw-bold mt-2">{likedListings}</div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h4 className="fw-bold mb-3">Pending Matches</h4>
+            <div className="owner-card p-3">
+              {pendingMatches.length === 0 ? (
+                <div className="text-muted">No pending matches.</div>
+              ) : (
+                <div className="d-flex flex-column gap-3">
+                  {pendingMatches.map((m) => (
+                    <div key={m._id} className="d-flex justify-content-between align-items-center border rounded p-2">
+                      <div>
+                        <div className="fw-semibold">{m.propertyId?.title || "Property"}</div>
+                        <div className="small text-muted">
+                          Client: {m.clientId?.name || "Unknown"} · Score: {m.combinedScore ?? "—"}
+                        </div>
+                      </div>
+                      <div className="d-flex gap-2">
+                        <button type="button" className="btn btn-sm btn-success" onClick={() => updateMatchStatus(m._id, "accepted")}>Accept</button>
+                        <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => updateMatchStatus(m._id, "rejected")}>Reject</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

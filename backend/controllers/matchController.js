@@ -372,6 +372,16 @@ exports.findMatchingProperties = async (req, res) => {
   }
 };
 
+
+exports.runClientMatching = async (req, res) => {
+  if (req.user?.role && req.user.role !== "client") {
+    return res.status(403).json({ message: "Only clients can run matching" });
+  }
+
+  req.params.userId = req.user.userId;
+  return exports.findMatchingProperties(req, res);
+};
+
 /**
  * OWNER:
  * Βλέπει μόνο pending matches για τα δικά του properties.

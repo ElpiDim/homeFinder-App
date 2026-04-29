@@ -33,6 +33,7 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
 
   const [allProperties, setAllProperties] = useState([]);
+  const [matchStatusByProperty, setMatchStatusByProperty] = useState({});
   const [favorites, setFavorites] = useState([]);
 
   const preferredDealType = useMemo(() => {
@@ -42,21 +43,22 @@ export default function ClientDashboard() {
 
   const fetchMatches = useCallback(async () => {
     try {
-      const res = await api.get("/properties", {
-        params: {
-          sort: "relevance",
-          type: preferredDealType || undefined,
-          page: 1,
-          limit: 9999,
-        },
-      });
-      const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
-      setAllProperties(items);
+      const res = await api.get("/matches/client/accepted");
+      const list = Array.isArray(res.data) ? res.data : [];
+      const properties = list.map((m) => m.propertyId).filter(Boolean);
+      const statuses = list.reduce((acc, m) => {
+        const pid = m?.propertyId?._id;
+        if (pid) acc[pid] = m.status;
+        return acc;
+      }, {});
+      setMatchStatusByProperty(statuses);
+      setAllProperties(properties);
     } catch (e) {
       console.error("fetchMatches failed", e);
       setAllProperties([]);
+      setMatchStatusByProperty({});
     }
-  }, [preferredDealType]);
+  }, []);
 
   const fetchFavorites = useCallback(async () => {
     try {
@@ -132,11 +134,12 @@ export default function ClientDashboard() {
   };
 
   if (allProperties.length === 0) {
-    return <div className="cd-empty">No matched properties yet.</div>;
+    return <div className="cd-empty">No approved matches yet.</div>;
   }
 
   return (
     <Container className="py-2">
+      <h4 className="fw-bold mb-3">Approved Matches</h4>
       <Row className="g-4">
         {allProperties.map((p) => {
           const isFav = favorites.includes(p._id);

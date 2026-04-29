@@ -52,6 +52,7 @@ export default function PropertyDetails() {
 
   const [property, setProperty] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [clientMatchStatus, setClientMatchStatus] = useState(null);
 
   // Gallery modal
   const [showGallery, setShowGallery] = useState(false);
@@ -101,6 +102,8 @@ export default function PropertyDetails() {
     return user?.role === "owner" && ownerId && String(ownerId) === String(user.id);
   }, [user, property]);
 
+
+  const isClientApproved = user?.role !== "client" || clientMatchStatus === "accepted";
   const imgs = property?.images || [];
   const hasCoords =
     property?.latitude != null &&
@@ -160,6 +163,20 @@ export default function PropertyDetails() {
 
     fetchProperty();
     if (user) checkFavorite();
+
+    const checkAcceptedMatch = async () => {
+      if (user?.role !== "client") return;
+      try {
+        const res = await api.get("/matches/client/accepted");
+        const list = Array.isArray(res.data) ? res.data : [];
+        const found = list.find((m) => String(m?.propertyId?._id || m?.propertyId) === String(propertyId));
+        setClientMatchStatus(found ? "accepted" : "pending_owner_review");
+      } catch (err) {
+        console.error("Error checking match status:", err);
+      }
+    };
+
+    checkAcceptedMatch();
 
     return () => {
       mounted = false;
@@ -222,7 +239,7 @@ export default function PropertyDetails() {
 
   // ✅ CHANGE: open chat AND pass initial message (if any)
   const handleContactOwner = () => {
-    if (!ownerId) return;
+    if (!ownerId || !isClientApproved) return;
 
     const text = (contactMsg || "").trim();
 
@@ -413,6 +430,7 @@ export default function PropertyDetails() {
                     type="button"
                     className="pd-btn pd-btn-primary"
                     onClick={handleContactOwner}
+                    disabled={!isClientApproved}
                   >
                     Contact Owner
                   </button>
@@ -537,11 +555,13 @@ export default function PropertyDetails() {
                 </div>
               </div>
 
-              <button type="button" className="pd-cta pd-cta-primary" onClick={handleScheduleTour}>
+              <button type="button" className="pd-cta pd-cta-primary" onClick={handleScheduleTour}
+                    disabled={!isClientApproved}>
                 Schedule a Tour
               </button>
 
-              <button type="button" className="pd-cta pd-cta-secondary" onClick={handleContactOwner}>
+              <button type="button" className="pd-cta pd-cta-secondary" onClick={handleContactOwner}
+                    disabled={!isClientApproved}>
                 Request Info
               </button>
 
@@ -569,7 +589,8 @@ export default function PropertyDetails() {
                     placeholder={`I'm interested in ${title}...`}
                     rows={3}
                   />
-                  <button type="button" className="pd-cta pd-cta-primary" onClick={handleContactOwner}>
+                  <button type="button" className="pd-cta pd-cta-primary" onClick={handleContactOwner}
+                    disabled={!isClientApproved}>
                     Send Message
                   </button>
                   <div className="pd-muted" style={{ fontSize: 12 }}>

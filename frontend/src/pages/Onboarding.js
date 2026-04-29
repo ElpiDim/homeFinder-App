@@ -210,6 +210,12 @@ export default function Onboarding() {
       const { data } = await api.post("/users/onboarding", payload);
       const updated = data.user || data;
 
+      try {
+        await api.post("/matches/run");
+      } catch (matchErr) {
+        console.error("Failed to trigger matching after onboarding", matchErr);
+      }
+
       setUser(updated);
       localStorage.setItem("user", JSON.stringify(updated));
       navigate("/dashboard", { replace: true });
