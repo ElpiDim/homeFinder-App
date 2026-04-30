@@ -538,3 +538,53 @@ code { font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', mon
   color: var(--primary);
   font-weight: 800;
 }
+
+.nd-modalBackdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+.nd-matchModal{
+  width: min(92vw, 460px);
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+.nd-matchTitle{
+  margin: 0 0 12px;
+  color: #2a2140;
+}
+.nd-matchText{
+  margin: 6px 0;
+  color: #4a4860;
+}
+.nd-matchActions{
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.nd-matchBtn{
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nd-matchBtn.reject{
+  background: #ffe7ea;
+  color: #a22035;
+}
+.nd-matchBtn.accept{
+  background: #e4f9ee;
+  color: #1f7d42;
+}
+.nd-matchBtn:disabled{
+  opacity: 0.65;
+  cursor: not-allowed;
+}

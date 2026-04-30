@@ -46,6 +46,8 @@ export default function NotificationsDropdown({
 
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [matchPopup, setMatchPopup] = useState(null);
+  const [matchActionLoading, setMatchActionLoading] = useState(false);
   const unreadCount = useMemo(
     () => notifications.filter((n) => !(n.readAt || n.read)).length,
     [notifications]
@@ -179,8 +181,47 @@ export default function NotificationsDropdown({
       return;
     }
 
+    if ((note.type || "").toLowerCase() === "match_pending") {
+      try {
+        const res = await api.get("/matches/owner/pending", {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        const pending = Array.isArray(res.data) ? res.data : [];
+        const matchId = note?.referenceId?._id || note?.referenceId;
+        const selectedMatch = pending.find((m) => String(m?._id) === String(matchId));
+        if (selectedMatch) {
+          setMatchPopup(selectedMatch);
+          return;
+        }
+      } catch (e) {
+        console.error("fetch pending matches failed", e);
+      }
+      navigate("/dashboard/owner/matches");
+      return;
+    }
+
     if (note.referenceId) {
       navigate(`/property/${note.referenceId}`);
+    }
+  };
+
+  const handleMatchAction = async (status) => {
+    if (!matchPopup?._id || matchActionLoading) return;
+    setMatchActionLoading(true);
+    try {
+      await api.patch(
+        `/matches/${matchPopup._id}/status`,
+        { status },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        }
+      );
+      setMatchPopup(null);
+      fetchNotifications();
+    } catch (e) {
+      console.error(`match ${status} failed`, e);
+    } finally {
+      setMatchActionLoading(false);
     }
   };
 
@@ -255,6 +296,36 @@ export default function NotificationsDropdown({
                 }}
               >
                 View all
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {matchPopup && (
+        <div className="nd-modalBackdrop" role="presentation" onClick={() => !matchActionLoading && setMatchPopup(null)}>
+          <div className="nd-matchModal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h4 className="nd-matchTitle">Potential New Match</h4>
+            <p className="nd-matchText">
+              <strong>Client:</strong> {matchPopup?.clientId?.name || "Unknown"}
+            </p>
+            <p className="nd-matchText">
+              <strong>Email:</strong> {matchPopup?.clientId?.email || "Not available"}
+            </p>
+            <p className="nd-matchText">
+              <strong>Phone:</strong> {matchPopup?.clientId?.phone || "Not available"}
+            </p>
+            <p className="nd-matchText">
+              <strong>Occupation:</strong> {matchPopup?.clientId?.occupation || "Not available"}
+            </p>
+            <p className="nd-matchText">
+              <strong>Property:</strong> {matchPopup?.propertyId?.title || "Property"}
+            </p>
+            <div className="nd-matchActions">
+              <button type="button" className="nd-matchBtn reject" onClick={() => handleMatchAction("rejected")} disabled={matchActionLoading}>
+                Reject
+              </button>
+              <button type="button" className="nd-matchBtn accept" onClick={() => handleMatchAction("accepted")} disabled={matchActionLoading}>
+                Accept
               </button>
             </div>
           </div>
